@@ -33,6 +33,7 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.App"
+        android:extractNativeLibs="true"
         android:usesCleartextTraffic="true"
         android:requestLegacyExternalStorage="true">
 
@@ -68,6 +69,9 @@
             android:exported="false"
             android:theme="@style/Theme.App" />
         <activity android:name=".OtgAssistantActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".UsbBootActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
 

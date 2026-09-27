@@ -11,6 +11,7 @@ class ProcessManagerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setBackgroundDrawableResource(android.R.color.transparent)
         val page = ProcessManagerPage(this) { finish() }
         val content = page.build()
 
@@ -19,6 +20,14 @@ class ProcessManagerActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
+        }
+        root.background = Ui.liquidBackground(this)
+        root.clipToOutline = true
+        root.outlineProvider = object : android.view.ViewOutlineProvider() {
+            override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                val r = (32 * view.resources.displayMetrics.density)
+                outline.setRoundRect(0, 0, view.width, view.height, r)
+            }
         }
         Ui.animateLiquidBackground(root)
         root.addView(content)
@@ -31,5 +40,10 @@ class ProcessManagerActivity : AppCompatActivity() {
             androidx.core.view.ViewCompat.requestApplyInsets(content)
             insets
         }
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.activity_scale_up_enter, R.anim.activity_scale_down_exit)
     }
 }

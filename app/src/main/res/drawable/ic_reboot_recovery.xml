@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Recovery：扳手 -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M21.7,18.3 L15.3,11.9 C15.9,10.7 16.1,9.3 15.7,7.9 L21.7,18.3 Z M13.9,13.1 L20.3,19.5 C20.5,19.7 20.5,20.1 20.3,20.3 L18.7,21.9 C18.5,22.1 18.1,22.1 17.9,21.9 L11.5,15.5 C10.3,16.1 8.9,16.3 7.5,15.9 C5.3,15.3 3.7,13.7 3.1,11.5 C2.7,9.9 3.1,8.3 4.1,7.1 L6.3,4.9 C6.5,4.7 6.9,4.7 7.1,4.9 L13.1,10.9 C13.5,9.9 13.5,8.8 13.1,7.9 L13.9,13.1 Z"/>
+</vector>

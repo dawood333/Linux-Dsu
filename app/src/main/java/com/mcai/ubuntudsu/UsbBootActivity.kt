@@ -5,32 +5,30 @@ import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
 import com.mcai.ubuntudsu.ui.Haptics
 import com.mcai.ubuntudsu.ui.Ui
-import com.mcai.ubuntudsu.ui.pages.RomPage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.mcai.ubuntudsu.ui.pages.UsbBootPage
 
-class RomActivity : AppCompatActivity() {
+/**
+ * U盘启动 - 薄脚手架 Activity
+ *
+ * 界面与交互全部交由 [UsbBootPage]（主应用拟态 + 液态玻璃架构），
+ * 本类只负责生命周期接线：
+ *  - onCreate：挂液态玻璃背景 + edge-to-edge，构建页面
+ *  - onDestroy：释放页面持有的下载线程与标志
+ *
+ * 震动反馈与主题适配由页面内的 [com.mcai.ubuntudsu.ui.Haptics] / [Ui] 承担。
+ */
+class UsbBootActivity : AppCompatActivity() {
 
-    private val scope = CoroutineScope(Dispatchers.IO)
-    private var romPage: RomPage? = null
+    private lateinit var page: UsbBootPage
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Ui.enableEdgeToEdge(this, window.decorView)
         window.setBackgroundDrawableResource(android.R.color.transparent)
 
-        val page = RomPage(this, { finish() }, scope)
-        romPage = page
-        val content = page.build()
-
-        val root = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
-        }
+        val root = FrameLayout(this)
         root.background = Ui.liquidBackground(this)
         root.clipToOutline = true
         root.outlineProvider = object : android.view.ViewOutlineProvider() {
@@ -40,26 +38,33 @@ class RomActivity : AppCompatActivity() {
             }
         }
         Ui.animateLiquidBackground(root)
-        root.addView(content)
-        setContentView(root)
-        Ui.enableEdgeToEdge(this, root)
 
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            androidx.core.view.ViewCompat.requestApplyInsets(content)
-            insets
-        }
+        page = UsbBootPage(this) { finish() }
+        val content = page.build()
+        Ui.applyContentInsets(content)
+        root.addView(
+            content,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+        )
+        setContentView(root)
     }
 
     override fun onDestroy() {
-        romPage?.cleanup()
+        page.cleanup()
         super.onDestroy()
     }
 
     override fun finish() {
         super.finish()
         overridePendingTransition(R.anim.activity_scale_up_enter, R.anim.activity_scale_down_exit)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        page.onActivityResult(requestCode, resultCode, data)
     }
 
     // 全局触摸震动反馈

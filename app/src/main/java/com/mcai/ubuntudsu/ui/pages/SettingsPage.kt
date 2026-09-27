@@ -14,6 +14,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import com.mcai.ubuntudsu.ProcessManagerActivity
 import com.mcai.ubuntudsu.R
+import android.view.MotionEvent
 import com.mcai.ubuntudsu.ui.Ui
 
 // 「更多」页：桌面图标式网格布局，聚合扩展功能入口
@@ -85,51 +86,193 @@ class SettingsPage(
         // 标题（壁纸同步时隐藏，图标上移替代）
         if (!wallpaperSync) {
             page.addView(TextView(activity).apply {
-                text = "TMOS桌面"
+                text = "阿明℗有趣小程序"
                 textSize = 22f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(Ui.primaryText(activity))
+                gravity = Gravity.CENTER_HORIZONTAL
                 setPadding(0, 0, 0, Ui.dp(18, d))
             })
         }
 
-        // 功能图标网格（每行 4 个）
-        val items = listOf(
-            GridItem("主题样式", R.drawable.icon_theme_color, "#5B6CFF") { showThemeDialog() },
-            GridItem("进程管理", R.drawable.icon_process_manager, "#E53935") { openProcessManager() },
-            GridItem("ROM固件", R.drawable.icon_rom_firmware, "#FF6B35") { openRomFirmware() },
-            GridItem("OTG助手", R.drawable.icon_otg, "#00897B") { openOtgAssistant() },
-            GridItem("软件更新", R.drawable.icon_update_color, "#2D64AA") { checkUpdate() },
+        // 功能图标网格（每行 4 个），顺序可持久化
+        val gridPrefs = activity.getPreferences(Activity.MODE_PRIVATE)
+        val savedOrder = gridPrefs.getString("icon_order", null)
+        val keyToItem = mapOf(
+            "theme" to GridItem("主题样式", R.drawable.icon_theme_color, "#5B6CFF") { _ -> showThemeDialog() },
+            "process" to GridItem("进程管理", R.drawable.icon_process_manager, "#E53935") { view -> openProcessManager(view) },
+            "rom" to GridItem("ROM固件", R.drawable.icon_rom_firmware, "#FF6B35") { view -> openRomFirmware(view) },
+            "otg" to GridItem("OTG助手", R.drawable.icon_otg, "#00897B") { view -> openOtgAssistant(view) },
+            "update" to GridItem("软件更新", R.drawable.icon_update_color, "#2D64AA") { _ -> checkUpdate() },
+            "usbboot" to GridItem("U盘启动", R.drawable.icon_usb_boot, "#E65100") { view -> openUsbBoot(view) },
         )
+        val defaultKeys = keyToItem.keys.toList()
+        val orderedKeys: List<String> = if (savedOrder != null) {
+            val parsed = savedOrder.split(",")
+            val valid = parsed.filter { it in keyToItem }
+            valid + defaultKeys.filter { it !in valid }
+        } else defaultKeys
 
-        // 网格布局：每行 4 个，居中排列，以后新增图标自动换行居中
-        val rows = items.chunked(4)
-        for (rowItems in rows) {
-            val row = LinearLayout(activity).apply {
-                orientation = LinearLayout.HORIZONTAL
-                // 居中：不满 4 个时整行居中，不靠左堆
-                gravity = Gravity.CENTER
-            }
-            for (item in rowItems) {
-                val iconView = buildGridIcon(item, d, wallpaperSync)
-                row.addView(iconView)
-            }
-            page.addView(row, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                if (page.childCount > 1) topMargin = Ui.dp(16, d)
-            })
+        // 网格布局：每行 4 个，支持长按拖动交换位置
+        val iconViews = mutableListOf<Pair<View, String>>()
+        val rowContainer = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
         }
 
+        for ((rowIndex, rowItems) in orderedKeys.chunked(4).withIndex()) {
+            val row = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (rowIndex > 0) topMargin = Ui.dp(16, d)
+                }
+            }
+            for (key in rowItems) {
+                val item = keyToItem[key]!!
+                val iconView = buildGridIcon(item, d, wallpaperSync)
+                iconViews.add(iconView to key)
+                row.addView(iconView)
+            }
+            rowContainer.addView(row)
+        }
+        page.addView(rowContainer)
+
+        setupDragReorder(iconViews, rowContainer, gridPrefs, keyToItem, orderedKeys)
+
         return frame
+    }
+
+    /** 长按拖动重排图标：跟手移动，松手时与最近的图标交换位置并重建网格 */
+    private fun setupDragReorder(
+        iconViews: MutableList<Pair<View, String>>,
+        rowContainer: LinearLayout,
+        prefs: android.content.SharedPreferences,
+        keyToItem: Map<String, GridItem>,
+        initialKeys: List<String>,
+    ) {
+        val d = activity.resources.displayMetrics.density
+
+        for ((v, key) in iconViews) {
+            v.setOnLongClickListener {
+                // 视觉反馈
+                v.elevation = Ui.dp(24, d).toFloat()
+                v.scaleX = 1.2f
+                v.scaleY = 1.2f
+                v.alpha = 0.9f
+
+                var startRawX = 0f
+                var startRawY = 0f
+                var grabbed = false
+
+                v.isLongClickable = false
+                v.setOnTouchListener { view, event ->
+                    if (!grabbed && event.action == MotionEvent.ACTION_MOVE) {
+                        grabbed = true
+                        startRawX = event.rawX
+                        startRawY = event.rawY
+                    }
+                    when (event.action) {
+                        MotionEvent.ACTION_MOVE -> {
+                            if (grabbed) {
+                                v.translationX = event.rawX - startRawX
+                                v.translationY = event.rawY - startRawY
+                            }
+                            true
+                        }
+                        MotionEvent.ACTION_UP -> {
+                            // 找到松手位置最近的其他图标
+                            var targetKey: String? = null
+                            var minDist = Float.MAX_VALUE
+                            for ((otherV, otherKey) in iconViews) {
+                                if (otherKey == key) continue
+                                val oLoc = IntArray(2)
+                                otherV.getLocationOnScreen(oLoc)
+                                val ocx = oLoc[0] + otherV.width / 2f
+                                val ocy = oLoc[1] + otherV.height / 2f
+                                val vLoc = IntArray(2)
+                                view.getLocationOnScreen(vLoc)
+                                val vcx = vLoc[0] + view.width / 2f
+                                val vcy = vLoc[1] + view.height / 2f
+                                val dist = kotlin.math.abs(ocx - vcx) + kotlin.math.abs(ocy - vcy)
+                                if (dist < minDist) {
+                                    minDist = dist
+                                    targetKey = otherKey
+                                }
+                            }
+                            val swapped = targetKey != null && minDist < view.width * 2.5f
+                            if (swapped) {
+                                val i = iconViews.indexOfFirst { it.second == key }
+                                val j = iconViews.indexOfFirst { it.second == targetKey!! }
+                                val tmp = iconViews[i]
+                                iconViews[i] = iconViews[j]
+                                iconViews[j] = tmp
+                                val newOrder = iconViews.map { it.second }.joinToString(",")
+                                prefs.edit().putString("icon_order", newOrder).apply()
+                            }
+                            // 回弹动画
+                            v.elevation = 0f
+                            v.animate().translationX(0f).translationY(0f)
+                                .scaleX(1f).scaleY(1f).alpha(1f)
+                                .setDuration(200)
+                                .withEndAction {
+                                    if (swapped) {
+                                        rebuildGrid(rowContainer, iconViews, keyToItem, prefs, initialKeys)
+                                    }
+                                }
+                                .start()
+                            v.isLongClickable = true
+                            v.setOnTouchListener(null)
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                true
+            }
+        }
+    }
+
+    /** 根据 iconViews 当前顺序重建网格布局 */
+    private fun rebuildGrid(
+        rowContainer: LinearLayout,
+        iconViews: List<Pair<View, String>>,
+        keyToItem: Map<String, GridItem>,
+        prefs: android.content.SharedPreferences,
+        initialKeys: List<String>,
+    ) {
+        val d = activity.resources.displayMetrics.density
+        rowContainer.removeAllViews()
+
+        // 按 iconViews 顺序重建行
+        val keys = iconViews.map { it.second }
+        for ((rowIndex, rowItems) in keys.chunked(4).withIndex()) {
+            val row = LinearLayout(activity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (rowIndex > 0) topMargin = Ui.dp(16, d)
+                }
+            }
+            for (key in rowItems) {
+                val item = keyToItem[key] ?: continue
+                val iconView = buildGridIcon(item, d, false)
+                row.addView(iconView)
+            }
+            rowContainer.addView(row)
+        }
     }
 
     private data class GridItem(
         val title: String,
         val iconRes: Int,
         val tintColor: String,
-        val onClick: () -> Unit,
+        val onClick: (View) -> Unit,
     )
 
     private fun buildGridIcon(item: GridItem, d: Float, wallpaperSync: Boolean = false): View {
@@ -138,7 +281,7 @@ class SettingsPage(
             gravity = Gravity.CENTER_HORIZONTAL
             isClickable = true
             isFocusable = true
-            setOnClickListener { item.onClick() }
+            setOnClickListener { item.onClick(this) }
             // 固定宽度，配合行 gravity=CENTER 实现居中排列
             layoutParams = LinearLayout.LayoutParams(Ui.dp(76, d), ViewGroup.LayoutParams.WRAP_CONTENT)
         }
@@ -294,19 +437,30 @@ class SettingsPage(
             .show()
     }
 
-    private fun openProcessManager() {
+    private fun openProcessManager(iconView: View) {
         val intent = Intent(activity, com.mcai.ubuntudsu.ProcessManagerActivity::class.java)
-        activity.startActivity(intent)
+        val options = android.app.ActivityOptions.makeScaleUpAnimation(iconView, 0, 0, iconView.width, iconView.height)
+        activity.startActivity(intent, options.toBundle())
     }
 
-    private fun openRomFirmware() {
+    private fun openRomFirmware(iconView: View) {
         val intent = Intent(activity, com.mcai.ubuntudsu.RomActivity::class.java)
-        activity.startActivity(intent)
+        val options = android.app.ActivityOptions.makeScaleUpAnimation(iconView, 0, 0, iconView.width, iconView.height)
+        activity.startActivity(intent, options.toBundle())
     }
 
-    private fun openOtgAssistant() {
+    private fun openOtgAssistant(iconView: View) {
         val intent = Intent(activity, com.mcai.ubuntudsu.OtgAssistantActivity::class.java)
-        activity.startActivity(intent)
+        val options = android.app.ActivityOptions.makeScaleUpAnimation(iconView, 0, 0, iconView.width, iconView.height)
+        activity.startActivity(intent, options.toBundle())
+    }
+
+    private fun openUsbBoot(iconView: View) {
+        val intent = Intent(activity, com.mcai.ubuntudsu.UsbBootActivity::class.java)
+        val options = android.app.ActivityOptions.makeScaleUpAnimation(
+            iconView, 0, 0, iconView.width, iconView.height
+        )
+        activity.startActivity(intent, options.toBundle())
     }
 
     // 在线检查更新：GitHub Releases 最新版比对本地版本，提示 / 下载 / 安装

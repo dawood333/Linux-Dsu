@@ -2,68 +2,70 @@ package com.mcai.ubuntudsu
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
-import android.view.ViewGroup
-import android.widget.FrameLayout
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import com.mcai.ubuntudsu.core.ToolInstaller
 import com.mcai.ubuntudsu.ui.Ui
 import com.mcai.ubuntudsu.ui.pages.OtgAssistantPage
 
+/**
+ * OTG 助手 - 薄脚手架 Activity
+ *
+ * 界面与交互全部交由 [OtgAssistantPage]（主应用拟态 + 液态玻璃架构），
+ * 本类只负责生命周期接线：
+ *  - onCreate：挂液态玻璃背景 + edge-to-edge，构建页面并注册 USB 插拔广播
+ *  - onActivityResult：派发到页面的文件选择处理
+ *  - onDestroy：注销广播并释放页面持有的处理器
+ *
+ * 震动反馈与主题适配由页面内的 [com.mcai.ubuntudsu.ui.Haptics] / [Ui] 承担。
+ */
 class OtgAssistantActivity : AppCompatActivity() {
 
     private lateinit var page: OtgAssistantPage
 
-    private val pickFileLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == RESULT_OK) {
-            val path = result.data?.getStringExtra(RootfsFilesActivity.RESULT_FILE_PATH)
-            if (!path.isNullOrBlank()) page.onFilePicked(path)
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Ui.enableEdgeToEdge(this, window.decorView)
+        window.setBackgroundDrawableResource(android.R.color.transparent)
 
-        // 确保工具安装完成
-        val toolsOk = ToolInstaller.ensureInstalled(this)
-        if (!toolsOk) {
-            Log.e("OtgAssistant", "工具安装失败")
-            AlertDialog.Builder(this)
-                .setTitle("工具安装失败")
-                .setMessage("无法解压内置 adb/fastboot 工具，请检查存储空间或重新安装应用。")
-                .setPositiveButton("退出") { _, _ -> finish() }
-                .show()
-            return
-        }
-
-        page = OtgAssistantPage(this, pickFileLauncher) { finish() }
-        val content = page.build()
-
-        val root = FrameLayout(this).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
+        val root = android.widget.FrameLayout(this)
+        root.background = Ui.liquidBackground(this)
+        root.clipToOutline = true
+        root.outlineProvider = object : android.view.ViewOutlineProvider() {
+            override fun getOutline(view: android.view.View, outline: android.graphics.Outline) {
+                val r = (32 * view.resources.displayMetrics.density)
+                outline.setRoundRect(0, 0, view.width, view.height, r)
+            }
         }
         Ui.animateLiquidBackground(root)
-        root.addView(content)
-        setContentView(root)
-        Ui.enableEdgeToEdge(this, root)
 
-        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { v, insets ->
-            val bars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
-            v.setPadding(bars.left, bars.top, bars.right, bars.bottom)
-            androidx.core.view.ViewCompat.requestApplyInsets(content)
-            insets
-        }
+        page = OtgAssistantPage(this) { finish() }
+        val content = page.build()
+        Ui.applyContentInsets(content)
+        root.addView(
+            content,
+            android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        setContentView(root)
+
+        // USB 插拔自动刷新：需在页面构建后、onCreate 内注册广播
+        page.registerReceiver()
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        page.onActivityResult(requestCode, resultCode, data)
     }
 
     override fun onDestroy() {
+        page.destroy()
         super.onDestroy()
-        page.onDestroy()
+    }
+
+    override fun finish() {
+        super.finish()
+        overridePendingTransition(R.anim.activity_scale_up_enter, R.anim.activity_scale_down_exit)
     }
 }

@@ -300,16 +300,16 @@ class MainActivity : AppCompatActivity() {
             pageHost.setPadding(0, 0, 0, Ui.dp(56 + 16 + 12, d) + bottomInset)
         }
 
-        pageHost.addView(
-            wrapped,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
-        )
-        // 页面水感入场：轻弹落下（水滴落入页面的弹性）
+        // 页面水感入场：先设初始动画状态（透明+缩放+偏移），再 addView，避免闪屏
         wrapped.alpha = 0f
         wrapped.scaleX = 0.92f
         wrapped.scaleY = 0.92f
         wrapped.translationY = Ui.dp(14, resources.displayMetrics.density).toFloat()
         wrapped.pivotY = (resources.displayMetrics.heightPixels * 0.85).toFloat()
+        pageHost.addView(
+            wrapped,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
+        )
         wrapped.animate()
             .alpha(1f)
             .scaleX(1f)
