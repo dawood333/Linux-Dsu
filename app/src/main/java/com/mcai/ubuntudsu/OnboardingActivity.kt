@@ -382,138 +382,37 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     /**
-     * 引导首页专属背景：动态线性"阳光彩虹"渐变。
-     * 斜向 LinearGradient 沿轴向无限流动（首尾同色 + REPEAT 保证无缝循环），
-     * 叠加两团缓慢漂移的日光光晕，营造阳光穿过棱镜的柔和氛围。
-     * 视图 detach 时自动取消动画，不耗电。
+     * 引导首页专属背景：静态混搭渐变（浅黑 → 绿 → 蓝 → 白）。
+     * 斜向对角多色渐变，整体偏深，保证白色导向按钮与文字清晰可读。
+     * 无动画、不耗电。
      */
     private class RainbowFlowView(context: android.content.Context) : View(context) {
         private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        private val glowPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        private val matrix = android.graphics.Matrix()
-        private var phase = 0f
-        private var animator: android.animation.ValueAnimator? = null
         private var w = 0
         private var h = 0
-        private var band = 1f
-        private var glowR = 1f
-        private var flowShader: android.graphics.LinearGradient? = null
-        private var warmShader: android.graphics.RadialGradient? = null
-        private var coolShader: android.graphics.RadialGradient? = null
 
-        // 阳光彩虹色环：暖橙→金→嫩绿→青→蓝→紫→粉，首尾同色形成无缝循环
-        private val rainbow: IntArray
-        private val bgBase: Int
-        private val warmColor: Int
-        private val coolColor: Int
-
-        init {
-            val dark = Ui.isDark(context)
-            // 夜间稍浓郁、日间更柔和，与全局液态玻璃配色协调
-            val alpha = if (dark) 175 else 128
-            fun c(rgb: Int) = (alpha shl 24) or (rgb and 0xFFFFFF)
-            rainbow = intArrayOf(
-                c(0xFF8A3D), c(0xFFC24D), c(0xFDE96B), c(0x8FE3A0),
-                c(0x6FC8FF), c(0x9D8CFF), c(0xFF8CC0), c(0xFF8A3D),
-            )
-            bgBase = if (dark) Color.parseColor("#151A2E") else Color.parseColor("#F3F5FA")
-            warmColor = if (dark) 0x38FFC978 else 0x50FFD27A
-            coolColor = if (dark) 0x305A9CFF else 0x4278B4FF
-        }
+        // 静态混搭渐变：浅黑 → 绿 → 蓝 → 白（对角方向，白色仅占右下角小段做提亮）
+        private val colors = intArrayOf(
+            Color.parseColor("#34383F"), // 浅黑
+            Color.parseColor("#2F7A5B"), // 绿
+            Color.parseColor("#2A5A8E"), // 蓝
+            Color.parseColor("#D9DFE7"), // 白
+        )
+        private val stops = floatArrayOf(0f, 0.42f, 0.72f, 1f)
 
         override fun onSizeChanged(width: Int, height: Int, oldw: Int, oldh: Int) {
             w = width
             h = height
-            band = (maxOf(width, height) * 2.4f).coerceAtLeast(1f)
-            flowShader = android.graphics.LinearGradient(
-                0f, 0f, band, 0f, rainbow, null, android.graphics.Shader.TileMode.REPEAT,
-            )
-            glowR = maxOf(width, height) * 0.75f
-            // 光晕 shader 以 (glowR, glowR) 为圆心，绘制时用 localMatrix 平移定位
-            warmShader = android.graphics.RadialGradient(
-                glowR, glowR, glowR, warmColor, warmColor and 0x00FFFFFF,
-                android.graphics.Shader.TileMode.CLAMP,
-            )
-            coolShader = android.graphics.RadialGradient(
-                glowR, glowR, glowR, coolColor, coolColor and 0x00FFFFFF,
-                android.graphics.Shader.TileMode.CLAMP,
-            )
         }
 
         override fun onDraw(canvas: android.graphics.Canvas) {
-            canvas.drawColor(bgBase)
-            val flow = flowShader
-            if (flow != null) {
-                canvas.save()
-                canvas.rotate(-18f, w / 2f, h / 2f)
-                matrix.reset()
-                matrix.setTranslate(phase * band, 0f)
-                flow.setLocalMatrix(matrix)
-                paint.shader = flow
-                canvas.drawRect(-band, -h.toFloat(), band * 2f, h * 2f, paint)
-                canvas.restore()
-                paint.shader = null
-            }
-
-            // 两团日光光晕随相位缓慢漂移（暖光左上 / 冷光右下）
-            val twoPi = (Math.PI * 2).toFloat()
-            val pi = Math.PI.toFloat()
-            val cx1 = w * (0.30f + 0.10f * kotlin.math.sin(phase * twoPi))
-            val cy1 = h * (0.22f + 0.08f * kotlin.math.cos(phase * twoPi))
-            val cx2 = w * (0.74f + 0.09f * kotlin.math.sin(phase * twoPi + pi))
-            val cy2 = h * (0.78f + 0.07f * kotlin.math.cos(phase * twoPi + pi))
-            warmShader?.let {
-                matrix.reset()
-                matrix.setTranslate(cx1 - glowR, cy1 - glowR)
-                it.setLocalMatrix(matrix)
-                glowPaint.shader = it
-                canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), glowPaint)
-            }
-            coolShader?.let {
-                matrix.reset()
-                matrix.setTranslate(cx2 - glowR, cy2 - glowR)
-                it.setLocalMatrix(matrix)
-                glowPaint.shader = it
-                canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), glowPaint)
-            }
-            glowPaint.shader = null
-        }
-
-        override fun onAttachedToWindow() {
-            super.onAttachedToWindow()
-            ensureAnimator()
-        }
-
-        override fun onDetachedFromWindow() {
-            animator?.cancel()
-            animator = null
-            super.onDetachedFromWindow()
-        }
-
-        /** 离开欢迎页（visibility != VISIBLE）自动停动画，回页重启 */
-        override fun onVisibilityChanged(changedView: View, visibility: Int) {
-            super.onVisibilityChanged(changedView, visibility)
-            if (visibility == View.VISIBLE) {
-                ensureAnimator()
-            } else {
-                animator?.cancel()
-                animator = null
-            }
-        }
-
-        private fun ensureAnimator() {
-            if (animator == null && isShown) {
-                animator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
-                    duration = 26000
-                    interpolator = android.view.animation.LinearInterpolator()
-                    repeatCount = android.animation.ValueAnimator.INFINITE
-                    addUpdateListener { anim ->
-                        phase = anim.animatedValue as Float
-                        invalidate()
-                    }
-                    start()
-                }
-            }
+            paint.shader = android.graphics.LinearGradient(
+                0f, 0f, w.toFloat(), h.toFloat(),
+                colors, stops,
+                android.graphics.Shader.TileMode.CLAMP,
+            )
+            canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
+            paint.shader = null
         }
     }
 

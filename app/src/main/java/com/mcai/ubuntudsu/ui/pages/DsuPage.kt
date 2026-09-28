@@ -250,7 +250,7 @@ class DsuPage(
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
         toolsRow1.addView(
-            Ui.iconTile(activity, "修复环境", "清理元数据重新准备", R.drawable.ic_tools, Ui.buttonSuccess(activity), Ui.buttonSuccess(activity)) {
+            Ui.iconTile(activity, "修复环境", "清理元数据重新准备", R.drawable.icon_repair_modern) {
                 confirmAction(
                     "修复 DSU 环境",
                     "将删除 /metadata/gsi/dsu 和 /metadata/vold/metadata_encryption/dsu。该操作用于清理上一次失败安装留下的状态，不会删除已选择的 GSI 文件。",
@@ -278,7 +278,7 @@ class DsuPage(
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
         toolsRow2.addView(
-            Ui.iconTile(activity, "清理 userdata", "清空用户数据分区", R.drawable.ic_clear, Ui.buttonSecondary(activity), Ui.buttonSecondary(activity)) {
+            Ui.iconTile(activity, "清理 userdata", "清空用户数据分区", R.drawable.icon_clear_modern) {
                 confirmAction("清理 userdata", "执行 gsi_tool wipe-data，仅清空 userdata 分区数据。") {
                     executor.execute {
                         val result = DsuManager.wipeData(::log)

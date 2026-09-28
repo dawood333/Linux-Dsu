@@ -2,9 +2,7 @@ package com.mcai.ubuntudsu.ui.pages
 
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
-import android.view.GestureDetector
 import android.view.Gravity
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -36,8 +34,6 @@ class HomePage(
     private var cpuSample: Any? = null
     // 合并后的整张拼接卡（含实时状态 + 检测信息两个分区）
     private var unifiedCard: LinearLayout? = null
-    // 当前渐变档位；默认 0 = 薄荷绿渐变
-    private var gradientIndex = 0
     // 顶部头图卡片：自定义背景图（Env.background），自动居中裁切适配
     private var heroImage: ImageView? = null
     private var heroScrim: View? = null
@@ -75,83 +71,32 @@ class HomePage(
         // 单张拼接卡：上分区实时状态，下分区检测信息，中间水晶玻璃分隔条
         val unified = buildUnifiedCard(d)
         unifiedCard = unified
-        attachBackgroundGestures(unified)
-        // 初始即应用默认渐变（薄荷绿）
-        applyGradient()
+        // 固定应用默认渐变（薄荷绿系）
+        applyDefaultGradient()
         page.addView(unified)
 
         return page
     }
 
-    // 渐变档位：浅色/深色各自一组半透明渐变，叠加白/黑内衬保证文字可读
-    // 默认三档为薄荷绿 / 青绿 / 清新绿，后续档位为彩色循环
-    private fun gradientPresets(): List<Pair<Int, Int>> {
-        val dark = Ui.isDark(activity)
-        return if (dark) {
-            listOf(
-                Color.parseColor("#CC1F3A2E") to Color.parseColor("#CC1F2E4E"),
-                Color.parseColor("#CC14401F") to Color.parseColor("#CC1F4E3A"),
-                Color.parseColor("#CC1F4E3A") to Color.parseColor("#CC1F4E50"),
-                Color.parseColor("#33361FCC") to Color.parseColor("#331F4ECC"),
-                Color.parseColor("#CC2E1F33") to Color.parseColor("#CC331F55"),
-                Color.parseColor("#CC1F3333") to Color.parseColor("#CC331F55"),
-                Color.parseColor("#CC4E1F50") to Color.parseColor("#CC50331F"),
-                Color.parseColor("#CC1F4E50") to Color.parseColor("#CC1F3ACC"),
-            )
+    // 首页卡片固定使用默认渐变（薄荷绿系），不做点击切换变色
+
+    // 固定默认渐变：浅色/深色各自一组半透明渐变，叠加白/黑内衬保证文字可读
+    private fun defaultGradient(): Pair<Int, Int> =
+        if (Ui.isDark(activity)) {
+            Color.parseColor("#CC1F3A2E") to Color.parseColor("#CC1F2E4E")
         } else {
-            listOf(
-                Color.parseColor("#F2B8FFF2") to Color.parseColor("#F2A0F0E0"),
-                Color.parseColor("#F2BAE6FF") to Color.parseColor("#F2A0E0D0"),
-                Color.parseColor("#F2BAFFF0") to Color.parseColor("#F2C8FFB0"),
-                Color.parseColor("#F2FFE3BA") to Color.parseColor("#F2FFD7B0"),
-                Color.parseColor("#F2BAE0FF") to Color.parseColor("#F2B0C8FF"),
-                Color.parseColor("#F2E0BAFF") to Color.parseColor("#F2D7B0FF"),
-                Color.parseColor("#F2FFBABA") to Color.parseColor("#F2FFD0B0"),
-                Color.parseColor("#F2B0FFC8") to Color.parseColor("#F2D0FFE0"),
-            )
+            Color.parseColor("#F2B8FFF2") to Color.parseColor("#F2A0F0E0")
         }
-    }
 
-    // 单击切换到下一档渐变，双击恢复默认（薄荷绿）
-    private fun attachBackgroundGestures(card: View) {
-        val detector = GestureDetector(activity, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                val presets = gradientPresets()
-                gradientIndex = (gradientIndex + 1).let { if (it >= presets.size) 0 else it }
-                applyGradient()
-                return true
-            }
-
-            override fun onDoubleTap(e: MotionEvent): Boolean {
-                gradientIndex = 0
-                applyGradient()
-                Toast.makeText(activity, "已恢复默认背景", Toast.LENGTH_SHORT).show()
-                return true
-            }
-        })
-        card.setOnTouchListener { v, event ->
-            detector.onTouchEvent(event)
-            v.performClick()
-            true
-        }
-    }
-
-    // 按当前档位应用渐变；-1 恢复默认 glassSurface
-    // 渐变档位同样叠加拟态高光/阴影环，保持全局拟态质感
-    private fun applyGradient() {
+    // 应用固定默认渐变；叠加拟态高光/阴影环，保持全局拟态质感
+    private fun applyDefaultGradient() {
         val card = unifiedCard ?: return
-        if (gradientIndex < 0) {
-            card.background = Ui.glassSurface(activity, 20f)
-            return
-        }
-        val (top, bottom) = gradientPresets()[gradientIndex]
+        val (top, bottom) = defaultGradient()
         card.background = android.graphics.drawable.LayerDrawable(
             arrayOf(
-                // 用户选择的渐变填充
                 GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(top, bottom)).apply {
                     cornerRadius = Ui.dp(20, activity.resources.displayMetrics.density).toFloat()
                 },
-                // 左上高光内环（拟态受光边）
                 GradientDrawable().apply {
                     cornerRadius = Ui.dp(20, activity.resources.displayMetrics.density).toFloat()
                     setColor(Color.TRANSPARENT)
@@ -160,7 +105,6 @@ class HomePage(
                         if (Ui.isDark(activity)) Color.argb(62, 168, 214, 255) else Color.argb(200, 255, 255, 255),
                     )
                 },
-                // 右下阴影外环（拟态背光边）
                 GradientDrawable().apply {
                     cornerRadius = Ui.dp(21, activity.resources.displayMetrics.density).toFloat()
                     setColor(Color.TRANSPARENT)
@@ -263,39 +207,39 @@ class HomePage(
         })
         val gauges = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER
         }
-        val cpuGauge = UsageGauge(activity, "CPU", Ui.buttonPrimary(activity))
-        val gpuGauge = UsageGauge(activity, "GPU", Ui.buttonSecondary(activity))
-        // CPU 标签 + 圆圈
+        val cpuGauge = UsageGauge(activity, "CPU")
+        val gpuGauge = UsageGauge(activity, "GPU")
+        // CPU：圆圈在上、标签在下
         gauges.addView(LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = Ui.dp(8, d) }
+            addView(cpuGauge, LinearLayout.LayoutParams(Ui.dp(104, d), Ui.dp(104, d)))
             addView(TextView(activity).apply {
                 text = "CPU"
                 textSize = 13f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 setTextColor(Ui.secondaryText(activity))
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = Ui.dp(6, d) }
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(2, d) }
             })
-            addView(cpuGauge, LinearLayout.LayoutParams(Ui.dp(86, d), Ui.dp(86, d)))
         })
-        // GPU 标签 + 圆圈
+        // GPU：圆圈在上、标签在下
         gauges.addView(LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = Ui.dp(8, d) }
+            addView(gpuGauge, LinearLayout.LayoutParams(Ui.dp(104, d), Ui.dp(104, d)))
             addView(TextView(activity).apply {
                 text = "GPU"
                 textSize = 13f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
                 setTextColor(Ui.secondaryText(activity))
-                gravity = Gravity.CENTER_VERTICAL
-                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginEnd = Ui.dp(6, d) }
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(2, d) }
             })
-            addView(gpuGauge, LinearLayout.LayoutParams(Ui.dp(86, d), Ui.dp(86, d)))
         })
         card.addView(gauges)
         val details = LinearLayout(activity).apply {
@@ -488,7 +432,6 @@ class HomePage(
     private class UsageGauge(
         context: android.content.Context,
         private val name: String,
-        private val accent: Int,
     ) : View(context) {
         var value: Int? = null
             set(newValue) {
@@ -497,23 +440,16 @@ class HomePage(
             }
         private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
 
-        /** 按百分比混合搭配：浅白 + 蓝 + 红 三色同时混合，百分比越高浅度越低、颜色越深 */
-        private fun gaugeColor(percent: Int, dark: Boolean): Int {
-            val t = (percent / 100f).coerceIn(0f, 1f)
-            val light = if (dark) Color.rgb(190, 200, 225) else Color.rgb(230, 238, 248)
-            val blue  = Color.rgb(55, 140, 255)
-            val red   = Color.rgb(235, 75, 75)
-            // 浅白占比随 t 降低（100% 时仍保留 10% 浅底），蓝和红占比随 t 升高
-            val wLight = 0.1f + 0.9f * (1f - t)
-            val wBlue  = 0.45f * t
-            val wRed   = 0.45f * t
-            val wTotal = wLight + wBlue + wRed
-            val r = (Color.red(light) * wLight + Color.red(blue) * wBlue + Color.red(red) * wRed) / wTotal
-            val g = (Color.green(light) * wLight + Color.green(blue) * wBlue + Color.green(red) * wRed) / wTotal
-            val b = (Color.blue(light) * wLight + Color.blue(blue) * wBlue + Color.blue(red) * wRed) / wTotal
-            // 不透明度：低百分比 190，高百分比 255（全实）
-            val alpha = (190 + 65 * t).toInt().coerceIn(190, 255)
-            return Color.argb(alpha, r.toInt(), g.toInt(), b.toInt())
+        /** 渐变端点：(浅色, 深色)。CPU 蓝色系，GPU 紫色系。 */
+        private fun gradient(): Pair<Int, Int> {
+            val dark = Ui.isDark(context)
+            return if (name == "CPU") {
+                if (dark) Color.rgb(96, 170, 255) to Color.rgb(45, 100, 245)
+                else Color.rgb(130, 185, 255) to Color.rgb(45, 100, 245)
+            } else {
+                if (dark) Color.rgb(176, 144, 255) to Color.rgb(130, 90, 255)
+                else Color.rgb(185, 150, 255) to Color.rgb(120, 74, 255)
+            }
         }
 
         override fun onDraw(canvas: android.graphics.Canvas) {
@@ -521,31 +457,67 @@ class HomePage(
             val cx = width / 2f
             val cy = height / 2f
             val size = minOf(width, height).toFloat()
-            val radius = size * 0.40f
-            val stroke = size * 0.09f
-            val ring = android.graphics.RectF(cx - radius, cy - radius, cx + radius, cy + radius)
-            paint.style = android.graphics.Paint.Style.STROKE
-            paint.strokeWidth = stroke
-            paint.strokeCap = android.graphics.Paint.Cap.ROUND
             val dark = Ui.isDark(context)
-            val percent = value ?: 0
-            // 背景环：始终用淡色，与选中色形成对比
-            paint.color = if (dark) Color.argb(90, 255, 255, 255) else Color.argb(80, Color.red(accent), Color.green(accent), Color.blue(accent))
-            canvas.drawArc(ring, -90f, 360f, false, paint)
-            // 进度环：动态颜色
-            if (percent > 0) {
-                paint.color = gaugeColor(percent, dark)
-                canvas.drawArc(ring, -90f, 3.6f * percent, false, paint)
+            val (lightC, darkC) = gradient()
+            val percent = (value ?: 0).coerceIn(0, 100)
+
+            // 1. 光晕背景：径向渐变从淡彩到透明
+            val haloRadius = size * 0.48f
+            paint.style = android.graphics.Paint.Style.FILL
+            paint.shader = android.graphics.RadialGradient(
+                cx, cy, haloRadius,
+                intArrayOf(
+                    Color.argb(if (dark) 56 else 64, Color.red(lightC), Color.green(lightC), Color.blue(lightC)),
+                    Color.argb(8, Color.red(lightC), Color.green(lightC), Color.blue(lightC)),
+                    Color.TRANSPARENT,
+                ),
+                floatArrayOf(0f, 0.55f, 1f),
+                android.graphics.Shader.TileMode.CLAMP,
+            )
+            canvas.drawCircle(cx, cy, haloRadius, paint)
+            paint.shader = null
+
+            // 2. 表盘刻度：外围短刻度线（60 格，时钟式）
+            paint.style = android.graphics.Paint.Style.STROKE
+            paint.strokeWidth = size * 0.012f
+            paint.strokeCap = android.graphics.Paint.Cap.BUTT
+            paint.color = Color.argb(if (dark) 90 else 110, Color.red(darkC), Color.green(darkC), Color.blue(darkC))
+            val tickOuter = size * 0.47f
+            val tickInner = size * 0.44f
+            for (i in 0 until 60) {
+                val angle = Math.toRadians((-90 + i * 6).toDouble())
+                val cos = Math.cos(angle).toFloat()
+                val sin = Math.sin(angle).toFloat()
+                canvas.drawLine(
+                    cx + cos * tickOuter, cy + sin * tickOuter,
+                    cx + cos * tickInner, cy + sin * tickInner,
+                    paint,
+                )
             }
-            // 中间数字：颜色随进度动态变化
+
+            // 3. 轨道环（淡色底环）+ 渐变进度弧
+            val radius = size * 0.34f
+            val stroke = size * 0.075f
+            val ring = android.graphics.RectF(cx - radius, cy - radius, cx + radius, cy + radius)
+            paint.strokeCap = android.graphics.Paint.Cap.ROUND
+            paint.strokeWidth = stroke
+            paint.color = if (dark) Color.argb(40, 255, 255, 255) else Color.argb(70, Color.red(lightC), Color.green(lightC), Color.blue(lightC))
+            canvas.drawArc(ring, -90f, 360f, false, paint)
+            if (percent > 0) {
+                paint.shader = android.graphics.SweepGradient(cx, cy, lightC, darkC)
+                canvas.drawArc(ring, -90f, 3.6f * percent, false, paint)
+                paint.shader = null
+            }
+
+            // 4. 中间大数字：用深色端点，夜间用浅色端点保证可读
             paint.style = android.graphics.Paint.Style.FILL
             paint.textAlign = android.graphics.Paint.Align.CENTER
             paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
-            paint.textSize = radius * 0.52f
-            val valueColor = Color.BLACK
-            paint.color = valueColor
+            paint.textSize = size * 0.28f
+            paint.color = if (dark) lightC else darkC
+            val text = if (value != null && value!! > 0) "$percent%" else "--"
             val valueBaseline = cy - (paint.ascent() + paint.descent()) / 2f
-            canvas.drawText(percent.let { if (it > 0) "$it%" else "--" }, cx, valueBaseline, paint)
+            canvas.drawText(text, cx, valueBaseline, paint)
         }
     }
 
