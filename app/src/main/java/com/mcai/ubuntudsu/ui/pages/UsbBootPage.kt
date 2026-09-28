@@ -5,16 +5,13 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Typeface
 import android.net.Uri
-import android.os.Environment
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.LinearLayout
-import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import com.mcai.ubuntudsu.core.Aria2c
 import com.mcai.ubuntudsu.core.RootShell
 import com.mcai.ubuntudsu.ui.Haptics
 import com.mcai.ubuntudsu.ui.Ui
@@ -40,32 +37,28 @@ class UsbBootPage(
     private val ctx: Context get() = activity
     private val d: Float get() = activity.resources.displayMetrics.density
 
-    // ===== 下载状态 =====
-    private val downloading = java.util.concurrent.atomic.AtomicBoolean(false)
-    private var downloadThread: Thread? = null
-    private var cancelFlag = java.util.concurrent.atomic.AtomicBoolean(false)
+    // ===== IMG 镜像制作状态 =====
+    private val imgMaking = java.util.concurrent.atomic.AtomicBoolean(false)
+    private val imgCancel = java.util.concurrent.atomic.AtomicBoolean(false)
+    private var imgMakeThread: Thread? = null
 
     // UI 引用（构建后填充）
-    private var isoStatusText: TextView? = null
-    private var isoPathText: TextView? = null
-    private var isoProgress: ProgressBar? = null
-    private var isoPercentText: TextView? = null
+    private var imgStatusText: TextView? = null
     private var vudStatusText: TextView? = null
     private var vudTypeText: TextView? = null
     private var selinuxText: TextView? = null
     private var startVudBtn: TextView? = null
     private var stopVudBtn: TextView? = null
-    private var cancelIsoBtn: TextView? = null
 
     // 当前选中的 VUD 连接模式
     private var selectedVudType = "cdrom"
 
-    // 内置文件选择器：ISO 源文件（浏览选择后作为 VUD 启动源）
-    private var pickedSourceFile: File? = null
+    // IMG 镜像制作参数
+    private var selectedImgGb = 4L
+    private var selectedFs = "FAT32"
 
-    // 自定义直链下载目标
-    private var customDownloadUrl = ""
-    private var customDownloadName = ""
+    // 内置文件选择器：ISO/IMG 源文件（浏览选择后作为 VUD 启动源）
+    private var pickedSourceFile: File? = null
 
     // 临时目录（与脚本保持一致，使用 $TMPDIR 风格）
     private val tmpDir = "/data/local/tmp/TimeVUD"
@@ -81,7 +74,7 @@ class UsbBootPage(
 
         root.addView(buildTopBar())
         root.addView(buildRootStatusCard())
-        root.addView(buildIsoCard())
+        root.addView(buildImgCard())
         root.addView(buildVudCard())
         root.addView(buildHelpCard())
 
@@ -101,7 +94,7 @@ class UsbBootPage(
             textSize = 13f
             setTextColor(Ui.buttonText(activity))
             gravity = Gravity.CENTER
-            background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
+            background = Ui.neuSolidButton(softButtonTopColor(Ui.buttonPrimary(activity)), softButtonBottomColor(Ui.buttonPrimary(activity)), 10f, activity)
             setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
             setOnClickListener { Haptics.perform(this); onBack() }
@@ -151,8 +144,8 @@ class UsbBootPage(
         return card
     }
 
-    // ==================== 在线下载 Win11 ISO（自定义直链） ====================
-    private fun buildIsoCard(): View {
+    // ==================== 制作 U 盘 IMG 镜像（truncate + 格式化） ====================
+    private fun buildImgCard(): View {
         val card = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(14, d), Ui.dp(12, d), Ui.dp(14, d), Ui.dp(12, d))
@@ -164,118 +157,114 @@ class UsbBootPage(
         }
 
         card.addView(TextView(activity).apply {
-            text = "在线下载 Windows 11 ISO"
+            text = "制作 U 盘 IMG 镜像"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
         })
         card.addView(TextView(activity).apply {
-            text = "粘贴 ISO/IMG 直链，内置 aria2c 多线程下载 + 进度 + 取消"
+            text = "本地生成 U 盘格式 IMG，再经虚拟 U 盘暴露给电脑"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
-            setPadding(0, Ui.dp(2, d), 0, Ui.dp(8, d))
+            setPadding(0, Ui.dp(2, d), 0, Ui.dp(6, d))
         })
 
-        // 自定义直链（内置 aria2c 下载）
+        // 镜像大小
         card.addView(TextView(activity).apply {
-            text = "自定义直链"
+            text = "镜像大小"
             textSize = 12f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
-            setPadding(0, Ui.dp(4, d), 0, Ui.dp(4, d))
+            setPadding(0, Ui.dp(2, d), 0, Ui.dp(4, d))
         })
-        val urlInput = android.widget.EditText(activity).apply {
-            hint = "粘贴 ISO/IMG 直链（https://...）"
-            textSize = 12f
-            setTextColor(Ui.primaryText(activity))
-            setHintTextColor(Ui.secondaryText(activity))
-            background = Ui.neuInset(activity, 12f)
-            setPadding(Ui.dp(10, d), Ui.dp(8, d), Ui.dp(10, d), Ui.dp(8, d))
-            isSingleLine = true
-            addTextChangedListener(object : android.text.TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                override fun afterTextChanged(s: android.text.Editable?) {
-                    customDownloadUrl = s?.toString()?.trim() ?: ""
+        val sizes = listOf("1 GB", "4 GB", "8 GB", "16 GB")
+        val sizeRow = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
+        val sizePills = mutableListOf<TextView>()
+        sizes.forEachIndexed { i, s ->
+            val gb = s.substringBefore(' ')
+            val isSelected = i == 1
+            val pill = TextView(activity).apply {
+                text = s
+                textSize = 11f
+                gravity = Gravity.CENTER
+                setTextColor(if (isSelected) selectionPillTextColor() else Ui.secondaryText(activity))
+                background = if (isSelected) selectionPillSelectedBackground() else Ui.neuInset(activity, 10f)
+                setPadding(Ui.dp(8, d), Ui.dp(6, d), Ui.dp(8, d), Ui.dp(6, d))
+                setOnClickListener {
+                    selectedImgGb = gb.toLong()
+                    sizePills.forEach { p ->
+                        val sel = p.text.toString() == s
+                        p.setTextColor(if (sel) selectionPillTextColor() else Ui.secondaryText(activity))
+                        p.background = if (sel) selectionPillSelectedBackground() else Ui.neuInset(activity, 10f)
+                    }
                 }
-            })
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (i > 0) marginStart = Ui.dp(4, d)
+                }
+            }
+            sizePills.add(pill)
+            sizeRow.addView(pill)
         }
-        card.addView(urlInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        card.addView(sizeRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        val nameInput = android.widget.EditText(activity).apply {
-            hint = "可选：本地文件名（默认取链接名）"
+        // 文件系统
+        card.addView(TextView(activity).apply {
+            text = "文件系统"
             textSize = 12f
+            setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
-            setHintTextColor(Ui.secondaryText(activity))
-            background = Ui.neuInset(activity, 12f)
-            setPadding(Ui.dp(10, d), Ui.dp(8, d), Ui.dp(10, d), Ui.dp(8, d))
-            isSingleLine = true
-            addTextChangedListener(object : android.text.TextWatcher {
-                override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
-                override fun afterTextChanged(s: android.text.Editable?) {
-                    customDownloadName = s?.toString()?.trim() ?: ""
-                }
-            })
-        }
-        card.addView(nameInput, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = Ui.dp(6, d)
+            setPadding(0, Ui.dp(6, d), 0, Ui.dp(4, d))
         })
+        val fsList = listOf("FAT32", "ext4")
+        val fsRow = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
+        val fsPills = mutableListOf<TextView>()
+        fsList.forEachIndexed { i, fs ->
+            val isSelected = i == 0
+            val pill = TextView(activity).apply {
+                text = fs
+                textSize = 11f
+                gravity = Gravity.CENTER
+                setTextColor(if (isSelected) selectionPillTextColor() else Ui.secondaryText(activity))
+                background = if (isSelected) selectionPillSelectedBackground() else Ui.neuInset(activity, 10f)
+                setPadding(Ui.dp(8, d), Ui.dp(6, d), Ui.dp(8, d), Ui.dp(6, d))
+                setOnClickListener {
+                    selectedFs = fs
+                    fsPills.forEach { p ->
+                        val sel = p.text.toString() == fs
+                        p.setTextColor(if (sel) selectionPillTextColor() else Ui.secondaryText(activity))
+                        p.background = if (sel) selectionPillSelectedBackground() else Ui.neuInset(activity, 10f)
+                    }
+                }
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (i > 0) marginStart = Ui.dp(4, d)
+                }
+            }
+            fsPills.add(pill)
+            fsRow.addView(pill)
+        }
+        card.addView(fsRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        isoStatusText = TextView(activity).apply {
-            text = "未下载"
+        // 生成状态（单行，默认隐藏）
+        imgStatusText = TextView(activity).apply {
+            text = "未生成"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
-            setPadding(0, Ui.dp(10, d), 0, 0)
+            setPadding(0, Ui.dp(8, d), 0, 0)
         }
-        card.addView(isoStatusText)
+        card.addView(imgStatusText)
 
-        isoPathText = TextView(activity).apply {
-            text = ""
-            textSize = 10f
-            setTextColor(Ui.secondaryText(activity))
-            setPadding(0, Ui.dp(2, d), 0, 0)
-        }
-        card.addView(isoPathText)
-
-        isoProgress = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
-            max = 100
-            progress = 0
-            progressDrawable = Ui.pillProgressDrawable(activity)
-            visibility = View.GONE
-        }
-        card.addView(isoProgress, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = Ui.dp(10, d)
-        })
-
-        isoPercentText = TextView(activity).apply {
-            text = ""
-            textSize = 11f
-            gravity = Gravity.CENTER
-            setTextColor(Ui.secondaryText(activity))
-            visibility = View.GONE
-        }
-        card.addView(isoPercentText, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = Ui.dp(4, d)
-        })
-
-        cancelIsoBtn = makePillButton("取消", Ui.buttonDanger(activity)) { cancelFlag.set(true) }
-        cancelIsoBtn?.visibility = View.GONE
-        card.addView(cancelIsoBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-            topMargin = Ui.dp(6, d)
-        })
-
+        // 制作 + 浏览（与 VUD 卡片同款高度）
         val btnRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        btnRow.addView(makePillButton("开始下载", Ui.buttonPrimary(activity)) { startIsoDownload() },
+        btnRow.addView(makePillButton("制作 IMG", Ui.buttonPrimary(activity)) { createImg() },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         btnRow.addView(View(activity).apply { layoutParams = LinearLayout.LayoutParams(Ui.dp(8, d), 0) })
-        btnRow.addView(makePillButton("用电脑制作启动盘", Ui.buttonSecondary(activity)) { openRufuGuide() },
+        btnRow.addView(makePillButton("选已有 IMG", Ui.buttonSecondary(activity)) { pickIsoFile() },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         card.addView(btnRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = Ui.dp(10, d)
+            topMargin = Ui.dp(6, d)
         })
 
         return card
@@ -318,23 +307,23 @@ class UsbBootPage(
                 "ro" -> "U盘只读"
                 else -> "CD只读"
             }
+            val isSelected = i == 0
             val pill = TextView(activity).apply {
                 text = label
                 textSize = 11f
                 gravity = Gravity.CENTER
-                setTextColor(if (i == 0) Color.WHITE else Ui.secondaryText(activity))
-                background = if (i == 0) Ui.glassButton(activity, Ui.buttonPrimary(activity))
-                else Ui.neuInset(activity, 10f)
-                setPadding(Ui.dp(8, d), Ui.dp(4, d), Ui.dp(8, d), Ui.dp(4, d))
+                setTextColor(if (isSelected) selectionPillTextColor() else Ui.secondaryText(activity))
+                background = if (isSelected) selectionPillSelectedBackground() else Ui.neuInset(activity, 10f)
+                setPadding(Ui.dp(10, d), Ui.dp(6, d), Ui.dp(10, d), Ui.dp(6, d))
                 setOnClickListener {
                     selectedVudType = t
                     typePills.forEach { p ->
                         val isSel = p.text.toString() == label
-                        p.setTextColor(if (isSel) Color.WHITE else Ui.secondaryText(activity))
-                        p.background = if (isSel) Ui.glassButton(activity, Ui.buttonPrimary(activity))
-                        else Ui.neuInset(activity, 10f)
+                        p.setTextColor(if (isSel) selectionPillTextColor() else Ui.secondaryText(activity))
+                        p.background = if (isSel) selectionPillSelectedBackground() else Ui.neuInset(activity, 10f)
                     }
                 }
+                // 按文字长度自适应权重，避免短标签被截断、宽标签挤压
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                     if (i > 0) marginStart = Ui.dp(4, d)
                 }
@@ -422,15 +411,30 @@ class UsbBootPage(
             setTextColor(Ui.primaryText(activity))
         })
         card.addView(makeHelpLine("① 连接手机到电脑，开启 USB 调试 / MTP 模式"))
-        card.addView(makeHelpLine("② 在线获取 Win11 ISO（官方 ARM64 下载页 / 自定义直链）"))
+        card.addView(makeHelpLine("② 制作 U 盘 IMG 镜像（本地 truncate + 格式化）"))
         card.addView(makeHelpLine("③ 启动虚拟 U 盘（root 下 USB Gadget 框架）"))
         card.addView(makeHelpLine("④ 电脑 BIOS 里选 U 盘 / 光盘启动，按提示安装"))
-        card.addView(makeHelpLine("无 root？用电脑 Rufus 把 ISO 写入 U 盘制作启动盘"))
+        card.addView(makeHelpLine("也可浏览选择已有 ISO/IMG 作为启动源"))
 
         return card
     }
 
     // ==================== 通用组件 ====================
+    private fun softButtonTopColor(accent: Int): Int = if (Ui.isDark(activity)) accent else Color.rgb(247, 239, 200)
+    private fun softButtonBottomColor(accent: Int): Int = if (Ui.isDark(activity)) accent else Color.rgb(201, 225, 248)
+    private fun softButtonText(): Int = if (Ui.isDark(activity)) Color.WHITE else Color.BLACK
+
+    private fun selectionPillSelectedBackground() =
+        Ui.neuSolidButton(
+            if (Ui.isDark(activity)) Ui.buttonPrimary(activity) else Color.rgb(22, 179, 100),
+            if (Ui.isDark(activity)) Ui.buttonPrimary(activity) else Color.rgb(22, 179, 100),
+            10f,
+            activity,
+        )
+
+    private fun selectionPillTextColor(): Int =
+        Color.WHITE
+
     private fun makePillButton(text: String, accent: Int, onClick: () -> Unit): TextView {
         val minH = 44f * d
         val halfH = ((minH / 2) - 14f * d / 2).toInt()
@@ -438,9 +442,9 @@ class UsbBootPage(
             this.text = text
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
-            setTextColor(Color.WHITE)
+            setTextColor(softButtonText())
             gravity = Gravity.CENTER
-            background = Ui.neuSolidButton(accent, accent, 14f, activity)
+            background = Ui.neuSolidButton(softButtonTopColor(accent), softButtonBottomColor(accent), 14f, activity)
             setPadding(Ui.dp(12, d), halfH, Ui.dp(12, d), halfH)
             setOnClickListener { Haptics.perform(this); onClick() }
             Ui.pressAnimation(this)
@@ -452,8 +456,10 @@ class UsbBootPage(
         this.text = text
         textSize = 11f
         setTextColor(Ui.secondaryText(activity))
-        setPadding(0, Ui.dp(4, d), 0, 0)
-        lineHeight = (11f * 1.5f * d).toInt()
+        setPadding(0, Ui.dp(6, d), 0, 0)
+        // 行高放宽到 1.7 倍字号，避免相邻说明行在低密度屏上重叠
+        val fm = paint.fontMetrics
+        lineHeight = ((fm.bottom - fm.top + fm.descent).toInt() + (6f * d).toInt()).coerceAtLeast((16f * d).toInt())
     }
 
     // ==================== 环境检测（SELinux + USB Gadget 支持） ====================
@@ -462,13 +468,12 @@ class UsbBootPage(
             val se = detectSelinux()
             val gadgetSupport = detectGadgetSupport()
             val vudRunning = detectVudRunning()
-            val iso = findLatestIso()
+            val img = findLatestImg()
             activity.runOnUiThread {
                 selinuxText?.text = se
                 vudStatusText?.text = if (vudRunning) "正在运行" else "未启动"
-                vudTypeText?.text = iso?.let { "ISO 源文件：${it.name}" } ?: ""
-                isoStatusText?.text = iso?.let { "已下载：${it.name}" } ?: "未下载"
-                isoPathText?.text = iso?.absolutePath ?: ""
+                vudTypeText?.text = img?.let { "IMG 源文件：${it.name}" } ?: ""
+                imgStatusText?.text = img?.let { "已生成：${it.name}" } ?: "未生成"
                 startVudBtn?.isEnabled = gadgetSupport
                 stopVudBtn?.isEnabled = gadgetSupport
             }
@@ -505,16 +510,17 @@ class UsbBootPage(
 
     // ==================== 虚拟 U 盘 启停（参考 TimeVUD.sh） ====================
     private fun startVud() {
-        val iso = pickIsoForVud()
-        if (iso == null) {
+        val source = pickIsoForVud()
+        if (source == null) {
             AlertDialog.Builder(activity)
-                .setTitle("未找到可用的 ISO")
-                .setMessage("请先在线下载 Windows 11 ISO，或手动浏览选择 ISO 文件。")
+                .setTitle("未找到可用的 ISO/IMG")
+                .setMessage("请先制作 U 盘 IMG 镜像，或手动浏览选择 ISO/IMG 文件。")
                 .setPositiveButton("关闭", null)
                 .show()
             return
         }
         Thread {
+            val iso = source
             val roFile = when (selectedVudType) { "ro" -> "1"; "cdrom" -> "1"; else -> "0" }
             val cdromFile = when (selectedVudType) { "cdrom" -> "1"; else -> "0" }
             val script = buildString {
@@ -577,9 +583,9 @@ class UsbBootPage(
         }.start()
     }
 
-    // ==================== ISO 文件选择（内置文件选择器） ====================
+    // ==================== ISO/IMG 文件选择（内置文件选择器） ====================
     private fun pickIsoForVud(): String? {
-        val f = pickedSourceFile ?: findLatestIso()
+        val f = pickedSourceFile ?: findLatestImg()
         return f?.absolutePath
     }
 
@@ -601,94 +607,67 @@ class UsbBootPage(
         val path = data?.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH) ?: return
         val file = java.io.File(path)
         pickedSourceFile = file
-        vudTypeText?.text = "ISO 源文件：${file.name}"
+        vudTypeText?.text = "IMG 源文件：${file.name}"
     }
 
-    private fun findLatestIso(): File? {
-        val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Win11")
-        return dir.listFiles { f -> f.name.endsWith(".iso", true) }?.lastOrNull()
+    /** 最近生成的 IMG 镜像：优先 /sdcard/UsbImg，其次 TimeVUD 目录 */
+    private fun findLatestImg(): File? {
+        val usbImgDir = File("/sdcard/UsbImg")
+        usbImgDir.listFiles { f -> f.name.endsWith(".img", true) }?.lastOrNull()?.let { return it }
+        val vudDir = File(tmpDir)
+        return vudDir.listFiles { f -> f.name.endsWith(".img", true) }?.lastOrNull()
     }
 
-    private fun startIsoDownload() {
-        val url = customDownloadUrl
-        if (url.isBlank()) {
-            isoStatusText?.text = "请先粘贴 ISO/IMG 直链"
-            return
-        }
-        if (downloading.getAndSet(true)) return
-        cancelFlag.set(false)
-        val dir = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "Win11")
-        if (!dir.exists()) dir.mkdirs()
-        val name = customDownloadName.ifBlank { Aria2c.fileNameFromUrl(url) }
-        val target = File(dir, name)
+    // ==================== 制作 U 盘 IMG 镜像（truncate + 格式化） ====================
+    private fun createImg() {
+        if (imgMaking.getAndSet(true)) return
+        imgCancel.set(false)
+        // 保存目录：/sdcard/UsbImg（root 直接落盘）
+        val saveDir = File("/sdcard/UsbImg")
+        if (!saveDir.exists()) saveDir.mkdirs()
+        val imgName = "usb_${selectedImgGb}GB_${selectedFs.lowercase()}_${System.currentTimeMillis() / 1000}.img"
+        val target = File(saveDir, imgName)
 
-        isoProgress?.visibility = View.VISIBLE
-        isoPercentText?.visibility = View.VISIBLE
-        isoPercentText?.text = "0%"
-        isoProgress?.progress = 0
-        cancelIsoBtn?.visibility = View.VISIBLE
-        isoStatusText?.text = "正在下载..."
+        imgStatusText?.text = "正在制作 ${selectedImgGb}GB ${selectedFs} IMG..."
 
-        downloadThread = Thread {
+        imgMakeThread = Thread {
             var lastError = "未开始"
-            if (cancelFlag.get()) {
+            if (imgCancel.get()) {
                 lastError = "已取消"
             } else {
-                val r = Aria2c.download(
-                    ctx, url, target,
-                    onProgress = { p ->
-                        activity.runOnUiThread {
-                            isoProgress?.progress = p
-                            isoPercentText?.text = "$p%"
-                        }
-                    },
-                    onLog = { line ->
-                        activity.runOnUiThread {
-                            isoStatusText?.text = line.take(60)
-                        }
-                    },
-                    isCancelled = { cancelFlag.get() },
-                )
-                lastError = if (r.success) "成功" else r.message
+                val bytes = selectedImgGb * 1024L * 1024L * 1024L
+                val script = buildString {
+                    append("mkdir -p '$saveDir.absolutePath' 2>/dev/null;\n")
+                    // truncate 创建固定大小的稀疏镜像（占满物理空间用 dd 实写可选）
+                    append("truncate -s ${bytes} '${target.absolutePath}'\n")
+                    if (selectedFs.equals("ext4", true)) {
+                        append("mkfs.ext4 -F '${target.absolutePath}'\n")
+                    } else {
+                        // FAT32：用 mkfs.fat（部分 ROM 自带）或 mkdosfs
+                        append("command -v mkfs.fat >/dev/null 2>&1 && mkfs.fat -F 32 '${target.absolutePath}'\n")
+                        append("command -v mkdosfs >/dev/null 2>&1 && mkdosfs -F 32 -n USBFLASH '${target.absolutePath}'\n")
+                    }
+                    append("echo '__IMG_DONE__'\n")
+                }
+                val result = RootShell.exec(script, 120000)
+                val done = result.stdout.contains("__IMG_DONE__")
+                lastError = if (done) "成功" else result.stdout.takeLast(120).ifBlank { "制作失败（退出码 ${result.code}）" }
             }
-            downloading.set(false)
+            imgMaking.set(false)
             activity.runOnUiThread {
-                cancelIsoBtn?.visibility = View.GONE
-                isoProgress?.visibility = View.GONE
-                isoPercentText?.visibility = View.GONE
-                if (cancelFlag.get() && lastError == "已取消") {
-                    isoStatusText?.text = "已取消"
+                if (imgCancel.get() && lastError == "已取消") {
+                    imgStatusText?.text = "已取消"
                 } else if (lastError == "成功") {
-                    isoStatusText?.text = "已下载完成：${target.name}"
-                    isoPathText?.text = target.absolutePath
+                    imgStatusText?.text = "已生成：${target.name}（$saveDir）"
                 } else {
-                    isoStatusText?.text = "下载失败：${lastError.take(60)}"
+                    imgStatusText?.text = "制作失败：${lastError.take(80)}"
                 }
             }
         }.also { it.start() }
     }
 
-    // ==================== 电脑制作启动盘引导 ====================
-    private fun openRufuGuide() {
-        AlertDialog.Builder(activity)
-            .setTitle("用电脑制作启动盘")
-            .setMessage(
-                "1. 电脑安装 Rufus（https://rufus.ie）\n" +
-                    "2. 手机下载 ISO 后用数据线连电脑，从手机存储里拷出 ISO\n" +
-                    "3. Rufus 里选 ISO + 启动 U 盘 → 开始\n" +
-                    "4. 电脑 BIOS 选 U 盘启动即可安装 Win11",
-            )
-            .setPositiveButton("打开 Rufus 官网") { _, _ ->
-                runCatching {
-                    activity.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse("https://rufus.ie")))
-                }
-            }
-            .setNegativeButton("关闭", null)
-            .show()
-    }
-
     fun cleanup() {
-        cancelFlag.set(true)
-        downloadThread?.interrupt()
+        imgCancel.set(true)
+        imgMakeThread?.interrupt()
     }
 }

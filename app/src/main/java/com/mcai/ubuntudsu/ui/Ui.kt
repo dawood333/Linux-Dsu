@@ -49,7 +49,7 @@ object Ui {
         const val SHADOW_RING = 0x66A9BBD6.toInt()   // 右下阴影外环（蓝灰）
         const val HIGHLIGHT_RING = 0xC8FFFFFF.toInt() // 左上高光内环（白）
         const val TRACK = 0xFFD9E2F0.toInt()         // 凹陷轨道底色
-        const val PRIMARY = 0xFF2F7CF6.toInt()
+        const val PRIMARY = 0xFF383F5D.toInt()
         const val PRIMARY_TOP = 0xFF5EA0FF.toInt()
         const val PRIMARY_BOTTOM = 0xFF2F6BF0.toInt()
     }
@@ -208,10 +208,10 @@ object Ui {
     fun primaryText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#EDEBF6") else Color.parseColor("#1B2A41")
     fun secondaryText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#9A94B8") else Color.parseColor("#5C6F8A")
     fun buttonPrimary(context: android.content.Context): Int = if (isDark(context)) Night.PRIMARY else Day.PRIMARY
-    fun buttonSecondary(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#8172C4") else Color.parseColor("#355CC9")
-    fun buttonSuccess(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#4ADE80") else Color.parseColor("#16A34A")
+    fun buttonSecondary(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#8172C4") else Color.parseColor("#383F5D")
+    fun buttonSuccess(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#4ADE80") else Color.parseColor("#383F5D")
     fun buttonWarning(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#FBBF24") else Color.parseColor("#D97706")
-    fun buttonDanger(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#F87171") else Color.parseColor("#DC2626")
+    fun buttonDanger(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#F87171") else Color.parseColor("#383F5D")
     fun buttonText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#F4F1FA") else Color.parseColor("#1E2C42")
 
     // ==================== 拟态核心原语 ====================

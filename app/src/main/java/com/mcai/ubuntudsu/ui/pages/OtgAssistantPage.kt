@@ -152,6 +152,13 @@ class OtgAssistantPage(
 
     // ==================== 标题栏 ====================
 
+    private fun softButtonColors(accent: Int): Pair<Int, Int> =
+        if (Ui.isDark(activity)) Pair(accent, accent) else Pair(Color.rgb(247, 239, 200), Color.rgb(201, 225, 248))
+
+    private fun softButtonText(): Int = if (Ui.isDark(activity)) Color.WHITE else Color.BLACK
+
+    private fun solidButtonText(): Int = if (Ui.isDark(activity)) Color.WHITE else Color.BLACK
+
     private fun buildTitleRow(): View {
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -162,7 +169,7 @@ class OtgAssistantPage(
             text = "‹ 返回"
             textSize = 13f
             setTextColor(Ui.buttonText(activity))
-            background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
+            background = Ui.neuSolidButton(softButtonColors(Ui.buttonPrimary(activity)).first, softButtonColors(Ui.buttonPrimary(activity)).second, 10f, activity)
             Ui.pressAnimation(this)
             setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
             setOnClickListener {
@@ -182,7 +189,7 @@ class OtgAssistantPage(
             text = "刷新"
             textSize = 12f
             setTextColor(Ui.buttonText(activity))
-            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            background = Ui.neuSolidButton(softButtonColors(Ui.buttonSecondary(activity)).first, softButtonColors(Ui.buttonSecondary(activity)).second, 10f, activity)
             Ui.pressAnimation(this)
             setPadding(Ui.dp(10, d), Ui.dp(6, d), Ui.dp(10, d), Ui.dp(6, d))
             setOnClickListener {
@@ -264,14 +271,9 @@ class OtgAssistantPage(
             text = "执行命令"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
-            setTextColor(Color.WHITE)
+            setTextColor(solidButtonText())
             gravity = Gravity.CENTER
-            background = Ui.neuSolidButton(
-                Ui.buttonPrimary(activity),
-                Ui.buttonPrimary(activity),
-                14f,
-                activity,
-            )
+            background = Ui.neuSolidButton(softButtonColors(Ui.buttonPrimary(activity)).first, softButtonColors(Ui.buttonPrimary(activity)).second, 14f, activity)
             Ui.pressAnimation(this)
             setPadding(Ui.dp(0, d), Ui.dp(8, d), Ui.dp(0, d), Ui.dp(8, d))
             layoutParams = LinearLayout.LayoutParams(
@@ -325,9 +327,9 @@ class OtgAssistantPage(
             text = label
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
-            setTextColor(Color.WHITE)
+            setTextColor(solidButtonText())
             gravity = Gravity.CENTER
-            background = Ui.neuSolidButton(accent, accent, 14f, activity)
+            background = Ui.neuSolidButton(softButtonColors(accent).first, softButtonColors(accent).second, 14f, activity)
             Ui.pressAnimation(this)
             setPadding(0, Ui.dp(9, d), 0, Ui.dp(9, d))
             setOnClickListener {
@@ -600,9 +602,9 @@ class OtgAssistantPage(
             text = "下一步：进入 FastbootD"
             textSize = 14f
             setTypeface(Ui.typeface, Typeface.BOLD)
-            setTextColor(Color.WHITE)
+            setTextColor(solidButtonText())
             gravity = Gravity.CENTER
-            background = Ui.neuSolidButton(Ui.buttonPrimary(activity), Ui.buttonPrimary(activity), 14f, activity)
+            background = Ui.neuSolidButton(softButtonColors(Ui.buttonPrimary(activity)).first, softButtonColors(Ui.buttonPrimary(activity)).second, 14f, activity)
             Ui.pressAnimation(this)
             setPadding(0, Ui.dp(12, d), 0, Ui.dp(12, d))
             layoutParams = LinearLayout.LayoutParams(

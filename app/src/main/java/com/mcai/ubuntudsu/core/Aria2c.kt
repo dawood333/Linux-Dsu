@@ -5,6 +5,7 @@ import android.os.Environment
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
+import java.net.HttpURLConnection
 import java.net.URLDecoder
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
@@ -42,13 +43,37 @@ object Aria2c {
         "Aria2c下载文件",
     )
 
-    // 从 URL 推断文件名（去掉 query/fragment，URL 解码，非法字符替换）
-    fun fileNameFromUrl(url: String): String {
+    // 从 URL 推断文件名：优先 HTTP 响应的 Content-Disposition，回退 URL 末段
+    fun fileNameFromUrl(ctx: Context?, url: String): String {
+        // 1) 尝试从响应头 Content-Disposition 取
+        var fromHeader: String? = null
+        runCatching {
+            val conn = java.net.URL(url).openConnection() as HttpURLConnection
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android)")
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            val cd = conn.getHeaderField("Content-Disposition")
+            if (cd != null) {
+                val m = Regex("""filename\*?="?(?:;)?([^";]+)""", RegexOption.IGNORE_CASE).find(cd)
+                    ?: Regex("""filename="?([^";]+)"?""", RegexOption.IGNORE_CASE).find(cd)
+                m?.groupValues?.get(1)?.let {
+                    fromHeader = runCatching { URLDecoder.decode(it, "UTF-8") }.getOrDefault(it)
+                }
+            }
+            conn.disconnect()
+        }
+        if (fromHeader != null && fromHeader.isNotBlank()) return sanitizeFileName(fromHeader)
+        // 2) 回退：URL 末段（去 query/fragment，解码，清洗非法字符）
         val raw = url.substringBefore('#').substringBefore('?').trimEnd('/').substringAfterLast('/')
         val decoded = runCatching { URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
-        val safe = decoded.replace(Regex("""[\\/:*?"<>|]"""), "_").trim()
-        return safe.ifBlank { "aria2_${System.currentTimeMillis()}" }
+        return sanitizeFileName(decoded)
     }
+
+    // 兼容旧调用：仅从 URL 字符串推断（不发请求）
+    fun fileNameFromUrl(url: String): String = fileNameFromUrl(null, url)
+
+    private fun sanitizeFileName(name: String): String =
+        name.replace(Regex("""[\\/:*?"<>|]"""), "_").trim().ifBlank { "aria2_${System.currentTimeMillis()}" }
 
     // 探测可用的 aria2c：
     // 1) nativeLibraryDir 已解压的 libaria2c.so（extractNativeLibs=true 时存在）
@@ -209,8 +234,8 @@ object Aria2c {
             "--allow-overwrite=true", "--auto-file-renaming=false", "--continue=true",
             "--max-connection-per-server=$CONNECTIONS", "--split=$CONNECTIONS", "--min-split-size=1M",
             "--file-allocation=none", "--summary-interval=1",
-            "--connect-timeout=30", "--timeout=60",
-            "--max-tries=5", "--retry-wait=3",
+            "--connect-timeout=60", "--timeout=120",
+            "--max-tries=3", "--retry-wait=3",
         )
         if (userAgent != null) {
             args.add("--user-agent=$userAgent")
@@ -225,12 +250,19 @@ object Aria2c {
             cleanUrl,
         ))
         return try {
-            val process = if (useRoot) {
-                ProcessBuilder("su", "-c", shellCommand(binary, args))
-                    .redirectErrorStream(true).start()
-            } else {
-                ProcessBuilder(binary, *args.toTypedArray())
-                    .redirectErrorStream(true).start()
+            val process = when {
+                useRoot -> {
+                    // root shell 环境相对干净，直接经 su -c 执行（与 RootShell.exec 同款写法）
+                    ProcessBuilder("su", "-c", shellCommand(binary, args))
+                        .redirectErrorStream(true).start()
+                }
+                else -> {
+                    // 与 OtgAssistantCore 调 libpayload_extract.so 的写法保持一致：
+                    // 直接 ProcessBuilder(so 路径, args)，让 Android ELF loader 走动态链接器。
+                    // 此前套 env -i / sh -c 'exec' 反而破坏了可执行路径与参数解析。
+                    ProcessBuilder(binary, *args.toTypedArray())
+                        .redirectErrorStream(true).start()
+                }
             }
             val lastLine = AtomicReference("")
             val lastBytes = AtomicLong(0L)
@@ -312,8 +344,13 @@ object Aria2c {
                 onProgress(100)
                 Result(true, target, "完成")
             } else {
+                // 区分进程根本没起来（code 非 0 且无任何输出/文件未生成）vs 网络失败
                 val detail = readAria2Error(logFile)
-                Result(false, null, detail ?: lastLine.get().ifBlank { "aria2c 退出码 $code" })
+                if (detail == null && lastLine.get().isEmpty() && !target.exists()) {
+                    Result(false, null, "内置 aria2c 未启动（退出码 $code），请重试或改用 root")
+                } else {
+                    Result(false, null, detail ?: lastLine.get().ifBlank { "aria2c 退出码 $code" })
+                }
             }
         } catch (e: Exception) {
             Result(false, null, e.message ?: "执行 aria2c 失败")

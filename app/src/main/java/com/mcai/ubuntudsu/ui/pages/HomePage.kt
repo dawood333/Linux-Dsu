@@ -496,6 +496,26 @@ class HomePage(
                 invalidate()
             }
         private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+
+        /** 按百分比混合搭配：浅白 + 蓝 + 红 三色同时混合，百分比越高浅度越低、颜色越深 */
+        private fun gaugeColor(percent: Int, dark: Boolean): Int {
+            val t = (percent / 100f).coerceIn(0f, 1f)
+            val light = if (dark) Color.rgb(190, 200, 225) else Color.rgb(230, 238, 248)
+            val blue  = Color.rgb(55, 140, 255)
+            val red   = Color.rgb(235, 75, 75)
+            // 浅白占比随 t 降低（100% 时仍保留 10% 浅底），蓝和红占比随 t 升高
+            val wLight = 0.1f + 0.9f * (1f - t)
+            val wBlue  = 0.45f * t
+            val wRed   = 0.45f * t
+            val wTotal = wLight + wBlue + wRed
+            val r = (Color.red(light) * wLight + Color.red(blue) * wBlue + Color.red(red) * wRed) / wTotal
+            val g = (Color.green(light) * wLight + Color.green(blue) * wBlue + Color.green(red) * wRed) / wTotal
+            val b = (Color.blue(light) * wLight + Color.blue(blue) * wBlue + Color.blue(red) * wRed) / wTotal
+            // 不透明度：低百分比 190，高百分比 255（全实）
+            val alpha = (190 + 65 * t).toInt().coerceIn(190, 255)
+            return Color.argb(alpha, r.toInt(), g.toInt(), b.toInt())
+        }
+
         override fun onDraw(canvas: android.graphics.Canvas) {
             super.onDraw(canvas)
             val cx = width / 2f
@@ -508,25 +528,24 @@ class HomePage(
             paint.strokeWidth = stroke
             paint.strokeCap = android.graphics.Paint.Cap.ROUND
             val dark = Ui.isDark(context)
-            paint.color = if (dark) {
-                android.graphics.Color.argb(120, 255, 255, 255)
-            } else {
-                android.graphics.Color.argb(110, android.graphics.Color.red(accent), android.graphics.Color.green(accent), android.graphics.Color.blue(accent))
-            }
+            val percent = value ?: 0
+            // 背景环：始终用淡色，与选中色形成对比
+            paint.color = if (dark) Color.argb(90, 255, 255, 255) else Color.argb(80, Color.red(accent), Color.green(accent), Color.blue(accent))
             canvas.drawArc(ring, -90f, 360f, false, paint)
-            val percent = value
-            if (percent != null && percent > 0) {
-                paint.color = accent
+            // 进度环：动态颜色
+            if (percent > 0) {
+                paint.color = gaugeColor(percent, dark)
                 canvas.drawArc(ring, -90f, 3.6f * percent, false, paint)
             }
+            // 中间数字：颜色随进度动态变化
             paint.style = android.graphics.Paint.Style.FILL
             paint.textAlign = android.graphics.Paint.Align.CENTER
-            val secondary = Ui.secondaryText(context)
             paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
             paint.textSize = radius * 0.52f
-            paint.color = if (percent != null) accent else secondary
+            val valueColor = Color.BLACK
+            paint.color = valueColor
             val valueBaseline = cy - (paint.ascent() + paint.descent()) / 2f
-            canvas.drawText(percent?.let { "$it%" } ?: "--", cx, valueBaseline, paint)
+            canvas.drawText(percent.let { if (it > 0) "$it%" else "--" }, cx, valueBaseline, paint)
         }
     }
 
