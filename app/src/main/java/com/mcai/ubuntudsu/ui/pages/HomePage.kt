@@ -440,14 +440,14 @@ class HomePage(
             }
         private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
 
-        /** 渐变端点：(浅色, 深色)。CPU 蓝色系，GPU 紫色系。 */
+        /** 渐变端点：(浅色, 深色)。CPU 蓝色系，GPU 紫色系。夜间整体提亮保证深色底可读。 */
         private fun gradient(): Pair<Int, Int> {
             val dark = Ui.isDark(context)
             return if (name == "CPU") {
-                if (dark) Color.rgb(96, 170, 255) to Color.rgb(45, 100, 245)
+                if (dark) Color.rgb(150, 200, 255) to Color.rgb(80, 150, 255)
                 else Color.rgb(130, 185, 255) to Color.rgb(45, 100, 245)
             } else {
-                if (dark) Color.rgb(176, 144, 255) to Color.rgb(130, 90, 255)
+                if (dark) Color.rgb(205, 178, 255) to Color.rgb(160, 125, 255)
                 else Color.rgb(185, 150, 255) to Color.rgb(120, 74, 255)
             }
         }
@@ -481,7 +481,7 @@ class HomePage(
             paint.style = android.graphics.Paint.Style.STROKE
             paint.strokeWidth = size * 0.012f
             paint.strokeCap = android.graphics.Paint.Cap.BUTT
-            paint.color = Color.argb(if (dark) 90 else 110, Color.red(darkC), Color.green(darkC), Color.blue(darkC))
+            paint.color = Color.argb(if (dark) 170 else 110, Color.red(lightC), Color.green(lightC), Color.blue(lightC))
             val tickOuter = size * 0.47f
             val tickInner = size * 0.44f
             for (i in 0 until 60) {
@@ -501,7 +501,7 @@ class HomePage(
             val ring = android.graphics.RectF(cx - radius, cy - radius, cx + radius, cy + radius)
             paint.strokeCap = android.graphics.Paint.Cap.ROUND
             paint.strokeWidth = stroke
-            paint.color = if (dark) Color.argb(40, 255, 255, 255) else Color.argb(70, Color.red(lightC), Color.green(lightC), Color.blue(lightC))
+            paint.color = if (dark) Color.argb(90, Color.red(lightC), Color.green(lightC), Color.blue(lightC)) else Color.argb(70, Color.red(lightC), Color.green(lightC), Color.blue(lightC))
             canvas.drawArc(ring, -90f, 360f, false, paint)
             if (percent > 0) {
                 paint.shader = android.graphics.SweepGradient(cx, cy, lightC, darkC)
