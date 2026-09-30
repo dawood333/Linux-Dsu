@@ -53,6 +53,7 @@ class RomPage(
     private lateinit var tabMultiBrand: TextView
     private lateinit var brandRow: LinearLayout
     private lateinit var multiBrandScroll: ScrollView
+    private lateinit var xiaomiScroll: ScrollView
 
     private var activeTab = 0 // 0=小米固件 1=欧加固件
 
@@ -219,7 +220,7 @@ class RomPage(
         page.addView(statusText)
 
         // ===== 小米固件列表 =====
-        val scrollView = ScrollView(activity).apply {
+        xiaomiScroll = ScrollView(activity).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 0,
@@ -233,8 +234,8 @@ class RomPage(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             )
         }
-        scrollView.addView(deviceListContainer)
-        page.addView(scrollView)
+        xiaomiScroll.addView(deviceListContainer)
+        page.addView(xiaomiScroll)
 
         // ===== 欧加固件列表 =====
         multiBrandScroll = ScrollView(activity).apply {
@@ -333,14 +334,14 @@ class RomPage(
         if (index == activeTab) return
         activeTab = index
         val isXiaomi = index == 0
-        // toggle scroll views
+        // 只显示当前 Tab 对应的 ScrollView，避免另一个 weight=1 的空视图占据屏幕造成大片空白
         if (isXiaomi) {
-            deviceListContainer.visibility = View.VISIBLE
+            xiaomiScroll.visibility = View.VISIBLE
             multiBrandScroll.visibility = View.GONE
             brandRow.visibility = View.GONE
             if (allDevices.isEmpty()) loadDevices()
         } else {
-            deviceListContainer.visibility = View.GONE
+            xiaomiScroll.visibility = View.GONE
             multiBrandScroll.visibility = View.VISIBLE
             brandRow.visibility = View.VISIBLE
             if (allYuleEntries.isEmpty()) loadMultiBrandFirmware()
@@ -415,8 +416,19 @@ class RomPage(
             })
             return
         }
-        for (entry in entries) {
+        // 默认按构建时间从新到旧排列
+        val sorted = entries.sortedByDescending { parseTimestamp(it.buildTimestamp) }
+        for (entry in sorted) {
             container.addView(buildMultiBrandItem(entry))
+        }
+    }
+
+    private fun parseTimestamp(s: String): Long {
+        if (s.isBlank()) return 0L
+        return try { java.time.Instant.parse(s).toEpochMilli() }
+        catch (_: Exception) {
+            // ISO 带 T 的解析失败则尝试直接数字
+            s.toLongOrNull() ?: 0L
         }
     }
 
@@ -488,7 +500,7 @@ class RomPage(
             setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
             setOnClickListener {
                 Haptics.perform(this)
-                resolveAndOpen(entry)
+                resolveAndDownload(entry)
             }
         }
         item.addView(downloadBtn, LinearLayout.LayoutParams(
@@ -499,7 +511,7 @@ class RomPage(
         return item
     }
 
-    private fun resolveAndOpen(entry: YuleRomEntry) {
+    private fun resolveAndDownload(entry: YuleRomEntry) {
         val loading = AlertDialog.Builder(activity)
             .setTitle("正在获取下载链接")
             .setMessage("正在获取 ${entry.device} 的临时 ROM 链接...")
@@ -510,8 +522,8 @@ class RomPage(
             withContext(Dispatchers.Main) {
                 runCatching { loading.dismiss() }
                 if (activity.isFinishing) return@withContext
-                if (resolved != null) {
-                    openInBrowser(resolved.url)
+                if (resolved != null && resolved.url.isNotBlank()) {
+                    startYuleDownload(resolved.url, entry)
                 } else {
                     Toast.makeText(activity, "获取下载链接失败", Toast.LENGTH_SHORT).show()
                 }
@@ -519,19 +531,37 @@ class RomPage(
         }
     }
 
-    private fun openInBrowser(url: String) {
-        if (url.isBlank()) {
-            Toast.makeText(activity, "暂无下载链接", Toast.LENGTH_SHORT).show()
-            return
+    /** 欧加固件走内置 aria2c 引擎下载，并登记到下载管理列表 */
+    private fun startYuleDownload(url: String, entry: YuleRomEntry) {
+        val filename = java.net.URL(url).path.split('/').last().takeIf { it.isNotBlank() }
+            ?: "${entry.device}_${entry.version}.zip"
+        val label = entry.brand.ifBlank { "欧加" }
+        val intent = Intent(activity, DownloadService::class.java).apply {
+            action = DownloadService.ACTION_START
+            putExtra(DownloadService.EXTRA_URL, url)
+            putExtra(DownloadService.EXTRA_FILENAME, filename)
+            putExtra(DownloadService.EXTRA_VERSION, "")
+            putExtra(DownloadService.EXTRA_NODE_INDEX, 3)
+            putExtra(DownloadService.EXTRA_LABEL, label)
+            putExtra(DownloadService.EXTRA_DEVICE_NAME, entry.device)
+            // 直链：走内置 aria2c 引擎（16 连接分块 + 断点续传）
+            putExtra(DownloadService.EXTRA_USE_ARIA2, true)
         }
-        runCatching {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            activity.startActivity(intent)
-        }.onFailure {
-            Toast.makeText(activity, "无法打开链接", Toast.LENGTH_SHORT).show()
+        if (Build.VERSION.SDK_INT >= 26) {
+            activity.startForegroundService(intent)
+        } else {
+            activity.startService(intent)
         }
+        DownloadsActivity.addTask(DownloadsActivity.Companion.DownloadTask(
+            id = filename,
+            fileName = filename,
+            deviceName = "${entry.device} - ${entry.version}",
+            status = "准备下载",
+            state = 0,
+            url = url,
+            startTime = System.currentTimeMillis(),
+        ))
+        Toast.makeText(activity, "已添加到下载管理，可继续下载或后台续传", Toast.LENGTH_SHORT).show()
     }
 
     // ========== 下载广播接收 ==========
