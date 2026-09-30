@@ -27,6 +27,7 @@ import com.mcai.ubuntudsu.R
 import com.mcai.ubuntudsu.core.RomDevice
 import com.mcai.ubuntudsu.core.RomVersion
 import com.mcai.ubuntudsu.core.RomApi
+import com.mcai.ubuntudsu.core.YuleRomEntry
 import com.mcai.ubuntudsu.core.DownloadNode
 import com.mcai.ubuntudsu.core.JavaDownloader
 import com.mcai.ubuntudsu.service.DownloadService
@@ -48,9 +49,19 @@ class RomPage(
     private lateinit var statusText: TextView
     private lateinit var searchInput: EditText
     private lateinit var currentDeviceText: TextView
+    private lateinit var tabXiaomi: TextView
+    private lateinit var tabMultiBrand: TextView
+    private lateinit var brandRow: LinearLayout
+    private lateinit var multiBrandScroll: ScrollView
+
+    private var activeTab = 0 // 0=小米固件 1=多品牌固件
 
     private var allDevices = emptyList<RomDevice>()
     private var filteredDevices = emptyList<RomDevice>()
+    private var allYuleEntries = emptyList<YuleRomEntry>()
+    private var filteredYuleEntries = emptyList<YuleRomEntry>()
+    private var activeBrand = "全部"
+    private val brandOptions = listOf("全部", "OPPO", "OnePlus", "Realme")
     private var isLoading = false
 
     private var downloadReceiver: BroadcastReceiver? = null
@@ -90,7 +101,7 @@ class RomPage(
             }
         })
         titleRow.addView(TextView(activity).apply {
-            text = "ROM 固件"
+            text = "品牌固件"
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -163,10 +174,40 @@ class RomPage(
             background = null
             setPadding(Ui.dp(8, d), 0, 0, 0)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            addTextChangedListener { filterDevices(it?.toString() ?: "") }
+            addTextChangedListener { text ->
+                val q = text?.toString() ?: ""
+                if (activeTab == 0) filterDevices(q) else filterMultiBrand(q)
+            }
         }
         searchBox.addView(searchInput)
         page.addView(searchBox)
+
+        // ===== Tab 切换：小米固件 / 多品牌固件 =====
+        val tabBar = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(0, 0, 0, Ui.dp(8, d))
+        }
+        tabXiaomi = buildTab("小米固件", 0)
+        tabMultiBrand = buildTab("多品牌固件", 1)
+        tabBar.addView(tabXiaomi)
+        tabBar.addView(tabMultiBrand, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { marginStart = Ui.dp(8, d) })
+        page.addView(tabBar)
+
+        // 品牌筛选行（仅多品牌 Tab）
+        brandRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            setPadding(0, 0, 0, Ui.dp(6, d))
+        }
+        for (brand in brandOptions) {
+            brandRow.addView(buildBrandChip(brand))
+        }
+        page.addView(brandRow)
 
         // 状态文字
         statusText = TextView(activity).apply {
@@ -177,7 +218,7 @@ class RomPage(
         }
         page.addView(statusText)
 
-        // ===== 设备列表 =====
+        // ===== 小米固件列表 =====
         val scrollView = ScrollView(activity).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -195,16 +236,271 @@ class RomPage(
         scrollView.addView(deviceListContainer)
         page.addView(scrollView)
 
+        // ===== 多品牌固件列表 =====
+        multiBrandScroll = ScrollView(activity).apply {
+            visibility = View.GONE
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            )
+        }
+        val multiBrandContainer = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+        }
+        multiBrandScroll.addView(multiBrandContainer)
+        page.addView(multiBrandScroll)
+
         // 将内容添加到根容器
         root.addView(page, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
         ))
 
-        // 加载设备列表
+        // 默认 Tab：小米固件
+        updateTabStyles()
+
+        // 加载小米设备列表
         loadDevices()
+        // 预加载多品牌固件
+        loadMultiBrandFirmware()
 
         return root
+    }
+
+    // ========== Tab 切换 ==========
+
+    private fun buildTab(label: String, index: Int): TextView {
+        val d = activity.resources.displayMetrics.density
+        val tv = TextView(activity).apply {
+            text = label
+            textSize = 12f
+            setTextColor(Ui.buttonText(activity))
+            setPadding(Ui.dp(14, d), Ui.dp(7, d), Ui.dp(14, d), Ui.dp(7, d))
+            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            Ui.pressAnimation(this)
+            isClickable = true
+            isFocusable = true
+        }
+        tv.setOnClickListener {
+            Haptics.perform(tv)
+            switchTab(index)
+        }
+        return tv
+    }
+
+    private fun buildBrandChip(brand: String): TextView {
+        val d = activity.resources.displayMetrics.density
+        val tv = TextView(activity).apply {
+            text = brand
+            textSize = 11f
+            setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
+            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            Ui.pressAnimation(this)
+            isClickable = true
+            isFocusable = true
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                if (brand != brandOptions.first()) marginStart = Ui.dp(6, d)
+            }
+        }
+        tv.setOnClickListener {
+            Haptics.perform(tv)
+            activeBrand = brand
+            filterMultiBrand(searchInput.text?.toString() ?: "")
+            updateBrandChipStyles()
+        }
+        return tv
+    }
+
+    private fun updateBrandChipStyles() {
+        for (i in 0 until brandRow.childCount) {
+            val chip = brandRow.getChildAt(i) as? TextView ?: continue
+            val isActive = chip.text.toString() == activeBrand
+            chip.setTextColor(if (isActive) Ui.buttonText(activity) else Ui.secondaryText(activity))
+            chip.background = if (isActive) Ui.glassButton(activity, Ui.buttonPrimary(activity))
+                else Ui.glassButton(activity, Ui.buttonSecondary(activity))
+        }
+    }
+
+    private fun switchTab(index: Int) {
+        if (index == activeTab) return
+        activeTab = index
+        val isXiaomi = index == 0
+        // toggle scroll views
+        if (isXiaomi) {
+            deviceListContainer.visibility = View.VISIBLE
+            multiBrandScroll.visibility = View.GONE
+            brandRow.visibility = View.GONE
+            if (allDevices.isEmpty()) loadDevices()
+        } else {
+            deviceListContainer.visibility = View.GONE
+            multiBrandScroll.visibility = View.VISIBLE
+            brandRow.visibility = View.VISIBLE
+            if (allYuleEntries.isEmpty()) loadMultiBrandFirmware()
+            updateBrandChipStyles()
+        }
+        updateTabStyles()
+        statusText.text = if (isXiaomi) {
+            if (allDevices.isNotEmpty()) "共 ${allDevices.size} 个设备" else "加载中..."
+        } else {
+            if (allYuleEntries.isNotEmpty()) "共 ${allYuleEntries.size} 个固件" else "加载中..."
+        }
+    }
+
+    private fun updateTabStyles() {
+        for ((tv, idx) in listOf(tabXiaomi to 0, tabMultiBrand to 1)) {
+            val active = idx == activeTab
+            tv.setTextColor(if (active) Ui.buttonText(activity) else Ui.secondaryText(activity))
+            tv.background = if (active) Ui.glassButton(activity, Ui.buttonPrimary(activity))
+                else Ui.glassButton(activity, Ui.buttonSecondary(activity))
+        }
+    }
+
+    private fun loadMultiBrandFirmware() {
+        if (allYuleEntries.isNotEmpty()) return
+        statusText.text = if (activeTab == 1) "正在加载多品牌固件..." else statusText.text
+        scope.launch {
+            val entries = RomApi.fetchYuleRomList()
+            allYuleEntries = entries
+            filteredYuleEntries = entries
+            activity.runOnUiThread {
+                if (activity.isFinishing) return@runOnUiThread
+                if (activeTab == 1) {
+                    renderMultiBrandList(filteredYuleEntries)
+                    statusText.text = if (entries.isEmpty()) "未加载到多品牌固件数据" else "共 ${entries.size} 个固件"
+                    updateBrandChipStyles()
+                }
+            }
+        }
+    }
+
+    private fun filterMultiBrand(query: String = "") {
+        val q = query.trim().lowercase()
+        filteredYuleEntries = allYuleEntries.filter { entry ->
+            val brandMatch = activeBrand == "全部" || entry.brand.equals(activeBrand, ignoreCase = true)
+            val searchMatch = q.isEmpty() ||
+                entry.model.lowercase().contains(q) ||
+                entry.brand.lowercase().contains(q) ||
+                entry.romFileName.lowercase().contains(q)
+            brandMatch && searchMatch
+        }
+        if (activeTab == 1) {
+            renderMultiBrandList(filteredYuleEntries)
+            statusText.text = if (filteredYuleEntries.isEmpty()) "未找到匹配的固件" else "找到 ${filteredYuleEntries.size} 个固件"
+        }
+    }
+
+    private fun renderMultiBrandList(entries: List<YuleRomEntry>) {
+        val d = activity.resources.displayMetrics.density
+        val container = multiBrandScroll.getChildAt(0) as LinearLayout
+        container.removeAllViews()
+        if (entries.isEmpty()) {
+            container.addView(TextView(activity).apply {
+                text = "暂无固件数据"
+                textSize = 13f
+                gravity = Gravity.CENTER
+                setTextColor(Ui.secondaryText(activity))
+                setPadding(0, Ui.dp(30, d), 0, Ui.dp(30, d))
+            })
+            return
+        }
+        for (entry in entries) {
+            container.addView(buildMultiBrandItem(entry))
+        }
+    }
+
+    private fun buildMultiBrandItem(entry: YuleRomEntry): View {
+        val d = activity.resources.displayMetrics.density
+        val item = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(Ui.dp(14, d), Ui.dp(10, d), Ui.dp(14, d), Ui.dp(10, d))
+            background = Ui.glassSurface(activity, 12f)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = Ui.dp(8, d) }
+        }
+
+        val row1 = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        row1.addView(TextView(activity).apply {
+            text = entry.model
+            textSize = 14f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Ui.primaryText(activity))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            maxLines = 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        })
+        row1.addView(TextView(activity).apply {
+            text = entry.brand
+            textSize = 10f
+            setTextColor(Ui.buttonText(activity))
+            background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
+            setPadding(Ui.dp(6, d), Ui.dp(2, d), Ui.dp(6, d), Ui.dp(2, d))
+        })
+        item.addView(row1)
+
+        if (entry.romVersion.isNotBlank()) {
+            item.addView(TextView(activity).apply {
+                text = entry.romVersion
+                textSize = 11f
+                setTextColor(Ui.secondaryText(activity))
+                setPadding(0, Ui.dp(3, d), 0, 0)
+            })
+        }
+        if (entry.romFileSize.isNotBlank()) {
+            item.addView(TextView(activity).apply {
+                text = "大小: ${entry.romFileSize}"
+                textSize = 10f
+                setTextColor(Ui.secondaryText(activity))
+                setPadding(0, Ui.dp(2, d), 0, 0)
+            })
+        }
+
+        val downloadBtn = TextView(activity).apply {
+            text = "下载"
+            textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(Ui.buttonText(activity))
+            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            Ui.pressAnimation(this)
+            setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
+            setOnClickListener {
+                Haptics.perform(this)
+                openInBrowser(entry.romUrl)
+            }
+        }
+        item.addView(downloadBtn, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = Ui.dp(8, d) })
+
+        return item
+    }
+
+    private fun openInBrowser(url: String) {
+        if (url.isBlank()) {
+            Toast.makeText(activity, "暂无下载链接", Toast.LENGTH_SHORT).show()
+            return
+        }
+        runCatching {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            activity.startActivity(intent)
+        }.onFailure {
+            Toast.makeText(activity, "无法打开链接", Toast.LENGTH_SHORT).show()
+        }
     }
 
     // ========== 下载广播接收 ==========
@@ -563,7 +859,7 @@ class RomPage(
     private fun queryDeviceVersions(device: RomDevice) {
         val loading = AlertDialog.Builder(activity)
             .setTitle("查询中")
-            .setMessage("正在查询 ${device.name} 的 ROM 版本...")
+            .setMessage("正在查询 ${device.name} 的固件版本...")
             .setCancelable(false)
             .show()
 
@@ -581,7 +877,7 @@ class RomPage(
                 if (versions.isEmpty()) {
                     AlertDialog.Builder(activity)
                         .setTitle("暂无数据")
-                        .setMessage("未找到 ${device.name}（${device.codename}）的 ROM 版本信息。\n\n数据源：HyperOS.fans")
+                        .setMessage("未找到 ${device.name}（${device.codename}）的固件版本信息。\n\n数据源：HyperOS.fans")
                         .setPositiveButton("确定", null)
                         .show()
                 } else {
@@ -630,7 +926,7 @@ class RomPage(
         view.addView(container)
 
         AlertDialog.Builder(activity)
-            .setTitle("ROM 版本列表")
+            .setTitle("固件版本列表")
             .setView(view)
             .setPositiveButton("关闭", null)
             .show()
@@ -741,7 +1037,7 @@ class RomPage(
         if (!hasStoragePermission()) {
             AlertDialog.Builder(activity)
                 .setTitle("需要存储权限")
-                .setMessage("下载 ROM 固件需要存储权限以保存文件到 /sdcard/Downloads。\n\n请在接下来的设置中授予权限。")
+                .setMessage("下载品牌固件需要存储权限以保存文件到 /sdcard/Downloads。\n\n请在接下来的设置中授予权限。")
                 .setPositiveButton("去授权") { _, _ -> requestStoragePermission() }
                 .setNegativeButton("取消", null)
                 .show()

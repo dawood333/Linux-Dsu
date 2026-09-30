@@ -39,6 +39,19 @@ data class RomDevice(
 )
 
 /**
+ * 多品牌 ROM 条目（rom.yule.ink 数据源）
+ */
+data class YuleRomEntry(
+    val id: Int,
+    val model: String,       // 设备型号，如 RMX3708
+    val brand: String,       // 品牌：OPPO/OnePlus/Realme
+    val romUrl: String,      // 下载链接（可能是网盘分享链接）
+    val romFileName: String,
+    val romFileSize: String, // 人类可读大小，如 "8.2 GB"
+    val romVersion: String,
+)
+
+/**
  * ROM 下载节点
  */
 enum class DownloadNode(val displayName: String, val baseUrl: String) {
@@ -61,6 +74,9 @@ object RomApi {
     // 设备列表数据源
     private const val DEVICES_JSON_URL = "https://raw.githubusercontent.com/HegeKen/HyperData/main/devices.json"
 
+    // 多品牌 ROM 数据源（OPPO / OnePlus / Realme）
+    private const val YULE_ROM_LIST_URL = "https://rom.yule.ink/api/rom/list"
+
     /**
      * 获取设备列表
      */
@@ -72,6 +88,45 @@ object RomApi {
         } catch (e: Exception) {
             getBuiltInDevices()
         }
+    }
+
+    /**
+     * 获取多品牌 ROM 列表（OPPO / OnePlus / Realme）
+     * 数据源：rom.yule.ink
+     */
+    suspend fun fetchYuleRomList(): List<YuleRomEntry> = withContext(Dispatchers.IO) {
+        try {
+            val json = httpGet(YULE_ROM_LIST_URL, timeoutMs = 15000) ?: return@withContext emptyList()
+            parseYuleRomList(json)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun parseYuleRomList(json: String): List<YuleRomEntry> {
+        val entries = mutableListOf<YuleRomEntry>()
+        try {
+            val root = JSONObject(json)
+            val data = root.optJSONArray("data") ?: return entries
+            for (i in 0 until data.length()) {
+                val item = data.optJSONObject(i) ?: continue
+                val romUrl = item.optString("rom_url", "")
+                if (romUrl.isBlank()) continue
+                entries.add(
+                    YuleRomEntry(
+                        id = item.optInt("id", 0),
+                        model = item.optString("model", ""),
+                        brand = item.optString("brand", ""),
+                        romUrl = romUrl,
+                        romFileName = item.optString("rom_file_name", ""),
+                        romFileSize = item.optString("rom_file_size", ""),
+                        romVersion = item.optString("rom_version", ""),
+                    )
+                )
+            }
+        } catch (_: Exception) {
+        }
+        return entries
     }
 
     /**

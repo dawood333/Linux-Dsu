@@ -101,7 +101,7 @@ class SettingsPage(
         val keyToItem = mapOf(
             "theme" to GridItem("主题样式", R.drawable.icon_theme_color, "#5B6CFF") { _ -> showThemeDialog() },
             "process" to GridItem("进程管理", R.drawable.icon_process_manager, "#E53935") { view -> openProcessManager(view) },
-            "rom" to GridItem("ROM固件", R.drawable.icon_rom_firmware, "#FF6B35") { view -> openRomFirmware(view) },
+            "rom" to GridItem("品牌固件", R.drawable.icon_rom_firmware, "#FF6B35") { view -> openRomFirmware(view) },
             "otg" to GridItem("OTG助手", R.drawable.icon_otg, "#00897B") { view -> openOtgAssistant(view) },
             "update" to GridItem("软件更新", R.drawable.icon_update_color, "#2D64AA") { _ -> checkUpdate() },
             "usbboot" to GridItem("U盘启动", R.drawable.icon_usb_boot, "#E65100") { view -> openUsbBoot(view) },

@@ -818,7 +818,7 @@ object Ui {
         val tile = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(8, density), dp(10, density), dp(8, density), dp(9, density))
+            setPadding(dp(6, density), dp(6, density), dp(6, density), dp(6, density))
             background = glassButton(context, accent)
             isClickable = true
             isFocusable = true
@@ -828,7 +828,7 @@ object Ui {
                 setImageResource(imageRes)
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 iconTint?.let { imageTintList = android.content.res.ColorStateList.valueOf(it) }
-                layoutParams = LinearLayout.LayoutParams(dp(48, density), dp(48, density))
+                layoutParams = LinearLayout.LayoutParams(dp(40, density), dp(40, density))
             })
             addView(TextView(context).apply {
                 text = title
@@ -836,7 +836,7 @@ object Ui {
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(primaryText(context))
                 gravity = Gravity.CENTER
-                setPadding(0, dp(6, density), 0, 0)
+                setPadding(0, dp(4, density), 0, 0)
             })
             addView(TextView(context).apply {
                 text = subtitle

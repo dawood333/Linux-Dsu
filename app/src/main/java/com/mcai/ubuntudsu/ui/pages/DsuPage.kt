@@ -166,7 +166,7 @@ class DsuPage(
         }
         customRow.addView(customCapacityInput)
         customRow.addView(
-            smallAction("确定容量", Ui.buttonPrimary(activity), minWidthDp = 72) {
+            smallAction("确定容量", Ui.buttonPrimary(activity), minWidthDp = 88) {
                 val value = customCapacityInput.text.toString().toIntOrNull()
                 if (value != null && value > 0) {
                     selectedUserdataGB = value
@@ -176,7 +176,7 @@ class DsuPage(
                     Toast.makeText(activity, "请输入有效容量", Toast.LENGTH_SHORT).show()
                 }
             },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Ui.dp(30, d)).apply {
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 marginStart = Ui.dp(8, d)
             },
         )
@@ -193,7 +193,7 @@ class DsuPage(
         }
         fileRow.addView(fileNameText)
         fileRow.addView(
-            smallAction("选择 ZIP", Ui.buttonSecondary(activity), minWidthDp = 72) {
+            smallAction("选择 ZIP", Ui.buttonSecondary(activity), minWidthDp = 88) {
                 // 内置文件选择器：根目录 /sdcard，选择 GSI zip
                 pickZipLauncher.launch(
                     android.content.Intent(activity, com.mcai.ubuntudsu.RootfsFilesActivity::class.java).apply {
@@ -203,7 +203,7 @@ class DsuPage(
                     },
                 )
             },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Ui.dp(30, d)).apply {
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 marginStart = Ui.dp(8, d)
             },
         )
@@ -219,7 +219,7 @@ class DsuPage(
         })
         parameterCard.addView(
             smallAction("开始安装", Ui.buttonSuccess(activity)) { startInstall() },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(36, d)).apply { topMargin = Ui.dp(6, d) },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(6, d) },
         )
         page.addView(parameterCard)
 
@@ -314,12 +314,12 @@ class DsuPage(
 
     private fun smallAction(text: String, accent: Int, minWidthDp: Int = 0, onClick: () -> Unit): TextView = TextView(activity).apply {
         this.text = text
-        textSize = 11f
+        textSize = 13f
         gravity = Gravity.CENTER
         setTextColor(Ui.buttonText(activity))
         background = Ui.glassButton(activity, accent)
         val d = activity.resources.displayMetrics.density
-        setPadding(Ui.dp(8, d), 0, Ui.dp(8, d), 0)
+        setPadding(Ui.dp(14, d), Ui.dp(10, d), Ui.dp(14, d), Ui.dp(10, d))
         if (minWidthDp > 0) minimumWidth = Ui.dp(minWidthDp, d)
         Ui.pressAnimation(this)
         setOnClickListener { onClick() }
