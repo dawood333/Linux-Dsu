@@ -194,7 +194,7 @@ class RomPage(
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, 0, 0, Ui.dp(8, d))
         }
-        tabXiaomi = buildTab("小米固件", 0)
+        tabXiaomi = buildTab("HyperOS固件", 0)
         tabMultiBrand = buildTab("ColorOS FlymeOS realme UI 固件", 1)
         tabBar.addView(tabXiaomi)
         tabBar.addView(tabMultiBrand, LinearLayout.LayoutParams(
@@ -312,12 +312,14 @@ class RomPage(
 
     private fun buildTab(label: String, index: Int): TextView {
         val d = activity.resources.displayMetrics.density
+        val active = index == 0
         val tv = TextView(activity).apply {
             text = label
             textSize = 12f
-            setTextColor(Ui.buttonText(activity))
+            gravity = Gravity.CENTER
+            setTextColor(if (active) Ui.buttonText(activity) else Ui.primaryText(activity))
             setPadding(Ui.dp(14, d), Ui.dp(7, d), Ui.dp(14, d), Ui.dp(7, d))
-            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            background = tabBackground(active, d)
             Ui.pressAnimation(this)
             isClickable = true
             isFocusable = true
@@ -329,13 +331,23 @@ class RomPage(
         return tv
     }
 
+    /** Tab/品牌 chip 选中背景：实色填充 + 高亮描边；未选中：面底色 + 边框（与 DSU 容量选择一致） */
+    private fun tabBackground(active: Boolean, d: Float): android.graphics.drawable.GradientDrawable {
+        val fill = if (active) Ui.buttonPrimary(activity) else Ui.surface(activity)
+        val stroke = if (active) Ui.buttonPrimary(activity) else Ui.border(activity)
+        return Ui.strokeRounded(fill, stroke, 1f, d, 12f)
+    }
+
     private fun buildBrandChip(brand: String): TextView {
         val d = activity.resources.displayMetrics.density
+        val active = brand == activeBrand
         val tv = TextView(activity).apply {
             text = brand
             textSize = 11f
+            gravity = Gravity.CENTER
+            setTextColor(if (active) Ui.buttonText(activity) else Ui.primaryText(activity))
             setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
-            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            background = tabBackground(active, d)
             Ui.pressAnimation(this)
             isClickable = true
             isFocusable = true
@@ -359,12 +371,12 @@ class RomPage(
     }
 
     private fun updateBrandChipStyles() {
+        val d = activity.resources.displayMetrics.density
         for (i in 0 until brandRow.childCount) {
             val chip = brandRow.getChildAt(i) as? TextView ?: continue
             val isActive = chip.text.toString() == activeBrand
-            chip.setTextColor(if (isActive) Ui.buttonText(activity) else Ui.secondaryText(activity))
-            chip.background = if (isActive) Ui.glassButton(activity, Ui.buttonPrimary(activity))
-                else Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            chip.setTextColor(if (isActive) Ui.buttonText(activity) else Ui.primaryText(activity))
+            chip.background = tabBackground(isActive, d)
         }
     }
 
@@ -396,11 +408,11 @@ class RomPage(
     }
 
     private fun updateTabStyles() {
+        val d = activity.resources.displayMetrics.density
         for ((tv, idx) in listOf(tabXiaomi to 0, tabMultiBrand to 1)) {
             val active = idx == activeTab
-            tv.setTextColor(if (active) Ui.buttonText(activity) else Ui.secondaryText(activity))
-            tv.background = if (active) Ui.glassButton(activity, Ui.buttonPrimary(activity))
-                else Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            tv.setTextColor(if (active) Ui.buttonText(activity) else Ui.primaryText(activity))
+            tv.background = tabBackground(active, d)
         }
     }
 
@@ -456,7 +468,7 @@ class RomPage(
             .filter { it.brand.equals(activeBrand, ignoreCase = true) }
             .map { it.device }
             .distinct()
-            .sortedBy { it.lowercase() }
+            .sortedWith(deviceOrderComparator())
         if (devices.isEmpty()) {
             Toast.makeText(activity, "当前品牌暂无设备", Toast.LENGTH_SHORT).show()
             return
@@ -484,6 +496,32 @@ class RomPage(
     private fun updateDeviceLabel() {
         deviceLabel.text = if (selectedDevice != null) "：$selectedDevice" else "：全部设备"
         deviceLabel.setTextColor(if (selectedDevice != null) Ui.buttonPrimary(activity) else Ui.secondaryText(activity))
+    }
+
+    /**
+     * 设备排序：数字系列机型（如 OP 15 / 16、OPPO A6、Realme 14）排前并按系列号从大到小；
+     * 非数字系列机型（如折叠 Find N、OPPO Find X 等字母型号）排后，按名称字母序。
+     */
+    private fun deviceOrderComparator(): Comparator<String> {
+        return Comparator { a, b ->
+            val na = seriesNumber(a)
+            val nb = seriesNumber(b)
+            when {
+                na > 0 && nb > 0 -> {
+                    // 两者都是数字系列：系列号大的（更新的）在前
+                    if (na != nb) nb.compareTo(na) else a.lowercase().compareTo(b.lowercase())
+                }
+                na > 0 -> -1   // a 是数字系列，b 不是 → a 在前
+                nb > 0 -> 1    // b 是数字系列，a 不是 → b 在前
+                else -> a.lowercase().compareTo(b.lowercase())
+            }
+        }
+    }
+
+    /** 从设备名提取数字系列号：取第一个 >=10 的独立整数（15/16 等），无则返回 0 */
+    private fun seriesNumber(device: String): Int {
+        val m = Regex("(?:^|\\D)(\\d{2,})(?:\\D|$)").find(device)?.groupValues?.getOrNull(1)?.toInt() ?: 0
+        return if (m >= 10) m else 0
     }
 
     private fun renderMultiBrandList(entries: List<YuleRomEntry>, errorHint: String? = null) {
@@ -546,12 +584,12 @@ class RomPage(
         val d = activity.resources.displayMetrics.density
         val item = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(Ui.dp(14, d), Ui.dp(10, d), Ui.dp(14, d), Ui.dp(10, d))
+            setPadding(Ui.dp(12, d), Ui.dp(7, d), Ui.dp(12, d), Ui.dp(7, d))
             background = Ui.glassSurface(activity, 12f)
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { bottomMargin = Ui.dp(8, d) }
+            ).apply { bottomMargin = Ui.dp(6, d) }
         }
 
         val row1 = LinearLayout(activity).apply {
@@ -560,7 +598,7 @@ class RomPage(
         }
         row1.addView(TextView(activity).apply {
             text = entry.device
-            textSize = 14f
+            textSize = 13f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -569,21 +607,22 @@ class RomPage(
         })
         row1.addView(TextView(activity).apply {
             text = entry.brand
-            textSize = 10f
+            textSize = 9f
             setTextColor(Ui.buttonText(activity))
             background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
-            setPadding(Ui.dp(6, d), Ui.dp(2, d), Ui.dp(6, d), Ui.dp(2, d))
+            setPadding(Ui.dp(5, d), Ui.dp(1, d), Ui.dp(5, d), Ui.dp(1, d))
         })
         item.addView(row1)
 
         if (entry.version.isNotBlank()) {
             item.addView(TextView(activity).apply {
                 text = entry.version
-                textSize = 11f
+                textSize = 10f
                 setTextColor(Ui.secondaryText(activity))
-                setPadding(0, Ui.dp(3, d), 0, 0)
+                setPadding(0, Ui.dp(2, d), 0, 0)
             })
         }
+
         val metaLine = buildString {
             if (entry.sizeText.isNotBlank()) append(entry.sizeText)
             if (entry.region.isNotBlank()) {
@@ -594,20 +633,20 @@ class RomPage(
         if (metaLine.isNotBlank()) {
             item.addView(TextView(activity).apply {
                 text = metaLine
-                textSize = 10f
+                textSize = 9f
                 setTextColor(Ui.secondaryText(activity))
-                setPadding(0, Ui.dp(2, d), 0, 0)
+                setPadding(0, Ui.dp(1, d), 0, 0)
             })
         }
 
         val downloadBtn = TextView(activity).apply {
             text = "下载"
-            textSize = 11f
+            textSize = 10f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
             background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
             Ui.pressAnimation(this)
-            setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
+            setPadding(Ui.dp(8, d), Ui.dp(4, d), Ui.dp(8, d), Ui.dp(4, d))
             setOnClickListener {
                 Haptics.perform(this)
                 resolveAndDownload(entry)
@@ -616,7 +655,7 @@ class RomPage(
         item.addView(downloadBtn, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
-        ).apply { topMargin = Ui.dp(8, d) })
+        ).apply { topMargin = Ui.dp(5, d) })
 
         return item
     }
