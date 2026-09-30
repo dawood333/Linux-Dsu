@@ -107,7 +107,7 @@ class RomPage(
             }
         })
         titleRow.addView(TextView(activity).apply {
-            text = "品牌固件"
+            text = "ROM固件"
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -650,12 +650,12 @@ class RomPage(
         }
         btnRow.addView(TextView(activity).apply {
             text = "下载"
-            textSize = 10f
+            textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
             background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
             Ui.pressAnimation(this)
-            setPadding(Ui.dp(8, d), Ui.dp(4, d), Ui.dp(8, d), Ui.dp(4, d))
+            setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
             setOnClickListener {
                 Haptics.perform(this)
                 resolveAndDownload(entry)
@@ -663,12 +663,12 @@ class RomPage(
         })
         btnRow.addView(TextView(activity).apply {
             text = "复制链接"
-            textSize = 10f
+            textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
             background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
             Ui.pressAnimation(this)
-            setPadding(Ui.dp(8, d), Ui.dp(4, d), Ui.dp(8, d), Ui.dp(4, d))
+            setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -1302,7 +1302,7 @@ class RomPage(
         if (!hasStoragePermission()) {
             AlertDialog.Builder(activity)
                 .setTitle("需要存储权限")
-                .setMessage("下载品牌固件需要存储权限以保存文件到 /sdcard/Downloads。\n\n请在接下来的设置中授予权限。")
+                .setMessage("下载 ROM 固件需要存储权限以保存文件到 /sdcard/Downloads。\n\n请在接下来的设置中授予权限。")
                 .setPositiveButton("去授权") { _, _ -> requestStoragePermission() }
                 .setNegativeButton("取消", null)
                 .show()
