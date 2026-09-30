@@ -54,7 +54,7 @@ class RomPage(
     private lateinit var brandRow: LinearLayout
     private lateinit var multiBrandScroll: ScrollView
 
-    private var activeTab = 0 // 0=小米固件 1=多品牌固件
+    private var activeTab = 0 // 0=小米固件 1=欧加固件
 
     private var allDevices = emptyList<RomDevice>()
     private var filteredDevices = emptyList<RomDevice>()
@@ -182,14 +182,14 @@ class RomPage(
         searchBox.addView(searchInput)
         page.addView(searchBox)
 
-        // ===== Tab 切换：小米固件 / 多品牌固件 =====
+        // ===== Tab 切换：小米固件 / 欧加固件 =====
         val tabBar = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, 0, 0, Ui.dp(8, d))
         }
         tabXiaomi = buildTab("小米固件", 0)
-        tabMultiBrand = buildTab("多品牌固件", 1)
+        tabMultiBrand = buildTab("欧加固件", 1)
         tabBar.addView(tabXiaomi)
         tabBar.addView(tabMultiBrand, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -236,7 +236,7 @@ class RomPage(
         scrollView.addView(deviceListContainer)
         page.addView(scrollView)
 
-        // ===== 多品牌固件列表 =====
+        // ===== 欧加固件列表 =====
         multiBrandScroll = ScrollView(activity).apply {
             visibility = View.GONE
             layoutParams = LinearLayout.LayoutParams(
@@ -365,16 +365,20 @@ class RomPage(
 
     private fun loadMultiBrandFirmware() {
         if (allYuleEntries.isNotEmpty()) return
-        statusText.text = if (activeTab == 1) "正在加载多品牌固件..." else statusText.text
+        statusText.text = if (activeTab == 1) "正在加载欧加固件..." else statusText.text
         scope.launch {
-            val entries = RomApi.fetchYuleRomList()
-            allYuleEntries = entries
-            filteredYuleEntries = entries
+            val result = RomApi.fetchYuleRomList()
+            allYuleEntries = result.entries
+            filteredYuleEntries = result.entries
             activity.runOnUiThread {
                 if (activity.isFinishing) return@runOnUiThread
                 if (activeTab == 1) {
-                    renderMultiBrandList(filteredYuleEntries)
-                    statusText.text = if (entries.isEmpty()) "未加载到多品牌固件数据" else "共 ${entries.size} 个固件"
+                    renderMultiBrandList(filteredYuleEntries, result.error)
+                    statusText.text = when {
+                        result.entries.isNotEmpty() -> "共 ${result.entries.size} 个固件"
+                        result.error != null -> "加载失败：${result.error}"
+                        else -> "未获取到固件数据"
+                    }
                     updateBrandChipStyles()
                 }
             }
@@ -397,17 +401,17 @@ class RomPage(
         }
     }
 
-    private fun renderMultiBrandList(entries: List<YuleRomEntry>) {
+    private fun renderMultiBrandList(entries: List<YuleRomEntry>, errorHint: String? = null) {
         val d = activity.resources.displayMetrics.density
         val container = multiBrandScroll.getChildAt(0) as LinearLayout
         container.removeAllViews()
         if (entries.isEmpty()) {
             container.addView(TextView(activity).apply {
-                text = "暂无固件数据"
+                text = if (errorHint != null) "暂无固件数据\n\n失败原因：$errorHint\n\n提示：请确认网络可访问 rom.yule.ink" else "暂无固件数据"
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setTextColor(Ui.secondaryText(activity))
-                setPadding(0, Ui.dp(30, d), 0, Ui.dp(30, d))
+                setPadding(Ui.dp(16, d), Ui.dp(30, d), Ui.dp(16, d), Ui.dp(30, d))
             })
             return
         }

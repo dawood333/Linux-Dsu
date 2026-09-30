@@ -52,6 +52,14 @@ data class YuleRomEntry(
 )
 
 /**
+ * 欧加固件列表请求结果（含失败原因，便于界面提示）
+ */
+data class YuleRomResult(
+    val entries: List<YuleRomEntry>,
+    val error: String? = null,
+)
+
+/**
  * ROM 下载节点
  */
 enum class DownloadNode(val displayName: String, val baseUrl: String) {
@@ -74,8 +82,12 @@ object RomApi {
     // 设备列表数据源
     private const val DEVICES_JSON_URL = "https://raw.githubusercontent.com/HegeKen/HyperData/main/devices.json"
 
-    // 多品牌 ROM 数据源（OPPO / OnePlus / Realme）
+    // 欧加固件数据源（OPPO / OnePlus / Realme）
     private const val YULE_ROM_LIST_URL = "https://rom.yule.ink/api/rom/list"
+
+    // 欧加接口走 Cloudflare 防护，必须用浏览器 UA，否则会被机器人拦截返回 HTML
+    private const val YULE_USER_AGENT =
+        "Mozilla/5.0 (Linux; Android 15; PMA120) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
 
     /**
      * 获取设备列表
@@ -91,15 +103,30 @@ object RomApi {
     }
 
     /**
-     * 获取多品牌 ROM 列表（OPPO / OnePlus / Realme）
+     * 获取欧加固件列表（OPPO / OnePlus / Realme）
      * 数据源：rom.yule.ink
      */
-    suspend fun fetchYuleRomList(): List<YuleRomEntry> = withContext(Dispatchers.IO) {
+    suspend fun fetchYuleRomList(): YuleRomResult = withContext(Dispatchers.IO) {
         try {
-            val json = httpGet(YULE_ROM_LIST_URL, timeoutMs = 15000) ?: return@withContext emptyList()
-            parseYuleRomList(json)
+            val conn = URL(YULE_ROM_LIST_URL).openConnection() as HttpURLConnection
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 20000
+            conn.readTimeout = 20000
+            conn.setRequestProperty("User-Agent", YULE_USER_AGENT)
+            conn.setRequestProperty("Accept", "application/json, text/plain, */*")
+            conn.setRequestProperty("Referer", "https://rom.yule.ink/")
+
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                return@withContext YuleRomResult(emptyList(), "HTTP $code（可能被站点防护拦截）")
+            }
+            val body = conn.inputStream.bufferedReader().use { it.readText() }
+            if (body.trimStart().startsWith("<")) {
+                return@withContext YuleRomResult(emptyList(), "接口返回HTML（被防护拦截或接口路径变更）")
+            }
+            YuleRomResult(parseYuleRomList(body))
         } catch (e: Exception) {
-            emptyList()
+            YuleRomResult(emptyList(), "${e.javaClass.simpleName}: ${e.message ?: "网络异常"}")
         }
     }
 
