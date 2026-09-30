@@ -54,6 +54,9 @@ class RomPage(
     private lateinit var brandRow: LinearLayout
     private lateinit var multiBrandScroll: ScrollView
     private lateinit var xiaomiScroll: ScrollView
+    private lateinit var deviceRow: LinearLayout
+    private lateinit var deviceSelectBtn: TextView
+    private lateinit var deviceLabel: TextView
 
     private var activeTab = 0 // 0=小米固件 1=欧加固件
 
@@ -63,6 +66,8 @@ class RomPage(
     private var filteredYuleEntries = emptyList<YuleRomEntry>()
     private var activeBrand = "Meizu"
     private val brandOptions = listOf("Meizu", "OPPO", "OnePlus", "Realme")
+    /** 单选设备：null 表示显示当前品牌下全部设备 */
+    private var selectedDevice: String? = null
     private var isLoading = false
 
     private var downloadReceiver: BroadcastReceiver? = null
@@ -198,6 +203,36 @@ class RomPage(
         ).apply { marginStart = Ui.dp(8, d) })
         page.addView(tabBar)
 
+        // 设备筛选行（仅多品牌 Tab）：选择设备按钮 + 当前所选设备标签
+        deviceRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            setPadding(0, 0, 0, Ui.dp(6, d))
+        }
+        deviceSelectBtn = TextView(activity).apply {
+            text = "选择设备"
+            textSize = 11f
+            setTextColor(Ui.buttonText(activity))
+            setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
+            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            isClickable = true
+            isFocusable = true
+            setOnClickListener {
+                Haptics.perform(this)
+                showDevicePicker()
+            }
+        }
+        deviceRow.addView(deviceSelectBtn)
+        deviceLabel = TextView(activity).apply {
+            text = ""
+            textSize = 11f
+            setTextColor(Ui.secondaryText(activity))
+            setPadding(Ui.dp(8, d), 0, 0, 0)
+        }
+        deviceRow.addView(deviceLabel)
+        page.addView(deviceRow)
+
         // 品牌筛选行（仅多品牌 Tab）
         brandRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -314,6 +349,9 @@ class RomPage(
         tv.setOnClickListener {
             Haptics.perform(tv)
             activeBrand = brand
+            // 切换品牌时清空所选设备，避免跨品牌残留过滤
+            selectedDevice = null
+            updateDeviceLabel()
             filterMultiBrand(searchInput.text?.toString() ?: "")
             updateBrandChipStyles()
         }
@@ -339,11 +377,13 @@ class RomPage(
             xiaomiScroll.visibility = View.VISIBLE
             multiBrandScroll.visibility = View.GONE
             brandRow.visibility = View.GONE
+            deviceRow.visibility = View.GONE
             if (allDevices.isEmpty()) loadDevices()
         } else {
             xiaomiScroll.visibility = View.GONE
             multiBrandScroll.visibility = View.VISIBLE
             brandRow.visibility = View.VISIBLE
+            deviceRow.visibility = View.VISIBLE
             if (allYuleEntries.isEmpty()) loadMultiBrandFirmware()
             updateBrandChipStyles()
         }
@@ -388,19 +428,62 @@ class RomPage(
 
     private fun filterMultiBrand(query: String = "") {
         val q = query.trim().lowercase()
+        val selDevice = selectedDevice?.lowercase()
         filteredYuleEntries = allYuleEntries.filter { entry ->
-            // 当前筛选 chip 全部为具体品牌（Meizu/OPPO/OnePlus/Realme），按品牌精确匹配
+            // 品牌精确匹配 + 设备单选（可选）
             val brandMatch = entry.brand.equals(activeBrand, ignoreCase = true)
+            val deviceMatch = selDevice == null || entry.device.lowercase() == selDevice
             val searchMatch = q.isEmpty() ||
                 entry.device.lowercase().contains(q) ||
                 entry.brand.lowercase().contains(q) ||
                 entry.version.lowercase().contains(q)
-            brandMatch && searchMatch
+            brandMatch && deviceMatch && searchMatch
         }
         if (activeTab == 1) {
             renderMultiBrandList(filteredYuleEntries)
             statusText.text = if (filteredYuleEntries.isEmpty()) "未找到匹配的固件" else "找到 ${filteredYuleEntries.size} 个固件"
         }
+    }
+
+    /** 设备单选弹窗：按当前品牌分组展示，点选后过滤固件列表 */
+    private fun showDevicePicker() {
+        if (allYuleEntries.isEmpty()) {
+            Toast.makeText(activity, "固件数据加载中，请稍候", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // 仅展示当前激活品牌下的设备
+        val devices = allYuleEntries
+            .filter { it.brand.equals(activeBrand, ignoreCase = true) }
+            .map { it.device }
+            .distinct()
+            .sortedBy { it.lowercase() }
+        if (devices.isEmpty()) {
+            Toast.makeText(activity, "当前品牌暂无设备", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val labels = devices.toTypedArray()
+        val checked = selectedDevice?.let { sel -> labels.indexOfFirst { it == sel }.takeIf { it >= 0 } } ?: -1
+        AlertDialog.Builder(activity)
+            .setTitle("选择设备 - ${activeBrand}")
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                Haptics.perform(activity.window.decorView)
+                selectedDevice = labels[which]
+                updateDeviceLabel()
+                filterMultiBrand()
+                dialog.dismiss()
+            }
+            .setNeutralButton("全部设备") { _, _ ->
+                selectedDevice = null
+                updateDeviceLabel()
+                filterMultiBrand()
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun updateDeviceLabel() {
+        deviceLabel.text = if (selectedDevice != null) "：$selectedDevice" else "：全部设备"
+        deviceLabel.setTextColor(if (selectedDevice != null) Ui.buttonPrimary(activity) else Ui.secondaryText(activity))
     }
 
     private fun renderMultiBrandList(entries: List<YuleRomEntry>, errorHint: String? = null) {
