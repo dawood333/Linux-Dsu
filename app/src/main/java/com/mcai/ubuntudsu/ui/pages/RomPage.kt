@@ -61,8 +61,8 @@ class RomPage(
     private var filteredDevices = emptyList<RomDevice>()
     private var allYuleEntries = emptyList<YuleRomEntry>()
     private var filteredYuleEntries = emptyList<YuleRomEntry>()
-    private var activeBrand = "全部"
-    private val brandOptions = listOf("全部", "OPPO", "OnePlus", "Realme")
+    private var activeBrand = "Meizu"
+    private val brandOptions = listOf("Meizu", "OPPO", "OnePlus", "Realme")
     private var isLoading = false
 
     private var downloadReceiver: BroadcastReceiver? = null
@@ -190,7 +190,7 @@ class RomPage(
             setPadding(0, 0, 0, Ui.dp(8, d))
         }
         tabXiaomi = buildTab("小米固件", 0)
-        tabMultiBrand = buildTab("欧加固件", 1)
+        tabMultiBrand = buildTab("ColorOS FlymeOS realme UI 固件", 1)
         tabBar.addView(tabXiaomi)
         tabBar.addView(tabMultiBrand, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -389,7 +389,8 @@ class RomPage(
     private fun filterMultiBrand(query: String = "") {
         val q = query.trim().lowercase()
         filteredYuleEntries = allYuleEntries.filter { entry ->
-            val brandMatch = activeBrand == "全部" || entry.brand.equals(activeBrand, ignoreCase = true)
+            // 当前筛选 chip 全部为具体品牌（Meizu/OPPO/OnePlus/Realme），按品牌精确匹配
+            val brandMatch = entry.brand.equals(activeBrand, ignoreCase = true)
             val searchMatch = q.isEmpty() ||
                 entry.device.lowercase().contains(q) ||
                 entry.brand.lowercase().contains(q) ||
@@ -416,20 +417,46 @@ class RomPage(
             })
             return
         }
-        // 默认按构建时间从新到旧排列
-        val sorted = entries.sortedByDescending { parseTimestamp(it.buildTimestamp) }
+        // 按版本号数字段从新到旧排序（同设备下高版本在上）；
+        // buildTimestamp 多为空，不能用时间戳，改用 version 数字段比较
+        val sorted = entries.sortedWith(buildVersionComparator())
         for (entry in sorted) {
             container.addView(buildMultiBrandItem(entry))
         }
     }
 
+    /** 先按版本号数字段降序，再按时间戳降序，再按设备名/区域升序 */
+    private fun buildVersionComparator(): Comparator<YuleRomEntry> {
+        val versionDesc = Comparator<YuleRomEntry> { a, b ->
+            val va = versionNumber(a.version)
+            val vb = versionNumber(b.version)
+            val max = va.size.coerceAtLeast(vb.size)
+            for (i in 0 until max) {
+                // 对齐位数：缺失段按 0 处理
+                val x = if (i < va.size) va[i] else 0L
+                val y = if (i < vb.size) vb[i] else 0L
+                if (x != y) return@Comparator y.compareTo(x) // 降序
+            }
+            0
+        }
+        val tsDesc = Comparator<YuleRomEntry> { a, b -> parseTimestamp(b.buildTimestamp).compareTo(parseTimestamp(a.buildTimestamp)) }
+        val deviceAsc = Comparator.comparing<YuleRomEntry, String> { it.device.lowercase() }
+        val regionAsc = Comparator.comparing<YuleRomEntry, String> { it.region.lowercase() }
+        return versionDesc.then(tsDesc).then(deviceAsc).then(regionAsc)
+    }
+
+    /** 把 "15.0.2.901(EX01)" 这类版本号解析成可比较大小的 Long 列表（主.次.修.构建） */
+    private fun versionNumber(v: String): List<Long> {
+        // 去掉区域后缀括号，取数字段
+        val core = v.substringBefore('(').trim()
+        val parts = core.split('.', '-', '_', ' ').map { it.toLongOrNull() ?: 0L }
+        return if (parts.isEmpty()) listOf(0L) else parts
+    }
+
     private fun parseTimestamp(s: String): Long {
         if (s.isBlank()) return 0L
         return try { java.time.Instant.parse(s).toEpochMilli() }
-        catch (_: Exception) {
-            // ISO 带 T 的解析失败则尝试直接数字
-            s.toLongOrNull() ?: 0L
-        }
+        catch (_: Exception) { s.toLongOrNull() ?: 0L }
     }
 
     private fun buildMultiBrandItem(entry: YuleRomEntry): View {
