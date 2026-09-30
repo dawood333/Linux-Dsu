@@ -317,7 +317,7 @@ class RomPage(
             text = label
             textSize = 12f
             gravity = Gravity.CENTER
-            setTextColor(if (active) Ui.buttonText(activity) else Ui.primaryText(activity))
+            setTextColor(tabTextColor(active))
             setPadding(Ui.dp(14, d), Ui.dp(7, d), Ui.dp(14, d), Ui.dp(7, d))
             background = tabBackground(active, d)
             Ui.pressAnimation(this)
@@ -338,6 +338,11 @@ class RomPage(
         return Ui.strokeRounded(fill, stroke, 1f, d, 12f)
     }
 
+    /** 选中态文字：白；未选中：主文字色（保证实色填充上可读） */
+    private fun tabTextColor(active: Boolean): Int {
+        return if (active) Color.WHITE else Ui.primaryText(activity)
+    }
+
     private fun buildBrandChip(brand: String): TextView {
         val d = activity.resources.displayMetrics.density
         val active = brand == activeBrand
@@ -345,7 +350,7 @@ class RomPage(
             text = brand
             textSize = 11f
             gravity = Gravity.CENTER
-            setTextColor(if (active) Ui.buttonText(activity) else Ui.primaryText(activity))
+            setTextColor(tabTextColor(active))
             setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
             background = tabBackground(active, d)
             Ui.pressAnimation(this)
@@ -375,7 +380,7 @@ class RomPage(
         for (i in 0 until brandRow.childCount) {
             val chip = brandRow.getChildAt(i) as? TextView ?: continue
             val isActive = chip.text.toString() == activeBrand
-            chip.setTextColor(if (isActive) Ui.buttonText(activity) else Ui.primaryText(activity))
+            chip.setTextColor(tabTextColor(isActive))
             chip.background = tabBackground(isActive, d)
         }
     }
@@ -411,7 +416,7 @@ class RomPage(
         val d = activity.resources.displayMetrics.density
         for ((tv, idx) in listOf(tabXiaomi to 0, tabMultiBrand to 1)) {
             val active = idx == activeTab
-            tv.setTextColor(if (active) Ui.buttonText(activity) else Ui.primaryText(activity))
+            tv.setTextColor(tabTextColor(active))
             tv.background = tabBackground(active, d)
         }
     }
@@ -639,7 +644,11 @@ class RomPage(
             })
         }
 
-        val downloadBtn = TextView(activity).apply {
+        val btnRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        btnRow.addView(TextView(activity).apply {
             text = "下载"
             textSize = 10f
             gravity = Gravity.CENTER
@@ -651,13 +660,59 @@ class RomPage(
                 Haptics.perform(this)
                 resolveAndDownload(entry)
             }
-        }
-        item.addView(downloadBtn, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
+        })
+        btnRow.addView(TextView(activity).apply {
+            text = "复制链接"
+            textSize = 10f
+            gravity = Gravity.CENTER
+            setTextColor(Ui.buttonText(activity))
+            background = Ui.glassButton(activity, Ui.buttonSecondary(activity))
+            Ui.pressAnimation(this)
+            setPadding(Ui.dp(8, d), Ui.dp(4, d), Ui.dp(8, d), Ui.dp(4, d))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { marginStart = Ui.dp(6, d) }
+            setOnClickListener {
+                Haptics.perform(this)
+                copyLink(entry)
+            }
+        })
+        item.addView(btnRow, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
         ).apply { topMargin = Ui.dp(5, d) })
 
         return item
+    }
+
+    /** resolve 临时链接并复制到系统剪贴板 */
+    private fun copyLink(entry: YuleRomEntry) {
+        val loading = AlertDialog.Builder(activity)
+            .setTitle("正在获取下载链接")
+            .setMessage("正在获取 ${entry.device} 的临时 ROM 链接...")
+            .setCancelable(false)
+            .show()
+        scope.launch {
+            val resolved = RomApi.resolveYuleDownload(entry)
+            withContext(Dispatchers.Main) {
+                runCatching { loading.dismiss() }
+                if (activity.isFinishing) return@withContext
+                val url = resolved?.url
+                if (url.isNullOrBlank()) {
+                    Toast.makeText(activity, "获取下载链接失败", Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+                val cm = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                cm?.setPrimaryClip(android.content.ClipData.newRawUri(
+                    "${entry.device}_${entry.version}",
+                    android.net.Uri.parse(url),
+                ))
+                val exp = resolved.expiresAt
+                val msg = if (exp.isNotBlank()) "下载链接已复制（有效期 $exp）" else "下载链接已复制"
+                Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun resolveAndDownload(entry: YuleRomEntry) {
