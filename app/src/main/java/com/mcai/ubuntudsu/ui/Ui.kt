@@ -620,14 +620,17 @@ object Ui {
             setPadding(0, 0, 0, dp(3, density))
         })
         aboutPanel.addView(TextView(activity).apply {
-            text = "· DSU：通过 ROOT 调用系统 dynamic_system 服务安装 GSI 镜像，支持自定义 userdata 容量、一键重启进入\n" +
-                "· Linux ARM® 架构：Chroot 方式安装运行 Ubuntu rootfs（本地 / 云端镜像），root 权限直通\n" +
+            text = "· DSU 管理：ROOT 调用 dynamic_system 服务安装 GSI 镜像，自定义 userdata 容量、清理旧缓存、一键重启进入\n" +
+                "· Linux ARM® 架构：Chroot 安装运行 Ubuntu rootfs（本地 / 云端镜像），root 权限直通，可卸载还原\n" +
                 "· 容器终端：Termux 风格 Chroot 终端，支持 apt 安装软件包\n" +
-                "· 桌面：XFCE / KDE / GNOME + VNC 远程桌面与音频桥接\n" +
-                "· 文件管理：内置 rootfs 文件浏览器，支持编辑 / 重命名 / 新建删除\n" +
-                "· 下载管理：多任务并行下载，断点续传\n" +
-                "· 进程管理：/proc 双点采样实测 CPU / 内存 / 后台耗电，任务栏后台应用一览\n" +
-                "· 检查更新：GitHub Releases 在线检测新版本，下载安装一步完成"
+                "· 远程桌面：XFCE / KDE 桌面 + VNC 远程连接，音频桥接、分辨率自选、触控 / 轨迹板双指针模式\n" +
+                "· ROM 固件：HyperOS 与 ColorOS / FlymeOS / realme UI 固件双源，设备品牌 / 机型筛选，版本号新到旧排序，内置 aria2c 下载与复制链接\n" +
+                "· 下载管理：多任务并行下载，断点续传，全部 / 下载中 / 已完成 / 已暂停分类\n" +
+                "· 文件管理：内置 rootfs 文件浏览器，编辑 / 重命名 / 新建删除\n" +
+                "· 进程管理：/proc 双点采样实测 CPU / 内存 / 后台耗电，后台应用一览\n" +
+                "· OTG 刷机助手：检测 USB 设备 ADB / Fastboot 状态，刷机日志实时输出\n" +
+                "· U 盘启动：本地制作 U 盘 IMG 镜像并虚拟 U 盘暴露给电脑\n" +
+                "· 检查更新：GitHub / Gitee 双源在线检测新版本，下载安装一步完成"
             textSize = 11f
             setTextColor(secondaryText(activity))
             setLineSpacing(dp(3, density).toFloat(), 1f)
