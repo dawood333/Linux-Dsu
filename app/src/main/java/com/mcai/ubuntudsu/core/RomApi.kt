@@ -39,17 +39,31 @@ data class RomDevice(
 )
 
 /**
- * 多品牌 ROM 条目（rom.yule.ink 数据源）
+ * 欧加固件条目（rom.yule.ink /api/ota/catalog 数据源）
+ * device 字段前缀即品牌：OP=OnePlus, OPPO, REALME=Realme, MEIZU=魅族
+ * source_url 是占位值，需经 POST /api/ota/resolve 换取带有效期的真实下载链接
  */
 data class YuleRomEntry(
-    val id: Int,
-    val model: String,       // 设备型号，如 RMX3708
-    val brand: String,       // 品牌：OPPO/OnePlus/Realme
-    val romUrl: String,      // 下载链接（可能是网盘分享链接）
-    val romFileName: String,
-    val romFileSize: String, // 人类可读大小，如 "8.2 GB"
-    val romVersion: String,
-)
+    val releaseId: String,
+    val device: String,      // 如 "OPPO PJX110"
+    val version: String,
+    val region: String = "",
+    val sizeBytes: Long = 0,
+    val md5: String = "",
+    val buildTimestamp: String = "",
+    val sourceUrl: String,
+) {
+    val brand: String get() = when {
+        device.startsWith("OP ", true) || device == "OP" -> "OnePlus"
+        device.startsWith("OPPO", true) -> "OPPO"
+        device.startsWith("REALME", true) -> "Realme"
+        device.startsWith("MEIZU", true) -> "Meizu"
+        else -> device.substringBefore(' ').ifEmpty { device }
+    }
+
+    val sizeText: String
+        get() = if (sizeBytes > 0) "%.2f GB".format(sizeBytes / 1024.0 / 1024.0 / 1024.0) else ""
+}
 
 /**
  * 欧加固件列表请求结果（含失败原因，便于界面提示）
@@ -57,6 +71,14 @@ data class YuleRomEntry(
 data class YuleRomResult(
     val entries: List<YuleRomEntry>,
     val error: String? = null,
+)
+
+/**
+ * /api/ota/resolve 返回的临时下载链接
+ */
+data class YuleResolvedUrl(
+    val url: String,
+    val expiresAt: String,
 )
 
 /**
@@ -83,7 +105,9 @@ object RomApi {
     private const val DEVICES_JSON_URL = "https://raw.githubusercontent.com/HegeKen/HyperData/main/devices.json"
 
     // 欧加固件数据源（OPPO / OnePlus / Realme）
-    private const val YULE_ROM_LIST_URL = "https://rom.yule.ink/api/rom/list"
+    private const val YULE_BASE_URL = "https://rom.yule.ink"
+    private const val YULE_CATALOG_URL = "$YULE_BASE_URL/api/ota/catalog"
+    private const val YULE_RESOLVE_URL = "$YULE_BASE_URL/api/ota/resolve"
 
     // 欧加接口走 Cloudflare 防护，必须用浏览器 UA，否则会被机器人拦截返回 HTML
     private const val YULE_USER_AGENT =
@@ -103,12 +127,13 @@ object RomApi {
     }
 
     /**
-     * 获取欧加固件列表（OPPO / OnePlus / Realme）
-     * 数据源：rom.yule.ink
+     * 获取欧加固件列表（OPPO / OnePlus / Realme / Meizu）
+     * 数据源：rom.yule.ink /api/ota/catalog
+     * 返回结构：{ releases: [{id, device, version, region, size, md5, build_timestamp, source_url}], cached_at }
      */
     suspend fun fetchYuleRomList(): YuleRomResult = withContext(Dispatchers.IO) {
         try {
-            val conn = URL(YULE_ROM_LIST_URL).openConnection() as HttpURLConnection
+            val conn = URL(YULE_CATALOG_URL).openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = 20000
             conn.readTimeout = 20000
@@ -118,9 +143,11 @@ object RomApi {
 
             val code = conn.responseCode
             if (code !in 200..299) {
+                conn.disconnect()
                 return@withContext YuleRomResult(emptyList(), "HTTP $code（可能被站点防护拦截）")
             }
             val body = conn.inputStream.bufferedReader().use { it.readText() }
+            conn.disconnect()
             if (body.trimStart().startsWith("<")) {
                 return@withContext YuleRomResult(emptyList(), "接口返回HTML（被防护拦截或接口路径变更）")
             }
@@ -130,24 +157,64 @@ object RomApi {
         }
     }
 
+    /**
+     * 用 release_id 换取带有效期的真实下载链接
+     * POST /api/ota/resolve {release_id, device, source_url} -> {url, expires_at}
+     */
+    suspend fun resolveYuleDownload(entry: YuleRomEntry): YuleResolvedUrl? = withContext(Dispatchers.IO) {
+        try {
+            val conn = URL(YULE_RESOLVE_URL).openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 20000
+            conn.readTimeout = 20000
+            conn.doOutput = true
+            conn.setRequestProperty("User-Agent", YULE_USER_AGENT)
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.setRequestProperty("Accept", "application/json, text/plain, */*")
+            conn.setRequestProperty("Referer", "https://rom.yule.ink/")
+
+            val reqBody = JSONObject().apply {
+                put("release_id", entry.releaseId)
+                put("device", entry.device)
+                put("source_url", entry.sourceUrl)
+            }.toString()
+            conn.outputStream.use { it.write(reqBody.toByteArray()) }
+
+            val code = conn.responseCode
+            if (code !in 200..299) {
+                conn.disconnect()
+                return@withContext null
+            }
+            val resp = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
+            conn.disconnect()
+            val url = resp.optString("url", "")
+            if (url.isBlank()) return@withContext null
+            YuleResolvedUrl(url, resp.optString("expires_at", ""))
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun parseYuleRomList(json: String): List<YuleRomEntry> {
         val entries = mutableListOf<YuleRomEntry>()
         try {
             val root = JSONObject(json)
-            val data = root.optJSONArray("data") ?: return entries
-            for (i in 0 until data.length()) {
-                val item = data.optJSONObject(i) ?: continue
-                val romUrl = item.optString("rom_url", "")
-                if (romUrl.isBlank()) continue
+            val releases = root.optJSONArray("releases") ?: return entries
+            for (i in 0 until releases.length()) {
+                val item = releases.optJSONObject(i) ?: continue
+                val sourceUrl = item.optString("source_url", "")
+                val device = item.optString("device", "")
+                if (sourceUrl.isBlank() && device.isBlank()) continue
                 entries.add(
                     YuleRomEntry(
-                        id = item.optInt("id", 0),
-                        model = item.optString("model", ""),
-                        brand = item.optString("brand", ""),
-                        romUrl = romUrl,
-                        romFileName = item.optString("rom_file_name", ""),
-                        romFileSize = item.optString("rom_file_size", ""),
-                        romVersion = item.optString("rom_version", ""),
+                        releaseId = item.optString("id", ""),
+                        device = device,
+                        version = item.optString("version", ""),
+                        region = item.optString("region", ""),
+                        sizeBytes = item.optLong("size", 0L),
+                        md5 = item.optString("md5", ""),
+                        buildTimestamp = item.optString("build_timestamp", ""),
+                        sourceUrl = sourceUrl,
                     )
                 )
             }

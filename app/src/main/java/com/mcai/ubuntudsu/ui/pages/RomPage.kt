@@ -390,9 +390,9 @@ class RomPage(
         filteredYuleEntries = allYuleEntries.filter { entry ->
             val brandMatch = activeBrand == "全部" || entry.brand.equals(activeBrand, ignoreCase = true)
             val searchMatch = q.isEmpty() ||
-                entry.model.lowercase().contains(q) ||
+                entry.device.lowercase().contains(q) ||
                 entry.brand.lowercase().contains(q) ||
-                entry.romFileName.lowercase().contains(q)
+                entry.version.lowercase().contains(q)
             brandMatch && searchMatch
         }
         if (activeTab == 1) {
@@ -437,7 +437,7 @@ class RomPage(
             gravity = Gravity.CENTER_VERTICAL
         }
         row1.addView(TextView(activity).apply {
-            text = entry.model
+            text = entry.device
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -454,17 +454,24 @@ class RomPage(
         })
         item.addView(row1)
 
-        if (entry.romVersion.isNotBlank()) {
+        if (entry.version.isNotBlank()) {
             item.addView(TextView(activity).apply {
-                text = entry.romVersion
+                text = entry.version
                 textSize = 11f
                 setTextColor(Ui.secondaryText(activity))
                 setPadding(0, Ui.dp(3, d), 0, 0)
             })
         }
-        if (entry.romFileSize.isNotBlank()) {
+        val metaLine = buildString {
+            if (entry.sizeText.isNotBlank()) append(entry.sizeText)
+            if (entry.region.isNotBlank()) {
+                if (isNotEmpty()) append("  ")
+                append("区域: ${entry.region}")
+            }
+        }
+        if (metaLine.isNotBlank()) {
             item.addView(TextView(activity).apply {
-                text = "大小: ${entry.romFileSize}"
+                text = metaLine
                 textSize = 10f
                 setTextColor(Ui.secondaryText(activity))
                 setPadding(0, Ui.dp(2, d), 0, 0)
@@ -481,7 +488,7 @@ class RomPage(
             setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
             setOnClickListener {
                 Haptics.perform(this)
-                openInBrowser(entry.romUrl)
+                resolveAndOpen(entry)
             }
         }
         item.addView(downloadBtn, LinearLayout.LayoutParams(
@@ -490,6 +497,26 @@ class RomPage(
         ).apply { topMargin = Ui.dp(8, d) })
 
         return item
+    }
+
+    private fun resolveAndOpen(entry: YuleRomEntry) {
+        val loading = AlertDialog.Builder(activity)
+            .setTitle("正在获取下载链接")
+            .setMessage("正在获取 ${entry.device} 的临时 ROM 链接...")
+            .setCancelable(false)
+            .show()
+        scope.launch {
+            val resolved = RomApi.resolveYuleDownload(entry)
+            withContext(Dispatchers.Main) {
+                runCatching { loading.dismiss() }
+                if (activity.isFinishing) return@withContext
+                if (resolved != null) {
+                    openInBrowser(resolved.url)
+                } else {
+                    Toast.makeText(activity, "获取下载链接失败", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
     }
 
     private fun openInBrowser(url: String) {
