@@ -10,6 +10,7 @@ import android.content.res.ColorStateList
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.app.Activity
 import android.widget.LinearLayout
@@ -333,6 +334,102 @@ object Ui {
     }
 
     // ==================== 通用形状 ====================
+    /** 拟态玻璃选择弹窗：标题 + 纵向玻璃按钮列表 + 取消，复用 frostedSurface/neuSolidButton 视觉语言 */
+    fun showGlassChoiceDialog(
+        activity: android.app.Activity,
+        title: String,
+        subtitle: String? = null,
+        options: List<String>,
+        onPick: (Int) -> Unit,
+        onDismiss: (() -> Unit)? = null,
+    ) {
+        val density = activity.resources.displayMetrics.density
+        val dark = isDark(activity)
+        val panel = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = frostedSurface(activity, 24f)
+            setPadding(dp(16, density), dp(16, density), dp(16, density), dp(12, density))
+            val widthPx = (activity.resources.displayMetrics.widthPixels * 0.5f).toInt()
+            layoutParams = android.view.ViewGroup.LayoutParams(widthPx, ViewGroup.LayoutParams.WRAP_CONTENT)
+        }
+        panel.addView(TextView(activity).apply {
+            text = title
+            textSize = 15f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(primaryText(activity))
+            setPadding(0, 0, 0, dp(2, density))
+        })
+        if (subtitle != null) panel.addView(TextView(activity).apply {
+            text = subtitle
+            textSize = 11f
+            setTextColor(secondaryText(activity))
+            setPadding(0, 0, 0, dp(2, density))
+        })
+        panel.addView(View(activity).apply {
+            background = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(
+                if (dark) Color.argb(46, 111, 168, 255) else Color.argb(140, 214, 228, 248),
+                if (dark) Color.argb(110, 168, 214, 255) else Color.argb(220, 255, 255, 255),
+                if (dark) Color.argb(46, 111, 168, 255) else Color.argb(140, 214, 228, 248),
+            )).apply {
+                cornerRadius = dp(1, density).toFloat()
+            }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2, density)).apply {
+                setMargins(0, dp(10, density), 0, dp(10, density))
+            }
+        })
+        val cancelBtn = TextView(activity).apply {
+            text = "取消"
+            textSize = 12f
+            setTypeface(typeface, Typeface.BOLD)
+            gravity = Gravity.CENTER
+            setTextColor(secondaryText(activity))
+            background = neuInset(activity, 10f)
+            setPadding(0, dp(8, density), 0, dp(8, density))
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, dp(6, density), 0, 0)
+            }
+            pressAnimation(this)
+            visibility = View.GONE
+        }
+        panel.addView(cancelBtn)
+        val dialog = android.app.Dialog(activity).apply {
+            window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            window?.setDimAmount(0.45f)
+            setContentView(panel)
+            setCanceledOnTouchOutside(true)
+        }
+        cancelBtn.setOnClickListener {
+            dialog.dismiss()
+            onDismiss?.invoke()
+        }
+        options.forEachIndexed { index, label ->
+            val btn = TextView(activity).apply {
+                text = label
+                textSize = 13f
+                setTypeface(typeface, Typeface.BOLD)
+                gravity = Gravity.CENTER
+                setTextColor(buttonText(activity))
+                background = neuSolidButton(
+                    if (index == 0) Night.PRIMARY_TOP else (if (dark) Color.argb(120, 130, 130, 190) else Color.argb(230, 240, 246, 255)),
+                    if (index == 0) Night.PRIMARY_BOTTOM else (if (dark) Color.argb(110, 90, 90, 150) else Color.argb(220, 232, 242, 252)),
+                    12f, activity,
+                )
+                setPadding(0, dp(10, density), 0, dp(10, density))
+                pressAnimation(this)
+                setOnClickListener {
+                    dialog.dismiss()
+                    onPick(index)
+                }
+            }
+            btn.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                val bottom = if (index < options.lastIndex) dp(8, density) else 0
+                setMargins(0, 0, 0, bottom)
+            }
+            panel.addView(btn, panel.childCount - 1)
+        }
+        cancelBtn.visibility = View.VISIBLE
+        dialog.show()
+    }
 
     fun rounded(color: Int, radiusDp: Float, density: Float): GradientDrawable =
         GradientDrawable().apply {
@@ -355,6 +452,53 @@ object Ui {
         val rippleColor = accent?.let {
             Color.argb(70, Color.red(it), Color.green(it), Color.blue(it))
         } ?: if (isDark(context)) Color.argb(60, 111, 168, 255) else Color.argb(50, 47, 124, 246)
+        return RippleDrawable(ColorStateList.valueOf(rippleColor), content, null)
+    }
+
+    /**
+     * 浅色拟态按键：日间白玻璃填充 + 蓝灰高光/阴影双环 + 8dp 圆角（不随夜间主题变暗）。
+     * 终端快捷栏专用——按键内放黑色文字，保证任何主题下都清晰可读。
+     */
+    fun lightGlassButton(context: android.content.Context, radiusDp: Float = 8f, accent: Int? = null): RippleDrawable {
+        val density = context.resources.displayMetrics.density
+        val radius = radiusDp.coerceAtMost(MAX_CORNER_RADIUS_DP) * density
+        val layers = mutableListOf<Drawable>()
+        // L0 右下阴影外环
+        layers += GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radius + density
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(2, density), Color.argb(120, 169, 187, 214))
+        }
+        // L1 白玻璃填充（垂直渐变，日间基调，保证黑字可读）
+        layers += GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(0xFFFF, 0xFFF7FAFE.toInt(), 0xFFEAF2FA.toInt()),
+        ).apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radius
+        }
+        // L2 左上高光内环
+        layers += GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radius - density * 0.5f
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(1, density), 0xC8FFFFFF.toInt())
+        }
+        // L3 accent 霓虹描边（激活态）
+        accent?.let {
+            val neon = Color.argb(90, Color.red(it), Color.green(it), Color.blue(it))
+            layers += GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = radius + density * 1.5f
+                setColor(Color.TRANSPARENT)
+                setStroke(dp(1, density), neon)
+            }
+        }
+        val content = LayerDrawable(layers.toTypedArray())
+        val rippleColor = accent?.let {
+            Color.argb(70, Color.red(it), Color.green(it), Color.blue(it))
+        } ?: Color.argb(50, 47, 124, 246)
         return RippleDrawable(ColorStateList.valueOf(rippleColor), content, null)
     }
 

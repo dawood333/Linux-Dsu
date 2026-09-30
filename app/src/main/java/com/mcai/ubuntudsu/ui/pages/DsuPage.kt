@@ -233,7 +233,7 @@ class DsuPage(
         )
         val toolsRow1 = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         toolsRow1.addView(
-            Ui.iconTile(activity, "重启到 DSU", "重启进入 GSI 系统", R.drawable.icon_dsu_modern, Ui.buttonWarning(activity)) {
+            Ui.iconTile(activity, "重启到 DSU", "重启进入 GSI 系统", R.drawable.ic_dsu_restart, Ui.buttonWarning(activity)) {
                 confirmAction("重启进入 DSU", "设备将立即重启并进入 GSI 系统。") {
                     executor.execute {
                         val service = privilegedService
@@ -250,7 +250,7 @@ class DsuPage(
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
         toolsRow1.addView(
-            Ui.iconTile(activity, "修复环境", "清理元数据重新准备", R.drawable.icon_repair_modern) {
+            Ui.iconTile(activity, "修复环境", "清理元数据重新准备", R.drawable.ic_dsu_repair) {
                 confirmAction(
                     "修复 DSU 环境",
                     "将删除 /metadata/gsi/dsu 和 /metadata/vold/metadata_encryption/dsu。该操作用于清理上一次失败安装留下的状态，不会删除已选择的 GSI 文件。",
@@ -272,13 +272,13 @@ class DsuPage(
             ).apply { topMargin = Ui.dp(8, d) }
         }
         toolsRow2.addView(
-            Ui.iconTile(activity, "撤销已安装", "移除 GSI 回到原系统", R.drawable.icon_trash_rootfs, Ui.buttonDanger(activity)) {
+            Ui.iconTile(activity, "撤销已安装", "移除 GSI 回到原系统", R.drawable.ic_dsu_undo, Ui.buttonDanger(activity)) {
                 confirmAction("撤销 GSI", "删除 /data/gsi/dsu/dsu，移除已安装的 GSI。") { executor.execute { DsuManager.wipe(::log) } }
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
         toolsRow2.addView(
-            Ui.iconTile(activity, "清理 userdata", "清空用户数据分区", R.drawable.icon_clear_modern) {
+            Ui.iconTile(activity, "清理 userdata", "清空用户数据分区", R.drawable.ic_dsu_clear_userdata) {
                 confirmAction("清理 userdata", "执行 gsi_tool wipe-data，仅清空 userdata 分区数据。") {
                     executor.execute {
                         val result = DsuManager.wipeData(::log)

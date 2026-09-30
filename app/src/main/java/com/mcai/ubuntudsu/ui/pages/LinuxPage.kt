@@ -184,13 +184,28 @@ class LinuxPage(
             .setPositiveButton("卸载") { _, _ ->
                 executor.execute {
                     val rootfs = Env.rootfs(activity)
-                    RootShell.exec(
-                        "rm -rf '${rootfs.path.replace("'", "'\\''")}'",
-                        timeoutMs = 300000,
-                    )
-                    runCatching { rootfs.deleteRecursively() }
+                    val ref = rootfs.absolutePath
+                    // rootfs 内的 /dev /dev/pts /proc /sys 是宿主内核的全局 bind/内核挂载，
+                    // umount 任何一个都会破坏宿主内核挂载表导致定屏，绝不 umount。
+                    // 先杀掉占用挂载的 VNC/X 进程，然后只删非挂载子目录内容，
+                    // 挂载点目录本身保留（EBUSY 删不掉，|| true 吞掉）。
+                    val killLines = """toybox pkill -9 Xvnc 2>/dev/null || true
+toybox pkill -9 -f startxfce4 2>/dev/null || true
+toybox pkill -9 -f startplasma-x11 2>/dev/null || true
+toybox pkill -9 -f startplasma 2>/dev/null || true
+sleep 1""".trimIndent()
+                    // 只删 rootfs 内非挂载点的子目录，挂载点目录本身不动
+                    val rmLine = "toybox rm -rf '$ref'/* 2>/dev/null; toybox rm -rf '$ref' 2>/dev/null || true"
+                    val verify = "toybox test -e '$ref' && echo __REMAIN__ || echo __GONE__"
+                    val script = "$killLines\n$rmLine\n$verify"
+                    val result = RootShell.exec(script, timeoutMs = 120000)
+                    val gone = result.stdout.contains("__GONE__") && !result.stdout.contains("__REMAIN__")
                     activity.runOnUiThread {
-                        Toast.makeText(activity, "已卸载", Toast.LENGTH_SHORT).show()
+                        if (gone) {
+                            Toast.makeText(activity, "已卸载 rootfs 系统", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(activity, "卸载失败：目录仍存在，请关闭终端后重试", Toast.LENGTH_LONG).show()
+                        }
                         refreshInfo()
                     }
                 }

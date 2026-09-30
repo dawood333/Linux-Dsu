@@ -25,6 +25,8 @@ class HomePage(
     private lateinit var gsiDot: View
     private lateinit var ubuntuText: TextView
     private lateinit var ubuntuDot: View
+    private lateinit var desktopText: TextView
+    private lateinit var desktopDot: View
     private lateinit var rootDot: View
     private lateinit var rootLabel: TextView
     private lateinit var storageValue: TextView
@@ -197,13 +199,13 @@ class HomePage(
             )
         }
 
-        // 上分区：实时状态
+        // 实时状态
         card.addView(TextView(activity).apply {
             text = "实时状态"
-            textSize = 15f
+            textSize = 14f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
-            setPadding(0, 0, 0, Ui.dp(4, d))
+            setPadding(0, 0, 0, Ui.dp(3, d))
         })
         val gauges = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -216,7 +218,7 @@ class HomePage(
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = Ui.dp(8, d) }
-            addView(cpuGauge, LinearLayout.LayoutParams(Ui.dp(104, d), Ui.dp(104, d)))
+            addView(cpuGauge, LinearLayout.LayoutParams(Ui.dp(84, d), Ui.dp(84, d)))
             addView(TextView(activity).apply {
                 text = "CPU"
                 textSize = 13f
@@ -231,7 +233,7 @@ class HomePage(
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = Ui.dp(8, d) }
-            addView(gpuGauge, LinearLayout.LayoutParams(Ui.dp(104, d), Ui.dp(104, d)))
+            addView(gpuGauge, LinearLayout.LayoutParams(Ui.dp(84, d), Ui.dp(84, d)))
             addView(TextView(activity).apply {
                 text = "GPU"
                 textSize = 13f
@@ -252,8 +254,8 @@ class HomePage(
         storageDetail = storageCard.second
         memoryValue = memoryCard.first
         memoryDetail = memoryCard.second
-        details.addView(storageCard.third, LinearLayout.LayoutParams(0, Ui.dp(60, d), 1f).apply { marginEnd = Ui.dp(4, d) })
-        details.addView(memoryCard.third, LinearLayout.LayoutParams(0, Ui.dp(60, d), 1f).apply { marginStart = Ui.dp(4, d) })
+        details.addView(storageCard.third, LinearLayout.LayoutParams(0, Ui.dp(62, d), 1f).apply { marginEnd = Ui.dp(4, d) })
+        details.addView(memoryCard.third, LinearLayout.LayoutParams(0, Ui.dp(62, d), 1f).apply { marginStart = Ui.dp(4, d) })
         card.addView(details)
 
         // wire metrics polling
@@ -273,7 +275,7 @@ class HomePage(
         // 水晶玻璃分隔条
         card.addView(Ui.crystalDivider(activity, d), LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(2, d),
-        ).apply { topMargin = Ui.dp(14, d); bottomMargin = Ui.dp(12, d) })
+        ).apply { topMargin = Ui.dp(10, d); bottomMargin = Ui.dp(8, d) })
 
         // 下分区：检测信息
         deviceText = TextView(activity).apply {
@@ -320,8 +322,12 @@ class HomePage(
         val ubuntuPill = statusRow("Linux", "检测中...")
         ubuntuText = ubuntuPill.text
         ubuntuDot = ubuntuPill.dot
+        val desktopPill = statusRow("桌面", "检测中...")
+        desktopText = desktopPill.text
+        desktopDot = desktopPill.dot
         statusColumn.addView(gsiPill.row)
         statusColumn.addView(ubuntuPill.row)
+        statusColumn.addView(desktopPill.row)
         card.addView(statusColumn)
         card.addView(
             TextView(activity).apply {
@@ -333,7 +339,7 @@ class HomePage(
                 Ui.pressAnimation(this)
                 setOnClickListener { refreshStatus() }
             },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(36, d)).apply { topMargin = Ui.dp(8, d) },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(32, d)).apply { topMargin = Ui.dp(6, d) },
         )
         return card
     }
@@ -391,14 +397,15 @@ class HomePage(
         val d = activity.resources.displayMetrics.density
         val valueView = TextView(activity).apply {
             text = "读取中..."
-            textSize = 16f
+            textSize = 15f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             maxLines = 1
             ellipsize = android.text.TextUtils.TruncateAt.END
             gravity = android.view.Gravity.CENTER
+            includeFontPadding = false
             androidx.core.widget.TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
-                this, 8, 16, 1, android.util.TypedValue.COMPLEX_UNIT_SP,
+                this, 7, 15, 1, android.util.TypedValue.COMPLEX_UNIT_SP,
             )
         }
         val detailView = TextView(activity).apply {
@@ -415,7 +422,7 @@ class HomePage(
         val card = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             gravity = android.view.Gravity.CENTER_HORIZONTAL
-            setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(4, d))
+            setPadding(Ui.dp(8, d), Ui.dp(4, d), Ui.dp(8, d), Ui.dp(3, d))
             background = Ui.glassSurface(activity, 14f)
             addView(TextView(activity).apply {
                 text = title
@@ -423,8 +430,8 @@ class HomePage(
                 setTextColor(Ui.secondaryText(activity))
                 gravity = android.view.Gravity.CENTER
             })
-            addView(valueView)
-            addView(detailView)
+            addView(valueView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(detailView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
         return Triple(valueView, detailView, card)
     }
@@ -525,6 +532,7 @@ class HomePage(
         val ctx = activity
         gsiText.text = "GSI 系统：检测中..."
         ubuntuText.text = "Linux：检测中..."
+        desktopText.text = "桌面：检测中..."
         rootLabel.text = "ROOT：检测中…"
         fun grayDot(view: View) {
             view.background = android.graphics.drawable.GradientDrawable().apply {
@@ -534,6 +542,7 @@ class HomePage(
         }
         grayDot(gsiDot)
         grayDot(ubuntuDot)
+        grayDot(desktopDot)
         grayDot(rootDot)
         executor.execute {
             val device = com.mcai.ubuntudsu.core.StatusDetector.deviceSummary()
@@ -555,6 +564,8 @@ class HomePage(
                 deviceText.text = device
                 gsiText.text = "GSI 系统：$gsiLabel"
                 ubuntuText.text = if (Env.ubuntuInstalled(ctx)) "Linux：已安装" else "Linux：未安装"
+                val desktopLabel = Env.desktopState(ctx)
+                desktopText.text = "桌面：$desktopLabel"
                 rootLabel.text = if (rootOk) "ROOT：已授权" else "ROOT：未授权"
                 rootDot.background = dotColor(if (rootOk) "#5CE1A5" else "#FF756F")
                 // GSI 点：运行/安装/启用=绿，停用=琥珀，未安装/未知=灰
@@ -569,6 +580,8 @@ class HomePage(
                     },
                 )
                 ubuntuDot.background = dotColor(if (Env.ubuntuInstalled(ctx)) "#5CE1A5" else "#B0B0B0")
+                val hasDesktop = !desktopLabel.startsWith("未安装")
+                desktopDot.background = dotColor(if (hasDesktop) "#5CE1A5" else "#B0B0B0")
             }
         }
     }

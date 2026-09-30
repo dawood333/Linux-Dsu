@@ -16,6 +16,18 @@ class AudioBridge(private val pipe: java.io.File) {
         if (running) return
         running = true
         executor.execute {
+            // proot 绑定：host 侧 audioPipeHost（filesDir/run/android-audio.pcm）映射到容器内 /run/android-audio.pcm
+            val fifo = pipe
+            // 确保 host 侧 FIFO 存在（proot -b 要求 host 路径存在）
+            if (!fifo.exists()) {
+                runCatching {
+                    val parent = fifo.parentFile
+                    if (parent != null && !parent.exists()) parent.mkdirs()
+                    val mkfifo = Runtime.getRuntime().exec(arrayOf("/system/bin/toybox", "mkfifo", fifo.absolutePath))
+                    mkfifo.waitFor()
+                    runCatching { fifo.setReadable(true, false); fifo.setWritable(true, false) }
+                }
+            }
             val minBuffer = AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT)
             val audio = AudioTrack.Builder()
                 .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
@@ -28,7 +40,7 @@ class AudioBridge(private val pipe: java.io.File) {
             runCatching {
                 while (running) {
                     try {
-                        FileInputStream(pipe).use { input ->
+                        FileInputStream(fifo).use { input ->
                             val buffer = ByteArray(16384)
                             while (running) {
                                 val count = input.read(buffer)

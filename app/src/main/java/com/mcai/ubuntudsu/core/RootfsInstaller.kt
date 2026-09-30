@@ -40,50 +40,35 @@ object RootfsInstaller {
     ): Result<Unit> = runCatching {
         cancelled.set(false)
         val sourceName = uri.toString().substringAfterLast('/').substringBefore('?').ifEmpty { "rootfs.tar.gz" }
-        // file:// uri：先取文件真实大小（可直读用 stat，否则 root stat）
+        // file:// uri：取文件真实大小（可直读用 stat）
         val path = uri.path
         val file = path?.let { java.io.File(it) }
         val total = if (file != null) {
-            file.length().takeIf { it > 0 } ?: rootFileSize(path)
+            file.length().takeIf { it > 0 } ?: -1L
         } else {
             contentLength(ctx.contentResolver, uri)
         }
         onProgress(InstallProgress("read", 0, total))
-        // 普通流优先（可直读秒开）；无权限降级 root 流（su cat 零拷贝）
+        // 普通流优先（可直读秒开）；content:// 走 contentResolver
         val rawStream: java.io.InputStream? = if (file != null) {
-            runCatching { file.takeIf { it.canRead() }?.inputStream() }.getOrNull()
-                ?: path?.let { RootShell.openStream(it) }
+            file.takeIf { it.canRead() }?.inputStream()
         } else {
             ctx.contentResolver.openInputStream(uri)
         }
         rawStream?.use { stream ->
             val counting = CountingInputStream(stream) { current ->
-                // 解压进度按已读取的压缩字节计，与 total 同基准
                 if (total > 0) onProgress(InstallProgress("extract", current.coerceAtMost(total), total))
             }
             TarExtractor.extract(TarExtractor.openStream(counting), Env.rootfs(ctx)).getOrThrow()
         } ?: error("无法读取所选文件")
         validateRootfs(ctx, sourceName)
-        // 安装成功后删除安装包（app 可直删用 File.delete；无权限（/sdcard 等）降级 root 删除；
-        // content:// 经 DocumentsContract 删除）。删除失败不阻断安装流程。
+        // 安装成功后删除安装包（app 可直删；content:// 经 DocumentsContract 删除）。删除失败不阻断安装流程。
         if (uri.scheme == "file" && path != null) {
-            val deleted = runCatching { file?.delete() == true }.getOrDefault(false)
-            if (!deleted && (file?.exists() == true || !canStat(path))) {
-                runCatching { RootShell.exec("rm -f \"$path\"", timeoutMs = 15000) }
-            }
+            runCatching { file?.delete() }
         } else if (uri.scheme != "file") {
             runCatching { deleteSource(ctx.contentResolver, uri) }
         }
     }
-
-    // root 取文件大小（app 无直读权限时）
-    private fun rootFileSize(path: String): Long =
-        RootShell.exec("stat -c %s \"$path\" 2>/dev/null || wc -c < \"$path\"", timeoutMs = 20000)
-            .stdout.trim().toLongOrNull() ?: -1L
-
-    // app 能否 stat 该路径（false 说明无权限，删除需走 root）
-    private fun canStat(path: String): Boolean =
-        runCatching { java.io.File(path).exists() }.getOrDefault(false)
 
     fun downloadAndInstall(
         ctx: Context,
@@ -174,47 +159,20 @@ object RootfsInstaller {
         cancelled.set(false)
         val root = Env.rootfs(ctx)
         check(Env.ubuntuInstalled(ctx)) { "请先安装 Ubuntu rootfs" }
-        val total = -1L // 备份进度按输出字节估算，不依赖目录大小探测
-        // root 侧 tar + gzip -1 管道：压缩在 native 进程并行完成，Java 仅搬运计数
-        //（此前 Java XZOutputStream 单线程约 2MB/s，7GB 需近 1 小时；现在可达闪存速度）
-        val shell = ProcessBuilder("/system/bin/su", "0", "/system/bin/sh", "-c",
-            "/system/bin/toybox tar -c -C '${root.path}' --exclude=proc --exclude=sys --exclude=dev --exclude=run . | /system/bin/toybox gzip -1",
-        ).redirectErrorStream(false).start()
-        val errorOutput = java.io.ByteArrayOutputStream()
-        val errorReader = Thread {
-            shell.errorStream.use { it.copyTo(errorOutput) }
-        }.apply { start() }
-        var completed = false
-        var written = 0L
-        try {
-            ctx.contentResolver.openOutputStream(destination, "wt")?.use { output ->
-                shell.inputStream.use { input ->
-                    val buffer = ByteArray(1024 * 1024)
-                    while (true) {
-                        if (cancelled.get()) error("已取消")
-                        val count = input.read(buffer)
-                        if (count < 0) break
-                        output.write(buffer, 0, count)
-                        written += count
-                        // 进度按输出字节估算：gzip 输出约 50% 输入，用输出量*2 与总量对齐
-                        onProgress(InstallProgress("backup", (written * 2).coerceAtLeast(0), if (total > 0) total else written))
-                    }
-                }
-            } ?: error("无法创建备份文件，请确认目标存储仍可写")
-            completed = true
-        } finally {
-            if (!completed && shell.isAlive) shell.destroyForcibly()
-        }
-        val exitCode = shell.waitFor()
-        errorReader.join(5000)
-        if (exitCode != 0) {
-            val detail = errorOutput.toString(Charsets.UTF_8.name()).trim()
-            error("root 权限打包失败${if (detail.isEmpty()) "" else ": $detail"}")
-        }
-        if (written > 0) {
-            onProgress(InstallProgress("backup", written, written))
-        }
+        // 免 root 备份：Java 端 TarWriter 直接遍历 rootfs 目录写 tar，经 contentResolver 输出到 destination
+        val total = rootDirSize(root)
+        ctx.contentResolver.openOutputStream(destination, "wt")?.use { output ->
+            TarWriter(output, root, total, onProgress).write()
+        } ?: error("无法创建备份文件，请确认目标存储仍可写")
     }
+
+    // rootfs 目录总大小（免 root 探测，用于备份进度分母）
+    private fun rootDirSize(root: File): Long = runCatching {
+        root.walkTopDown()
+            .filter { it.isFile }
+            .map { it.length() }
+            .sum()
+    }.getOrDefault(-1L)
 
     private fun extractTo(archive: File, dest: File, onProgress: (InstallProgress) -> Unit): Result<Unit> {
         val total = archive.length()

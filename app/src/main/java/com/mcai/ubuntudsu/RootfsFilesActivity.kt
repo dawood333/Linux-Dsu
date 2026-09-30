@@ -16,7 +16,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.mcai.ubuntudsu.core.Env
-import com.mcai.ubuntudsu.core.RootShell
 import com.mcai.ubuntudsu.ui.Ui
 import java.io.File
 
@@ -286,56 +285,15 @@ class RootfsFilesActivity : AppCompatActivity() {
         listHost.removeAllViews()
         val listing = runCatching { currentDir.listFiles() }.getOrNull()
         when {
-            // 普通读取成功：直接用
             listing != null -> showFiles(
                 listing.sortedWith(compareBy<File> { !it.isDirectory }.thenBy { it.name.lowercase() }),
             )
-            // 无权限：root 兜底浏览（后台线程执行，避免主线程 su 阻塞 ANR）
-            pickMode -> refreshByRootInBackground()
+            pickMode -> showNoPermission()
             else -> showNoPermission()
         }
     }
 
-    // root 兜底浏览：后台线程判定 root 可用并 ls 列目录，结果回主线程渲染
-    private fun refreshByRootInBackground() {
-        Thread {
-            val available = RootShell.available()
-            val entries: List<File>? = if (available) listEntriesByRoot() else null
-            runOnUiThread {
-                if (entries != null) {
-                    showFiles(entries)
-                } else {
-                    showNoPermission()
-                }
-            }
-        }.start()
-    }
-
-    // root 列目录（须在后台线程调用）：失败返回 null
-    private fun listEntriesByRoot(): List<File>? {
-        val dir = currentDir.absolutePath
-        val result = RootShell.exec("ls -1p \"$dir\" 2>/dev/null", timeoutMs = 15000)
-        if (!result.success) return null
-        rootDirs.clear()
-        val entries = result.stdout.lineSequence()
-            .filter { it.isNotEmpty() }
-            .map { line ->
-                val isDir = line.endsWith("/")
-                val name = line.trimEnd('/')
-                if (isDir) rootDirs.add("${currentDir.absolutePath}/$name")
-                File(currentDir, name)
-            }
-            .sortedWith(compareBy<File> { !entryIsDir(it) }.thenBy { it.name.lowercase() })
-            .toList()
-        return entries
-    }
-
-    // root 兜底列目录的目录标记：ls -1p 的 / 后缀记入集合，避免逐条 root 查询
-    private val rootDirs = mutableSetOf<String>()
-
-    // 目录判定：优先 File.isDirectory 与 rootDirs 集合；均为否时按非目录处理（避免 UI 线程 root 查询阻塞）
-    private fun entryIsDir(file: File): Boolean =
-        file.isDirectory || rootDirs.contains(file.absolutePath)
+    private fun entryIsDir(file: File): Boolean = file.isDirectory
 
     private fun showFiles(files: List<File>) {
         if (files.isEmpty()) {

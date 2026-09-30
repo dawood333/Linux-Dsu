@@ -11,10 +11,32 @@ object Env {
     fun downloads(ctx: Context): File = File(ctx.filesDir, "downloads").apply { mkdirs() }
     fun logs(ctx: Context): File = File(ctx.filesDir, "logs").apply { mkdirs() }
     fun background(ctx: Context): File = File(ctx.filesDir, "card_bg.jpg")
+    // host 侧音频 FIFO（AudioBridge 直接读写，proot -b 映射到容器内 /run/android-audio.pcm）
+    fun audioPipeHost(ctx: Context): File = File(ctx.filesDir, "run/android-audio.pcm").apply { parentFile?.mkdirs() }
+    // 容器内视角的音频管道路径（proot 会话中的 bashrc/VNC 脚本引用此路径）
     fun audioPipe(ctx: Context): File = File(rootfs(ctx), "run/android-audio.pcm")
+    // AudioBridge 实际读写的 host 侧文件
+    fun audioFifo(ctx: Context): File = audioPipeHost(ctx)
 
     fun ubuntuInstalled(ctx: Context): Boolean =
         File(rootfs(ctx), "bin/bash").isFile || File(rootfs(ctx), "usr/bin/bash").isFile
+
+    // 桌面环境检测结果：kde / xfce / 未安装
+    // 通过查 rootfs 内对应启动器是否存在判断（无需 su，app uid 可读）
+    fun desktopState(ctx: Context): String {
+        if (!ubuntuInstalled(ctx)) return "未安装 rootfs"
+        val rootfs = rootfs(ctx)
+        val kdeFiles = listOf("usr/bin/startplasma-x11", "usr/bin/plasma-session")
+        val xfceFiles = listOf("usr/bin/startxfce4", "usr/bin/xfce4-session")
+        val kde = kdeFiles.any { File(rootfs, it).exists() }
+        val xfce = xfceFiles.any { File(rootfs, it).exists() }
+        return when {
+            kde && xfce -> "已安装 KDE + XFCE4 桌面环境"
+            kde -> "已安装 KDE 桌面环境"
+            xfce -> "已安装 XFCE4 桌面环境"
+            else -> "未安装任何桌面环境"
+        }
+    }
 
     @Deprecated("No longer used; replaced by -1 sentinel in RootfsInstaller.backup")
     fun dirSize(file: File): Long {
