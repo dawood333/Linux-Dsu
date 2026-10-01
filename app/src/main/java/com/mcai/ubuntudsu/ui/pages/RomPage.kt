@@ -203,7 +203,19 @@ class RomPage(
         ).apply { marginStart = Ui.dp(8, d) })
         page.addView(tabBar)
 
-        // 设备筛选行（仅多品牌 Tab）：选择设备按钮 + 当前所选设备标签
+        // 品牌筛选行（仅多品牌 Tab）
+        brandRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            visibility = View.GONE
+            setPadding(0, 0, 0, Ui.dp(6, d))
+        }
+        for (brand in brandOptions) {
+            brandRow.addView(buildBrandChip(brand))
+        }
+        page.addView(brandRow)
+
+        // 设备筛选行（仅多品牌 Tab）：选择设备按钮 + 当前所选设备标签，位于品牌行下方
         deviceRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -232,18 +244,6 @@ class RomPage(
         }
         deviceRow.addView(deviceLabel)
         page.addView(deviceRow)
-
-        // 品牌筛选行（仅多品牌 Tab）
-        brandRow = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            visibility = View.GONE
-            setPadding(0, 0, 0, Ui.dp(6, d))
-        }
-        for (brand in brandOptions) {
-            brandRow.addView(buildBrandChip(brand))
-        }
-        page.addView(brandRow)
 
         // 状态文字
         statusText = TextView(activity).apply {
