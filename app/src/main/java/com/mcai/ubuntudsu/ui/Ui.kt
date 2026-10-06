@@ -102,12 +102,24 @@ object Ui {
     }
 
     // 背景铺满全屏，内容避让 systemBars 并留出呼吸间距：给页面容器（通常是 ScrollView）挂 insets 监听
+    // 键盘感知：键盘弹起时底部内边距取 ime.bottom，可视区收缩后 ScrollView 自动把聚焦输入框滚到键盘上方
     fun applyContentInsets(view: View, extraTopDp: Int = 12, extraBottomDp: Int = 0) {
         val density = view.resources.displayMetrics.density
         val baseBottom = view.paddingBottom
         ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(v.paddingLeft, bars.top + dp(extraTopDp, density), v.paddingRight, baseBottom + dp(extraBottomDp, density))
+            // API 30+ 由 ime insets 驱动；旧版本靠 manifest adjustResize 调整窗口，避免双重补偿
+            val ime = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insets.getInsets(WindowInsetsCompat.Type.ime())
+            } else {
+                androidx.core.graphics.Insets.NONE
+            }
+            v.setPadding(
+                v.paddingLeft,
+                bars.top + dp(extraTopDp, density),
+                v.paddingRight,
+                maxOf(baseBottom + dp(extraBottomDp, density), ime.bottom),
+            )
             insets
         }
         // 动态添加的页面不会经历首次 insets 遍历，attach 后主动请求一次分发

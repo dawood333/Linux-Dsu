@@ -126,10 +126,10 @@ class DsuPage(
         // 恢复上次选中的 GSI 包（进程重建场景，fileNameText 创建时同步显示）
         restoreSelectedZip()
 
-        // 进度卡（缩小版：紧凑内边距，避免压住下方图标）
+        // 进度卡（紧凑单行：状态文字与百分比同行 + 8dp 细进度条，给下方 DSU 工具图标留空间）
         val progressCard = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(Ui.dp(12, d), Ui.dp(8, d), Ui.dp(12, d), Ui.dp(8, d))
+            setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
             background = Ui.glassSurface(activity, 18f)
             Ui.applyNeuShadow(this, 3f, 18f)
             layoutParams = LinearLayout.LayoutParams(
@@ -137,19 +137,27 @@ class DsuPage(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = Ui.dp(8, d) }
         }
-        installProgressLabel = label("开始状态：未开始", 12f).apply { setTextColor(Ui.secondaryText(activity)) }
+        val statusRow = LinearLayout(activity).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        installProgressLabel = label("开始状态：未开始", 12f).apply {
+            setTextColor(Ui.secondaryText(activity))
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        installPercentText = Ui.percentTextView(activity).apply {
+            gravity = Gravity.END
+        }
+        statusRow.addView(installProgressLabel)
+        statusRow.addView(installPercentText)
         installProgressBar = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
             progress = 0
             progressDrawable = Ui.pillProgressDrawable(activity)
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(14, d)).apply { topMargin = Ui.dp(4, d) }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(8, d)).apply { topMargin = Ui.dp(3, d) }
         }
-        installPercentText = Ui.percentTextView(activity).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(2, d) }
-        }
-        progressCard.addView(installProgressLabel)
+        progressCard.addView(statusRow)
         progressCard.addView(installProgressBar)
-        progressCard.addView(installPercentText)
         page.addView(progressCard)
 
         // 安装参数 + 镜像管理合并卡
