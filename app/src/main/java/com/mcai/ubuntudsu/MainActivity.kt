@@ -36,7 +36,9 @@ class MainActivity : AppCompatActivity() {
     private var settingsPage: SettingsPage? = null
     private val pageCache = mutableMapOf<Int, View>()
     private var navBar: LinearLayout? = null
+    private var navContainer: FrameLayout? = null
     private var glassNav: com.mcai.ubuntudsu.ui.glass.LiquidGlassView? = null
+    private var liquidIndicator: com.mcai.ubuntudsu.ui.glass.LiquidGlassIndicator? = null
     private var swipeDownX = 0f
     private var swipeDownY = 0f
     private var swipeTracked = false
@@ -147,60 +149,87 @@ class MainActivity : AppCompatActivity() {
         }
         root.addView(pageHost)
 
-        val navLayoutParams = FrameLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-        )
+        // 底部导航舱：玻璃舱体 + 可滑动的液态玻璃透镜指示器（选中的 tab 后方）
+        val navContainer = FrameLayout(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+            background = Ui.navGlassPanel(this@MainActivity)
+            clipChildren = false
+            clipToPadding = false
+            setPadding(Ui.dp(6, d), Ui.dp(6, d), Ui.dp(6, d), Ui.dp(6, d))
+        }
+        // 透镜尺寸贴合导航项（宽 = 单 tab 等分宽，高 = 栏高 - 内边距），随屏等比缩放不再硬编码
         val navBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            // item 之间留出间距：外边距 + item 内边距形成呼吸感
-            setPadding(Ui.dp(10, d), Ui.dp(8, d), Ui.dp(10, d), Ui.dp(8, d))
-            layoutParams = navLayoutParams
+            setPadding(Ui.dp(10, d), Ui.dp(12, d), Ui.dp(10, d), Ui.dp(12, d))
         }
+        // 单 tab 宽 = (栏宽 - 左右内边距) / 4；透镜略收一点留缝隙
+        val containerInnerW = (resources.displayMetrics.widthPixels - 2 * Ui.dp(24, d))  // 左右 12dp 边距 + 6dp 栏内边
+        val indicatorW = ((containerInnerW - 4 * Ui.dp(6, d)) / 4 * 0.9f).toInt().coerceAtLeast(Ui.dp(56, d))
+        // 透镜高 = 栏体高（上下各 12dp 内边 + 文字 16dp），贴合不溢出；略小于栏体留上下缝
+        val indicatorH = (Ui.dp(12, d) * 4 + Ui.dp(16, d)) * 0.85f
+        val indicator = com.mcai.ubuntudsu.ui.glass.LiquidGlassIndicator(this)
+        indicator.elevation = Ui.dp(4, d).toFloat()
+        indicator.visibility = View.INVISIBLE
+        navContainer.addView(
+            indicator,
+            FrameLayout.LayoutParams(indicatorW, indicatorH.toInt(), Gravity.CENTER_VERTICAL),
+        )
+        this.liquidIndicator = indicator
+
+        val activeColor = 0x66FFFFFF.toInt()
+        val inactiveColor = 0x99233C50.toInt()
+        val navActiveText = if (Ui.isDark(this)) 0xFFFFFFFF.toInt() else 0xFF101826.toInt()
+        val navInactiveText = if (Ui.isDark(this)) 0xFF2A3040.toInt() else 0xFF2C3A52.toInt()
         tabs.forEachIndexed { tab, label ->
             val item = TextView(this).apply {
                 text = label
-                textSize = 13f
+                textSize = 15f
                 gravity = Gravity.CENTER
+                setSingleLine(true)
+                setTextColor(if (tab == 0) navActiveText else navInactiveText)
                 setTypeface(typeface, if (tab == 0) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
-                setTextColor(if (tab == 0) Ui.buttonText(this@MainActivity) else Ui.secondaryText(this@MainActivity))
-                background = Ui.glassButton(this@MainActivity, if (tab == 0) Ui.buttonPrimary(this@MainActivity) else null)
-                // 舱内胶囊不再单独投影：玻璃舱整体投影，避免双层影子叠加发脏
-                // 胶囊形 item，前后留间距
-                layoutParams = LinearLayout.LayoutParams(0, Ui.dp(40, d), 1f).apply {
-                    marginStart = if (tab == 0) 0 else Ui.dp(6, d)
-                    marginEnd = if (tab == tabs.lastIndex) 0 else Ui.dp(6, d)
-                }
+                setShadowLayer(
+                    Ui.dp(1, d).toFloat(), 0f, Ui.dp(2, d).toFloat(),
+                    if (tab == 0) activeColor else (if (Ui.isDark(this@MainActivity)) 0x66000000.toInt() else inactiveColor),
+                )
+                // 透镜后方导航项：等宽可点击，自身无背景（激活态由指示器 + 文字色体现）
+                layoutParams = LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.MATCH_PARENT, 1f,
+                )
                 setOnClickListener { selectTab(tab) }
             }
             Ui.pressAnimation(item)
             navItems.add(item)
             navBar.addView(item)
         }
-        // 液态玻璃渲染导航舱：真实 LiquidGlassView 渲染层（着色/高光/折射/景深/辉光）+ 拟态彩色投影
-        val glassNav = com.mcai.ubuntudsu.ui.glass.LiquidGlass.createView(this, com.mcai.ubuntudsu.ui.glass.LiquidGlass.navBar(this)).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM,
-            ).apply {
-                marginStart = Ui.dp(12, d)
-                marginEnd = Ui.dp(12, d)
-                bottomMargin = Ui.dp(8, d)
-            }
-            Ui.applyNeuShadow(this, 5f, 26f, Ui.buttonPrimary(this@MainActivity))
-        }
-        glassNav.addView(navBar, FrameLayout.LayoutParams(
+        navContainer.addView(navBar, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.CENTER_VERTICAL,
         ))
-        root.addView(glassNav, glassNav.layoutParams)
-        this.glassNav = glassNav
         this.navBar = navBar
+        this.navContainer = navContainer
+
+        val navLayoutParams = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.BOTTOM,
+        ).apply {
+            marginStart = Ui.dp(6, d)
+            marginEnd = Ui.dp(6, d)
+            bottomMargin = Ui.dp(12, d)
+        }
+        navContainer.layoutParams = navLayoutParams
+        root.addView(navContainer, navLayoutParams)
 
         setContentView(root)
         Ui.enableEdgeToEdge(this, root)
+        // 布局完成后定位初始透镜到第 0 项
+        root.post { moveLiquidIndicator(0) }
         // 沉浸式适配统一在根布局处理：
         // 1. 顶部留出状态栏高度 + 呼吸间距，页面内容整体下移
         // 2. 底部导航栏避开手势条，页面内容底部避让导航栏 + 手势条
@@ -210,9 +239,9 @@ class MainActivity : AppCompatActivity() {
             v.setPadding(bars.left, if (currentTab == 3 && ws) 0 else bars.top + Ui.dp(2, d), bars.right, 0)
             pageHost.setPadding(0, 0, 0, if (currentTab == 3 && ws) 0 else Ui.dp(56 + 16 + 12, d) + bars.bottom)
             // 玻璃导航舱避让手势条
-            (glassNav?.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
+            (navContainer?.layoutParams as? FrameLayout.LayoutParams)?.let { lp ->
                 lp.bottomMargin = bars.bottom + Ui.dp(8, d)
-                glassNav?.layoutParams = lp
+                navContainer?.layoutParams = lp
             }
             insets
         }
@@ -224,27 +253,36 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectTab(tab: Int) {
-        if (tab == currentTab && pageHost.childCount > 0) return
+        if (tab == currentTab && pageHost.childCount > 0) {
+            moveLiquidIndicator(tab)
+            return
+        }
         val d = resources.displayMetrics.density
         val previousTab = currentTab
         currentTab = tab
         for (index in navItems.indices) {
             val item = navItems[index]
             val active = index == tab
-            // 更多页+壁纸同步时，导航栏文字加阴影增强可读性
-            val wallpaperSync = getPreferences(android.app.Activity.MODE_PRIVATE).getBoolean("wallpaper_sync", false)
-            if (tab == 3 && wallpaperSync) {
+            val isWallpaper = tab == 3 && getPreferences(android.app.Activity.MODE_PRIVATE).getBoolean("wallpaper_sync", false)
+            if (isWallpaper) {
                 item.setTextColor(if (active) android.graphics.Color.WHITE else android.graphics.Color.argb(200, 255, 255, 255))
                 item.setShadowLayer(4f, 1f, 1f, android.graphics.Color.argb(180, 0, 0, 0))
             } else {
-                item.setTextColor(if (active) Ui.buttonText(this) else Ui.secondaryText(this))
-                item.setShadowLayer(0f, 0f, 0f, 0)
+                // 透镜后方导航项：激活项按主题取色（日间白透镜→深蓝字，夜间暗透镜→亮白字），非激活灰蓝
+                val activeTextColor = if (Ui.isDark(this)) 0xFFFFFFFF.toInt() else 0xFF101826.toInt()
+                val inactiveTextColor = if (Ui.isDark(this)) 0xFF2A3040.toInt() else 0xFF2C3A52.toInt()
+                item.setTextColor(if (active) activeTextColor else inactiveTextColor)
+                item.setShadowLayer(
+                    Ui.dp(1, d).toFloat(), 0f, Ui.dp(2, d).toFloat(),
+                    if (active) 0x55FFFFFF.toInt() else (if (Ui.isDark(this)) 0x66000000.toInt() else 0x00FFFFFF),
+                )
             }
             item.setTypeface(item.typeface, if (active) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
-            item.background = Ui.glassButton(this, if (active) Ui.buttonPrimary(this) else null)
-            // 舱内胶囊不投影，仅靠胶囊底色区分激活态
+            item.background = null
         }
-        // 水滴切换动画：旧 tab 按钮位置泛起涟漪水滴，向新 tab 方向飞溅
+        // 液态透镜滑动到选中的导航项
+        moveLiquidIndicator(tab)
+        // 水滴切换动画保留：旧 tab 位置泛起涟漪向新 tab 飞溅
         if (previousTab != tab && previousTab in navItems.indices) {
             spawnNavDrop(navItems[previousTab], navItems[tab])
         }
@@ -323,7 +361,51 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 液态玻璃透镜指示器滑动到选中导航项后方。
+     * 计算第 [tab] 个导航项在 [navContainer] 内的中心,把 [liquidIndicator]
+     * 滑过去并垂直贴中,末尾轻微放大回弹表现"液态玻璃聚焦"。
+     */
+    private fun moveLiquidIndicator(tab: Int) {
+        val indicator = liquidIndicator ?: return
+        val container = navContainer ?: return
+        if (tab !in navItems.indices) return
+        val target = navItems[tab]
+        indicator.visibility = View.VISIBLE
+        if (target.width == 0) {
+            target.post { moveLiquidIndicator(tab) }
+            return
+        }
+        val cx = target.left + target.width / 2f
+        val dx = cx - indicator.width / 2f
+        indicator.animate()
+            .translationX(dx)
+            .translationY(0f)
+            .setDuration(260)
+            .setInterpolator(android.view.animation.OvershootInterpolator(0.6f))
+            .start()
+        indicator.animate()
+            .scaleX(1.14f)
+            .scaleY(1.14f)
+            .setDuration(110)
+            .setInterpolator(android.view.animation.AccelerateInterpolator())
+            .withEndAction {
+                indicator.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(190)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator())
+                    .start()
+            }
+            .start()
+        // 焦点态：透镜按压感（放大即焦点）
+        indicator.setLiquidPressed(false)
+        // 导航项在最前、透镜贴在其后方
+        (navContainer as? FrameLayout)?.bringChildToFront(navBar ?: indicator)
+    }
+
     // 导航水滴动画：从旧按钮中心溅起水滴，弧线飞向新按钮落点
+    @Suppress("unused")
     private fun spawnNavDrop(from: View, to: View) {
         val root = (navBar?.parent as? ViewGroup) ?: return
         val d = resources.displayMetrics.density

@@ -30,7 +30,6 @@ import java.util.concurrent.Executors
 
 class ProcessManagerPage(
     private val activity: Activity,
-    private val onDismiss: (() -> Unit)? = null,
 ) {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor()
     private lateinit var listContainer: LinearLayout
@@ -80,43 +79,26 @@ class ProcessManagerPage(
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(8, d))
         }
 
-        // ===== 标题栏（返回在左，标题居中，开关在右）=====
-        val titleRow = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        // ===== 标题栏（标题真正居中，开关在右）=====
+        val titleRow = FrameLayout(activity).apply {
             setPadding(0, 0, 0, Ui.dp(12, d))
         }
-        // 左侧：返回按钮
-        val backBtn = TextView(activity).apply {
-            text = "‹ 返回"
-            textSize = 13f
-            setTextColor(Ui.buttonText(activity))
-            background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
-            Ui.pressAnimation(this)
-            setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
-            setOnClickListener {
-                onDismiss?.invoke()
-                activity.onBackPressed()
-            }
-        }
-        titleRow.addView(backBtn, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
-        ))
-        // 中间：标题
-        val titleText = TextView(activity).apply {
+        titleRow.addView(TextView(activity).apply {
             text = "进程管理"
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        }
-        titleRow.addView(titleText)
-        // 右侧：系统应用开关
-        titleRow.addView(buildToggleSystemBtn(d), LinearLayout.LayoutParams(
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            )
+        })
+        titleRow.addView(buildToggleSystemBtn(d), FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
             ViewGroup.LayoutParams.WRAP_CONTENT,
+            Gravity.END or Gravity.CENTER_VERTICAL,
         ))
         page.addView(titleRow)
 

@@ -14,8 +14,8 @@ android {
         applicationId = "com.mcai.ubuntudsu"
         minSdk = 26
         targetSdk = 28
-        versionCode = 24
-        versionName = "1.6.8"
+        versionCode = 55
+        versionName = "1.8.06"
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
@@ -79,7 +79,6 @@ android {
     }
     packaging {
         resources.excludes += setOf("META-INF/AL2.0", "META-INF/LGPL2.1", "META-INF/DEPENDENCIES")
-        // 解压 jniLibs 到磁盘（nativeLibraryDir），否则 libaria2c.so 无法作为可执行文件运行
         jniLibs.useLegacyPackaging = true
     }
 }

@@ -88,44 +88,39 @@ class RomPage(
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(8, d))
         }
 
-        // ===== 标题栏 =====
-        val titleRow = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        // ===== 标题栏（标题真正居中） =====
+        val titleRow = FrameLayout(activity).apply {
             setPadding(0, 0, 0, Ui.dp(12, d))
         }
-        titleRow.addView(TextView(activity).apply {
-            text = "‹ 返回"
-            textSize = 13f
-            setTextColor(Ui.buttonText(activity))
-            background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
-            Ui.pressAnimation(this)
-            setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
-            setOnClickListener {
-                Haptics.perform(this)
-                onBack()
-            }
-        })
         titleRow.addView(TextView(activity).apply {
             text = "ROM固件"
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            )
         })
         titleRow.addView(TextView(activity).apply {
             text = "下载管理"
             textSize = 12f
-            setTextColor(Ui.buttonPrimary(activity))
+            setTextColor(Ui.buttonText(activity))
             gravity = Gravity.CENTER
-            background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
+            background = Ui.glassButton(activity, Ui.buttonSuccess(activity))
             Ui.pressAnimation(this)
             setPadding(Ui.dp(10, d), Ui.dp(6, d), Ui.dp(10, d), Ui.dp(6, d))
             setOnClickListener {
                 Haptics.perform(this)
                 activity.startActivity(Intent(activity, DownloadsActivity::class.java))
             }
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.END or Gravity.CENTER_VERTICAL,
+            )
         })
         page.addView(titleRow)
 
@@ -150,7 +145,7 @@ class RomPage(
             text = "${RomApi.getCurrentDeviceModel()}（${RomApi.getCurrentDeviceCodename()}）"
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
-            setTextColor(Ui.buttonPrimary(activity))
+            setTextColor(Ui.buttonSuccess(activity))
             setPadding(0, Ui.dp(4, d), 0, 0)
         }
         currentCard.addView(currentDeviceText)
@@ -333,8 +328,8 @@ class RomPage(
 
     /** Tab/品牌 chip 选中背景：实色填充 + 高亮描边；未选中：面底色 + 边框（与 DSU 容量选择一致） */
     private fun tabBackground(active: Boolean, d: Float): android.graphics.drawable.GradientDrawable {
-        val fill = if (active) Ui.buttonPrimary(activity) else Ui.surface(activity)
-        val stroke = if (active) Ui.buttonPrimary(activity) else Ui.border(activity)
+        val fill = if (active) Ui.buttonSuccess(activity) else Ui.surface(activity)
+        val stroke = if (active) Ui.buttonSuccess(activity) else Ui.border(activity)
         return Ui.strokeRounded(fill, stroke, 1f, d, 12f)
     }
 
@@ -500,7 +495,7 @@ class RomPage(
 
     private fun updateDeviceLabel() {
         deviceLabel.text = if (selectedDevice != null) "：$selectedDevice" else "：全部设备"
-        deviceLabel.setTextColor(if (selectedDevice != null) Ui.buttonPrimary(activity) else Ui.secondaryText(activity))
+        deviceLabel.setTextColor(if (selectedDevice != null) Ui.buttonSuccess(activity) else Ui.secondaryText(activity))
     }
 
     /**
@@ -614,7 +609,7 @@ class RomPage(
             text = entry.brand
             textSize = 9f
             setTextColor(Ui.buttonText(activity))
-            background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
+            background = Ui.glassButton(activity, Ui.buttonSuccess(activity))
             setPadding(Ui.dp(5, d), Ui.dp(1, d), Ui.dp(5, d), Ui.dp(1, d))
         })
         item.addView(row1)
@@ -837,7 +832,7 @@ class RomPage(
             text = "✓ 下载完成"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
-            setTextColor(Ui.buttonPrimary(activity))
+            setTextColor(Ui.buttonSuccess(activity))
         })
         view.addView(TextView(activity).apply {
             text = savedPath
@@ -1097,7 +1092,7 @@ class RomPage(
         item.addView(TextView(activity).apply {
             text = device.name
             textSize = 10f
-            setTextColor(if (isCurrentDevice) Ui.buttonPrimary(activity) else Ui.primaryText(activity))
+            setTextColor(if (isCurrentDevice) Ui.buttonSuccess(activity) else Ui.primaryText(activity))
             gravity = Gravity.CENTER
             maxLines = 2
             ellipsize = android.text.TextUtils.TruncateAt.END
@@ -1224,7 +1219,7 @@ class RomPage(
                 text = version.branchName
                 textSize = 10f
                 setTextColor(Ui.buttonText(activity))
-                background = Ui.glassButton(activity, Ui.buttonPrimary(activity))
+            background = Ui.glassButton(activity, Ui.buttonSuccess(activity))
                 setPadding(Ui.dp(6, d), Ui.dp(2, d), Ui.dp(6, d), Ui.dp(2, d))
             })
         }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 夜间深蓝玻璃选中行（配亮绿字可读） -->
+    <gradient android:angle="270" android:startColor="#4D2A3546" android:endColor="#3D1F2A38" />
+    <stroke android:width="1.5dp" android:color="#665AD4A0" />
+    <corners android:radius="14dp" />
+</shape>

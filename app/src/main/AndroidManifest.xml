@@ -74,6 +74,36 @@
         <activity android:name=".UsbBootActivity"
             android:exported="false"
             android:theme="@style/Theme.App" />
+        <activity android:name=".WorkTimeActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".ThanksActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".DnaToolsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".core.dna.DnaActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".core.dna.DnaBinActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".core.dna.DnaSuperActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".core.dna.DnaIncrementalActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".core.dna.DnaModuleActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
+        <activity android:name=".core.dna.DnaUnzipActivity"
+            android:exported="false"
+            android:theme="@style/Theme.App" />
 
         <activity
             android:name="com.gaurav.avnc.ui.vnc.VncActivity"

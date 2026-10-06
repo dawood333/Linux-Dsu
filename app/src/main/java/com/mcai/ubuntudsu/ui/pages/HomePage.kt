@@ -56,7 +56,7 @@ class HomePage(
         }
         titleRow.addView(TextView(activity).apply {
             text = "首页"
-            textSize = 22f
+            textSize = 24f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -64,7 +64,7 @@ class HomePage(
         titleRow.addView(Ui.settingsIconButton(activity) { Ui.showThemeDialog(activity) { activity.recreate() } })
         page.addView(titleRow)
 
-        // 顶部头图卡片：支持自定义背景图，长按恢复默认拟态底
+        // 顶部头图卡片：真玻璃面板 + 自定义背景图
         page.addView(buildHeroCard(d))
 
         // 上次崩溃信息（若有）
@@ -73,52 +73,14 @@ class HomePage(
         // 单张拼接卡：上分区实时状态，下分区检测信息，中间水晶玻璃分隔条
         val unified = buildUnifiedCard(d)
         unifiedCard = unified
-        // 固定应用默认渐变（薄荷绿系）
-        applyDefaultGradient()
         page.addView(unified)
 
         return page
     }
 
-    // 首页卡片固定使用默认渐变（薄荷绿系），不做点击切换变色
-
-    // 固定默认渐变：浅色/深色各自一组半透明渐变，叠加白/黑内衬保证文字可读
-    private fun defaultGradient(): Pair<Int, Int> =
-        if (Ui.isDark(activity)) {
-            Color.parseColor("#CC1F3A2E") to Color.parseColor("#CC1F2E4E")
-        } else {
-            Color.parseColor("#F2B8FFF2") to Color.parseColor("#F2A0F0E0")
-        }
-
-    // 应用固定默认渐变；叠加拟态高光/阴影环，保持全局拟态质感
-    private fun applyDefaultGradient() {
-        val card = unifiedCard ?: return
-        val (top, bottom) = defaultGradient()
-        card.background = android.graphics.drawable.LayerDrawable(
-            arrayOf(
-                GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(top, bottom)).apply {
-                    cornerRadius = Ui.dp(20, activity.resources.displayMetrics.density).toFloat()
-                },
-                GradientDrawable().apply {
-                    cornerRadius = Ui.dp(20, activity.resources.displayMetrics.density).toFloat()
-                    setColor(Color.TRANSPARENT)
-                    setStroke(
-                        Ui.dp(1, activity.resources.displayMetrics.density),
-                        if (Ui.isDark(activity)) Color.argb(62, 168, 214, 255) else Color.argb(200, 255, 255, 255),
-                    )
-                },
-                GradientDrawable().apply {
-                    cornerRadius = Ui.dp(21, activity.resources.displayMetrics.density).toFloat()
-                    setColor(Color.TRANSPARENT)
-                    setStroke(
-                        Ui.dp(2, activity.resources.displayMetrics.density),
-                        if (Ui.isDark(activity)) Color.argb(120, 6, 10, 24) else Color.argb(70, 150, 168, 198),
-                    )
-                },
-            ),
-        )
-    }
-
+    /**
+     * 圆角 ViewOutlineProvider（供裁剪/涟漪用）。
+     */
     private class ViewOutlineProviderRounded(private val radiusPx: Int) : android.view.ViewOutlineProvider() {
         override fun getOutline(view: View, outline: android.graphics.Outline) {
             outline.setRoundRect(0, 0, view.width, view.height, radiusPx.toFloat())
@@ -187,12 +149,8 @@ class HomePage(
 
     // 拼接一体卡：实时状态分区 + 水晶分隔条 + 检测信息分区
     private fun buildUnifiedCard(d: Float): LinearLayout {
-        val card = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
+        val card = com.mcai.ubuntudsu.ui.glass.TrueGlassPanel(activity, 26f, Ui.isDark(activity)).apply {
             setPadding(Ui.dp(18, d), Ui.dp(14, d), Ui.dp(18, d), Ui.dp(14, d))
-            background = Ui.glassSurface(activity, 20f)
-            // 圆角 outline 投影：裸 elevation 对 LayerDrawable 背景会渲染成方形影子
-            Ui.applyNeuShadow(this, 4f, 20f)
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,

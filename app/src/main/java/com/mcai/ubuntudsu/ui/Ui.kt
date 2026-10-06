@@ -41,33 +41,33 @@ object Ui {
 
     // ==================== 拟态调色板 ====================
 
-    /** 日间拟态调色板（图1） */
+    /** 日间拟态调色板（Neumorphism 基准：纯色 #E0E5EC 底 + 柔和双影） */
     private object Day {
-        const val BG = 0xFFE7EDF6.toInt()
-        const val CARD_TOP = 0xEBFFFFFF.toInt()      // 玻璃填充顶部（高不透明白）
-        const val CARD_MID = 0xCCF7FAFE.toInt()
-        const val CARD_BOTTOM = 0xA8E8EFFA.toInt()   // 底部微透，透出液体背景
-        const val SHADOW_RING = 0x66A9BBD6.toInt()   // 右下阴影外环（蓝灰）
-        const val HIGHLIGHT_RING = 0xC8FFFFFF.toInt() // 左上高光内环（白）
-        const val TRACK = 0xFFD9E2F0.toInt()         // 凹陷轨道底色
-        const val PRIMARY = 0xFF383F5D.toInt()
-        const val PRIMARY_TOP = 0xFF5EA0FF.toInt()
-        const val PRIMARY_BOTTOM = 0xFF2F6BF0.toInt()
+        const val BG = 0xFFE0E5EC.toInt()
+        const val CARD_TOP = 0xFFB7C6DA.toInt()      // 压暗一档蓝灰玻璃（不再纯白，配黑字 + 弥散光斑）
+        const val CARD_MID = 0xFFAFBFCE.toInt()
+        const val CARD_BOTTOM = 0xFFA6B5C6.toInt()
+        const val SHADOW_RING = 0xFFA3B1C6.toInt()   // 右下深色投影（柔化）
+        const val HIGHLIGHT_RING = 0xFFFFFFFF.toInt() // 左上高光
+        const val TRACK = 0xFFD3DBE8.toInt()         // 凹陷轨道底色（深一档）
+        const val PRIMARY = 0xFF2E5FB8.toInt()
+        const val PRIMARY_TOP = 0xFF4A90E2.toInt()
+        const val PRIMARY_BOTTOM = 0xFF2E5FB8.toInt()
     }
 
-    /** 夜间拟态调色板（雾霾蓝垂直弥散 · 微光 · 磨砂玻璃） */
+    /** 夜间拟态调色板（#2C3340 底 + 低光比双影，微霓虹外缘） */
     private object Night {
-        const val BG = 0xFF28313F.toInt()            // 雾霾蓝暗调（背景基准色）
-        const val CARD_TOP = 0x5F262236.toInt()      // 磨砂玻璃填充（微透背景光斑）
-        const val CARD_MID = 0x46212032.toInt()
-        const val CARD_BOTTOM = 0x301C1B29.toInt()
-        const val SHADOW_RING = 0x8C0B0A14.toInt()   // 深黑紫阴影外环
-        const val HIGHLIGHT_RING = 0x42C9BCFF.toInt() // 淡青白高光内环
-        const val NEON_EDGE = 0x389B9CF6.toInt()     // 淡紫霓虹外描边
-        const val TRACK = 0xFF1E1B28.toInt()
-        const val PRIMARY = 0xFF4D9FFF.toInt()
-        const val PRIMARY_TOP = 0xFF62A8FF.toInt()
-        const val PRIMARY_BOTTOM = 0xFF2E6CF0.toInt()
+        const val BG = 0xFF2C3340.toInt()
+        const val CARD_TOP = 0xFF3A4355.toInt()      // 凸起面（比背景亮一档，提亮保证白字对比）
+        const val CARD_MID = 0xFF313A48.toInt()
+        const val CARD_BOTTOM = 0xFF28303E.toInt()
+        const val SHADOW_RING = 0xFF0E121A.toInt()   // 右下深黑投影
+        const val HIGHLIGHT_RING = 0x24FFFFFF.toInt() // 左上淡白高光
+        const val NEON_EDGE = 0x33FFFFFF.toInt()     // 夜间微光外缘（提亮，保证暗卡边缘可见）
+        const val TRACK = 0xFF20242E.toInt()
+        const val PRIMARY = 0xFF3572E0.toInt()
+        const val PRIMARY_TOP = 0xFF5B9DFF.toInt()
+        const val PRIMARY_BOTTOM = 0xFF3572E0.toInt()
     }
 
     private fun cardTop(c: android.content.Context) = if (isDark(c)) Night.CARD_TOP else Day.CARD_TOP
@@ -125,101 +125,134 @@ object Ui {
 
     fun background(context: android.content.Context): Int = if (isDark(context)) Night.BG else Day.BG
 
-    /** 液态玻璃背景：夜间 = 雾霾蓝垂直弥散（上暗下浅、纯色渐变）；日间 = 蓝灰斜向渐变 */
+    /** 纯色背景（新拟态：元素与背景同色系，日间 #E0E5EC / 夜间 #2C3340） */
     fun liquidBackground(context: android.content.Context): GradientDrawable {
         val dark = isDark(context)
+        val c = if (dark) Color.rgb(44, 51, 64) else Color.rgb(224, 229, 236)
         return GradientDrawable(
-            if (dark) GradientDrawable.Orientation.TOP_BOTTOM else GradientDrawable.Orientation.TL_BR,
-            if (dark) {
-                intArrayOf(Color.rgb(40, 49, 63), Color.rgb(60, 74, 94), Color.rgb(86, 103, 126))
-            } else {
-                intArrayOf(Color.rgb(237, 242, 250), Color.rgb(226, 234, 245), Color.rgb(216, 227, 242))
-            },
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(c, c),
         )
     }
 
     /**
-     * 全屏动态液体背景：
-     * - 日间：9 秒呼吸渐变，拟态元素由此「生长」出来
-     * - 夜间：雾霾蓝垂直弥散——上半深灰蓝（雾霾蓝暗调）向下渐亮至浅雾蓝，
-     *   低饱和、无纹理的纯色渐变，仅保留 12 秒极轻的明度呼吸（静谧感）
+     * 全屏背景：动态弥散光斑（Liquid Backdrop）。
+     * 底层蓝灰渐变 + 六个缓慢漂移/呼吸的彩色光斑，玻璃的折射感来自背景色彩流动。
+     * 日间用天空冷暖光斑、夜间用低透明霓虹光斑，Drawable 可见时自动播放动画。
      */
     fun animateLiquidBackground(view: View) {
-        val context = view.context
-        if (isDark(context)) {
-            val start = intArrayOf(Color.rgb(40, 49, 63), Color.rgb(60, 74, 94), Color.rgb(86, 103, 126))
-            val end = intArrayOf(Color.rgb(44, 54, 69), Color.rgb(64, 80, 100), Color.rgb(91, 110, 134))
-            val drawable = liquidBackground(context)
-            view.background = drawable
-            val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-                duration = 12000L
-                repeatMode = ValueAnimator.REVERSE
-                repeatCount = ValueAnimator.INFINITE
-                addUpdateListener {
-                    val fraction = it.animatedValue as Float
-                    drawable.setColors(start.mapIndexed { index, color ->
-                        Color.rgb(
-                            (Color.red(color) + (Color.red(end[index]) - Color.red(color)) * fraction).toInt(),
-                            (Color.green(color) + (Color.green(end[index]) - Color.green(color)) * fraction).toInt(),
-                            (Color.blue(color) + (Color.blue(end[index]) - Color.blue(color)) * fraction).toInt(),
-                        )
-                    }.toIntArray())
-                }
-            }
-            view.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-                override fun onViewAttachedToWindow(v: View) = animator.start()
-                override fun onViewDetachedFromWindow(v: View) = animator.cancel()
-            })
-            if (view.isAttachedToWindow) animator.start()
-            return
-        }
-        val start = intArrayOf(Color.rgb(237, 242, 250), Color.rgb(226, 234, 245), Color.rgb(216, 227, 242))
-        val end = intArrayOf(Color.rgb(242, 246, 252), Color.rgb(222, 232, 244), Color.rgb(207, 221, 236))
-        val drawable = liquidBackground(context)
-        view.background = drawable
-        val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = 9000L
-            repeatMode = ValueAnimator.REVERSE
-            repeatCount = ValueAnimator.INFINITE
-            addUpdateListener {
-                val fraction = it.animatedValue as Float
-                drawable.setColors(start.mapIndexed { index, color ->
-                    Color.rgb(
-                        (Color.red(color) + (Color.red(end[index]) - Color.red(color)) * fraction).toInt(),
-                        (Color.green(color) + (Color.green(end[index]) - Color.green(color)) * fraction).toInt(),
-                        (Color.blue(color) + (Color.blue(end[index]) - Color.blue(color)) * fraction).toInt(),
-                    )
-                }.toIntArray())
-            }
-        }
-        view.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(v: View) = animator.start()
-            override fun onViewDetachedFromWindow(v: View) = animator.cancel()
-        })
-        if (view.isAttachedToWindow) animator.start()
+        view.background = com.mcai.ubuntudsu.ui.glass.LiquidBackdropDrawable(isDark(view.context))
     }
 
     // ==================== 基础色板（全局取色入口） ====================
 
-    fun surface(context: android.content.Context): Int = if (isDark(context)) Color.rgb(30, 28, 41) else Color.WHITE
-    fun surfaceMuted(context: android.content.Context): Int = if (isDark(context)) Color.rgb(26, 24, 37) else Color.parseColor("#EDF1F8")
-    fun dsuCard(context: android.content.Context): Int = if (isDark(context)) Color.rgb(30, 28, 41) else Color.WHITE
-    fun dsuEntry(context: android.content.Context): Int = if (isDark(context)) Color.rgb(26, 24, 37) else Color.parseColor("#EDF1F8")
-    fun border(context: android.content.Context): Int = if (isDark(context)) Color.argb(90, 139, 130, 246) else Color.parseColor("#C4D2E6")
-    fun primaryText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#EDEBF6") else Color.parseColor("#1B2A41")
-    fun secondaryText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#9A94B8") else Color.parseColor("#5C6F8A")
+    fun surface(context: android.content.Context): Int = if (isDark(context)) Night.BG else Day.BG
+    fun surfaceMuted(context: android.content.Context): Int = if (isDark(context)) Color.rgb(36, 42, 54) else Color.parseColor("#DCE3EE")
+    /** 玻璃按钮日间填充：蓝灰玻璃（不随主题变化），夜间为深蓝玻璃 */
+    fun surfaceGlass(context: android.content.Context): Int = if (isDark(context)) Night.BG else 0xFFB7C6DA.toInt()
+    fun dsuCard(context: android.content.Context): Int = if (isDark(context)) Night.BG else Day.BG
+    fun dsuEntry(context: android.content.Context): Int = if (isDark(context)) Color.rgb(36, 42, 54) else Color.parseColor("#DCE3EE")
+    fun border(context: android.content.Context): Int = if (isDark(context)) Color.argb(50, 255, 255, 255) else Color.parseColor("#C4D2E6")
+    fun primaryText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#EAF0F8") else Color.parseColor("#243244")
+    fun secondaryText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#B8C4D6") else Color.parseColor("#5C6A7C")
     fun buttonPrimary(context: android.content.Context): Int = if (isDark(context)) Night.PRIMARY else Day.PRIMARY
-    fun buttonSecondary(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#8172C4") else Color.parseColor("#383F5D")
-    fun buttonSuccess(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#4ADE80") else Color.parseColor("#383F5D")
-    fun buttonWarning(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#FBBF24") else Color.parseColor("#D97706")
-    fun buttonDanger(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#F87171") else Color.parseColor("#383F5D")
-    fun buttonText(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#F4F1FA") else Color.parseColor("#1E2C42")
+    fun buttonSecondary(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#8172C4") else Color.parseColor("#7C8AA6")
+    fun buttonSuccess(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#34B06A") else Color.parseColor("#1E8A60")
+    fun buttonWarning(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#FBBF24") else Color.parseColor("#B57623")
+    fun buttonDanger(context: android.content.Context): Int = if (isDark(context)) Color.parseColor("#F87171") else Color.parseColor("#C62828")
+    fun buttonText(context: android.content.Context): Int = if (isDark(context)) Color.WHITE else Color.parseColor("#1A2434")
+
+    // ==================== DNA 工具界面专属色板（夜间模式适配） ====================
+
+    /**
+     * DNA 工具箱（Dna*Activity + DnaToolsPage）专用取色器。
+     * 跟随 APP 全局日/夜间主题，与 APP 主体（MainActivity 各页 / 拟态卡片）完全一致，
+     * 不再使用独立的暖色护眼主题。各 DNA 界面统一调用此对象取色。
+     */
+    class DnaPalette(val context: android.content.Context) {
+        private val dark = isDark(context)
+
+        /** 根背景渐变（顶→底）：昼 #E0E5EC 单色拟态底 / 夜 #2C3340 深蓝拟态底 */
+        @JvmField val bgTop: Int = if (dark) Color.parseColor("#2C3340") else Color.parseColor("#E0E5EC")
+        @JvmField val bgBottom: Int = if (dark) Color.parseColor("#232833") else Color.parseColor("#D5DEE9")
+
+        /** 标题 / 主文字：对齐 APP primaryText 昼 #243244 夜 #EAF0F8 */
+        @JvmField val title: Int = if (dark) Color.parseColor("#EAF0F8") else Color.parseColor("#243244")
+
+        /** 副标签 / 次要文字：对齐 APP secondaryText 昼 #5C6A7C 夜 #B8C4D6 */
+        @JvmField val subtitle: Int = if (dark) Color.parseColor("#B8C4D6") else Color.parseColor("#5C6A7C")
+
+        /** 说明 / 正文：对齐 APP 次要文字 昼 #5C6A7C 夜 #B8C4D6 */
+        @JvmField val body: Int = if (dark) Color.parseColor("#B8C4D6") else Color.parseColor("#5C6A7C")
+
+        /** 按钮文字 / 强调：对齐 APP buttonText 昼 #1A2434 夜 #FFFFFF */
+        @JvmField val accent: Int = if (dark) Color.WHITE else Color.parseColor("#1A2434")
+
+        /** 成功徽章（绿）对齐 APP buttonSuccess */
+        @JvmField val success: Int = if (dark) Color.parseColor("#5AD4A0") else Color.parseColor("#1f7d72")
+        /** 警告徽章（琥珀）对齐 APP buttonWarning */
+        @JvmField val warning: Int = if (dark) Color.parseColor("#FFC46B") else Color.parseColor("#8a5a00")
+
+        /** 危险 / 红字 对齐 APP buttonDanger */
+        @JvmField val danger: Int = if (dark) Color.parseColor("#FF8A80") else Color.parseColor("#a33b3b")
+
+        /** 日志 / 终端面板底 (白底蓝字，昼夜间统一) */
+        @JvmField val logBg: Int = if (dark) Color.argb(230, 40, 48, 64) else Color.argb(230, 247, 251, 255)
+
+        /** 玻璃胶囊 / 按钮底 (半透明玻璃，昼白玻璃 / 夜深玻璃) */
+        @JvmField val glass: Int = if (dark) Color.argb(90, 58, 67, 85) else Color.argb(120, 255, 255, 255)
+
+        /** 胶囊描边 保持白色高对比度 */
+        @JvmField val glassStroke: Int = Color.argb(204, 255, 255, 255)
+
+        fun bgGradient(): android.graphics.drawable.GradientDrawable =
+            android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(bgTop, bgBottom),
+            )
+
+        fun bgDrawable(): android.graphics.drawable.Drawable = bgGradient()
+    }
+
+    /** 取当前上下文的 DNA 色板（按 isDark 分流） */
+    fun dnaPalette(context: android.content.Context): DnaPalette = DnaPalette(context)
+
 
     // ==================== 拟态核心原语 ====================
 
+    /** 真模糊投影：柔和双影（左上高光 + 右下阴影），用于卡片"浮起"质感 */
+    fun neuSoftShadow(context: android.content.Context, radiusDp: Float = 16f): Drawable {
+        val density = context.resources.displayMetrics.density
+        val radius = radiusDp.coerceAtMost(MAX_CORNER_RADIUS_DP) * density
+        // L0 右下深投影（粗描边低透明 = 柔和扩散，偏右下 inset）
+        val shadow = GradientDrawable().apply {
+            cornerRadius = radius + density * 1.5f
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(5, density), shadowRing(context))
+        }
+        // L1 左上高光（偏左上 inset）
+        val highlight = GradientDrawable().apply {
+            cornerRadius = radius
+            setColor(Color.TRANSPARENT)
+            setStroke(dp(2, density), highlightRing(context))
+        }
+        // L2 填充（与背景同色系）
+        val fill = GradientDrawable(
+            GradientDrawable.Orientation.TOP_BOTTOM,
+            intArrayOf(cardTop(context), cardMid(context), cardBottom(context)),
+        ).apply { cornerRadius = radius }
+        val layers = arrayOf(fill, highlight, shadow)
+        return LayerDrawable(layers).apply {
+            // 绝对像素 inset：投影偏右下、高光偏左上，中间填充居中
+            val insetPx = dp(5, density).toInt()
+            setLayerInset(2, insetPx, insetPx, insetPx + dp(2, density).toInt(), insetPx + dp(2, density).toInt())
+            setLayerInset(1, insetPx + dp(1, density).toInt(), insetPx - dp(1, density).toInt(), insetPx + dp(1, density).toInt(), insetPx - dp(1, density).toInt())
+        }
+    }
+
     /**
-     * 拟态卡片（凸起）：液态玻璃填充 + 左上高光内环 + 右下阴影外环
-     * 夜间附加 accent 霓虹外描边（发光）。这是全局一切卡片/按钮的视觉基座。
+     * 拟态卡片（凸起）：填充 + 左上高光 + 右下柔和投影
+     * 这是全局一切卡片/按钮的视觉基座。
      */
     fun neuCard(context: android.content.Context, radiusDp: Float = 20f, accent: Int? = null): Drawable {
         val density = context.resources.displayMetrics.density
@@ -227,15 +260,7 @@ object Ui {
         val radius = radiusDp.coerceAtMost(MAX_CORNER_RADIUS_DP) * density
         val layers = mutableListOf<Drawable>()
 
-        // L0 右下阴影外环（较粗、低透明度——拟态阴影边缘）
-        layers += GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = radius + density
-            setColor(Color.TRANSPARENT)
-            setStroke(dp(2, density), shadowRing(context))
-        }
-
-        // L1 液态玻璃填充（垂直渐变，透出动态背景）
+        // L1 填充（与背景同色系，无玻璃透感）
         layers += GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
             intArrayOf(cardTop(context), cardMid(context), cardBottom(context)),
@@ -243,26 +268,14 @@ object Ui {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radius
         }
-
-        // L2 左上高光内环（受光边）
+        // L1.5 动态弥散光斑（卡片内部色彩流动，玻璃折射感）
+        layers += com.mcai.ubuntudsu.ui.glass.CardGlowDrawable(dark)
+        // L2 拟态玻璃渲染边框（玻璃描边，夜间亮、日间白）
         layers += GradientDrawable().apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radius - density * 0.5f
             setColor(Color.TRANSPARENT)
-            setStroke(dp(1, density), highlightRing(context))
-        }
-
-        // L3（夜间）accent 霓虹外描边：图2 夜间发光质感
-        if (dark) {
-            val neon = accent?.let {
-                Color.argb(60, Color.red(it), Color.green(it), Color.blue(it))
-            } ?: Night.NEON_EDGE
-            layers += GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = radius + density * 1.5f
-                setColor(Color.TRANSPARENT)
-                setStroke(dp(1, density), neon)
-            }
+            setStroke(dp(1, density), if (dark) 0x33FFFFFF.toInt() else 0x66FFFFFF.toInt())
         }
 
         return LayerDrawable(layers.toTypedArray())
@@ -279,15 +292,15 @@ object Ui {
         return GradientDrawable(
             GradientDrawable.Orientation.TOP_BOTTOM,
             if (dark) {
-                intArrayOf(Color.argb(200, 15, 14, 24), Color.argb(160, 21, 19, 32))
+                intArrayOf(Color.argb(255, 24, 28, 38), Color.argb(255, 32, 38, 50))
             } else {
-                intArrayOf(Color.argb(255, 214, 224, 240), Color.argb(255, 224, 232, 246))
+                intArrayOf(Color.argb(255, 210, 219, 232), Color.argb(255, 222, 230, 242))
             },
         ).apply {
             shape = GradientDrawable.RECTANGLE
             cornerRadius = radius
-            // 内阴影：上深下亮的内缘错觉
-            setStroke(dp(1, density), if (dark) Color.argb(110, 7, 6, 13) else Color.argb(140, 176, 192, 216))
+            // 内阴影：上深下亮的内缘错觉（新拟态柔化）
+            setStroke(dp(1, density), if (dark) Color.argb(150, 6, 7, 12) else Color.argb(170, 163, 177, 198))
         }
     }
 
@@ -300,11 +313,11 @@ object Ui {
         val radius = radiusDp.coerceAtMost(MAX_CORNER_RADIUS_DP) * density
         return LayerDrawable(
             arrayOf(
-                // 阴影外环
+                // 柔和右下投影（粗描边低透明 = 新拟态柔影）
                 GradientDrawable().apply {
                     cornerRadius = radius + density
                     setColor(Color.TRANSPARENT)
-                    setStroke(dp(2, density), Color.argb(96, Color.red(bottom) / 3, Color.green(bottom) / 3, Color.blue(bottom) / 3))
+                    setStroke(dp(3, density), Color.argb(80, Color.red(bottom) / 4, Color.green(bottom) / 4, Color.blue(bottom) / 4))
                 },
                 // 渐变填充
                 GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(top, bottom)).apply {
@@ -314,7 +327,7 @@ object Ui {
                 GradientDrawable().apply {
                     cornerRadius = radius - density * 0.5f
                     setColor(Color.TRANSPARENT)
-                    setStroke(dp(1, density), Color.argb(120, 255, 255, 255))
+                    setStroke(dp(1, density), Color.argb(130, 255, 255, 255))
                 },
             ),
         )
@@ -325,12 +338,15 @@ object Ui {
      * 拟态的「浮起感」由 neuCard 高光/阴影双环描边承担，全局零投影更干净。
      */
     fun applyNeuShadow(view: View, elevationDp: Float, cornerRadiusDp: Float = 16f, accent: Int? = null) {
-        val density = view.resources.displayMetrics.density
+        // 纯 outline 裁切（无系统 elevation 投影）：
+        // 卡片立体感由 neuCard 的 L0 LayerDrawable 圆角柔和投影层承担，
+        // 系统 ViewOutlineProvider + elevation 会在 View 矩形边界画直角黑影，故不启用。
         view.outlineProvider = object : ViewOutlineProvider() {
             override fun getOutline(v: View, outline: android.graphics.Outline) {
-                outline.setRoundRect(0, 0, v.width, v.height, cornerRadiusDp * density)
+                outline.setRoundRect(0, 0, v.width, v.height, cornerRadiusDp * view.resources.displayMetrics.density)
             }
         }
+        view.clipToOutline = true
     }
 
     // ==================== 通用形状 ====================
@@ -408,10 +424,10 @@ object Ui {
                 textSize = 13f
                 setTypeface(typeface, Typeface.BOLD)
                 gravity = Gravity.CENTER
-                setTextColor(buttonText(activity))
+                setTextColor(if (index == 0) buttonText(activity) else primaryText(activity))
                 background = neuSolidButton(
-                    if (index == 0) Night.PRIMARY_TOP else (if (dark) Color.argb(120, 130, 130, 190) else Color.argb(230, 240, 246, 255)),
-                    if (index == 0) Night.PRIMARY_BOTTOM else (if (dark) Color.argb(110, 90, 90, 150) else Color.argb(220, 232, 242, 252)),
+                    if (index == 0) Night.PRIMARY_TOP else (if (dark) Color.argb(120, 130, 130, 190) else Color.argb(255, 176, 190, 208)),
+                    if (index == 0) Night.PRIMARY_BOTTOM else (if (dark) Color.argb(110, 90, 90, 150) else Color.argb(255, 168, 182, 200)),
                     12f, activity,
                 )
                 setPadding(0, dp(10, density), 0, dp(10, density))
@@ -506,6 +522,62 @@ object Ui {
     fun glassSurface(context: android.content.Context, radiusDp: Float = 22f): Drawable =
         neuCard(context, radiusDp)
 
+    /**
+     * 彩色渐变玻璃功能卡背景（移植参考项目 gsiGlassCard）：
+     *  三层玻璃——品牌三色对角渐变底 + 白色菲涅尔描边层 + 顶部镜面高光带，
+     *  外裹白色半透明涟漪，配 8dp 投影形成"彩色玻璃浮起"质感。
+     * 传入 `colors` 为 [0]=左上, [1]=中, [2]=右下的三色（如参考的语义五色）。
+     * 若 `accent` 为 null 用 `colors` 末色；否则用 accent 调涟漪。
+     */
+    fun gradientGlassCard(context: android.content.Context, colors: IntArray, accent: Int? = null, radiusDp: Float = 22f): Drawable {
+        val density = context.resources.displayMetrics.density
+        val radius = radiusDp.coerceAtMost(MAX_CORNER_RADIUS_DP) * density
+        val base = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(colors[0], colors[1], colors[2])).apply {
+            cornerRadius = radius
+        }
+        val strokeLayer = GradientDrawable().apply {
+            setColor(0x12000000)
+            setStroke(Math.max(1, dp(1, density)), 0xCFFFFFFF.toInt())
+            cornerRadius = radius - dp(1, density)
+        }
+        val highlight = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(0x00FFFFFF, 0x59FFFFFF.toInt(), 0x00FFFFFF)).apply {
+            cornerRadius = radius - dp(7, density)
+        }
+        val glass = LayerDrawable(
+            arrayOf(base, strokeLayer, highlight),
+        ).apply {
+            setLayerInset(1, 1, 1, 1, 1)
+            setLayerInset(2, dp(2, density), dp(1, density), dp(2, density), dp(18, density))
+        }
+        val rippleColor = 0x40FFFFFF
+        return RippleDrawable(ColorStateList.valueOf(rippleColor), glass, null)
+    }
+
+    /** 导航玻璃舱背景（移植参考 navigation_glass_bg）：蓝灰玻璃 + 白描边 + 顶部高光带 */
+    fun navGlassPanel(context: android.content.Context, radiusDp: Float = 32f): Drawable {
+        val density = context.resources.displayMetrics.density
+        val radius = radiusDp.coerceAtMost(MAX_CORNER_RADIUS_DP) * density
+        val dark = isDark(context)
+        val shadow = GradientDrawable().apply {
+            cornerRadius = radius
+            setColor(0x3827465C.toInt())
+        }
+        // 拟态玻璃渲染边框：夜间用亮霓虹外缘，保证暗玻璃上舱体边缘清晰
+        val main = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
+            if (dark) intArrayOf(0x5CCFD8E8.toInt(), 0x32B7D2E0.toInt(), 0x248FA8C4.toInt())
+            else intArrayOf(0x5CECF8FC.toInt(), 0x32CFE2EC.toInt(), 0x24A7C0CF.toInt())).apply {
+            cornerRadius = radius
+            setStroke(dp(1, density), if (dark) 0x99FFFFFF.toInt() else 0x78F3FBFF.toInt())
+        }
+        val highlight = GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(0x00FFFFFF, 0x55FFFFFF.toInt(), 0x00FFFFFF)).apply {
+            cornerRadius = radius - dp(4, density)
+        }
+        val layer = LayerDrawable(arrayOf(shadow, main, highlight))
+        layer.setLayerInset(1, 0, dp(2, density), 0, 0)
+        layer.setLayerInset(2, dp(3, density), dp(2, density), dp(3, density), dp(32, density))
+        return layer
+    }
+
     /** 高模糊磨砂面板：更不透明的拟态卡片，用于小窗口等需要强遮挡的场景 */
     fun frostedSurface(
         context: android.content.Context,
@@ -582,42 +654,45 @@ object Ui {
             setOnClickListener { onPick() }
         }
 
-    // 设置弹层（各页设置入口共用）：关于信息（主题切换入口在「更多」页）
+    // 首页标题行关于弹层：仅展示关于信息（主题切换入口在「更多」页全屏设置）
     fun showThemeDialog(activity: android.app.Activity, onThemeChanged: () -> Unit) {
         val density = activity.resources.displayMetrics.density
         val aboutPanel = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20, density), dp(4, density), dp(20, density), dp(6, density))
+            setPadding(dp(20, density), dp(6, density), dp(20, density), dp(8, density))
         }
+
+        // 关于信息置顶：用主色绿显示标题与核心信息，避免默认蓝字与界面不协调
         aboutPanel.addView(TextView(activity).apply {
-            text = "关于"
+            text = "关于信息"
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
-            setTextColor(primaryText(activity))
+            setTextColor(buttonSuccess(activity))
+            setPadding(0, dp(2, density), 0, dp(6, density))
         })
         aboutPanel.addView(TextView(activity).apply {
             text = "Linux - Dsu"
             textSize = 13f
             setTypeface(typeface, Typeface.BOLD)
-            setTextColor(primaryText(activity))
-            setPadding(0, dp(6, density), 0, dp(2, density))
+            setTextColor(buttonSuccess(activity))
+            setPadding(0, 0, 0, dp(2, density))
         })
         aboutPanel.addView(TextView(activity).apply {
-            // 版本号动态读取（与 build.gradle.kts versionName 同步）
             val ver = runCatching {
                 activity.packageManager.getPackageInfo(activity.packageName, 0).versionName
             }.getOrNull() ?: "--"
             text = "版本 v$ver  ·  天明构建  ·  Copyright © 2026"
             textSize = 11f
             setTextColor(secondaryText(activity))
-            setPadding(0, 0, 0, dp(6, density))
+            setPadding(0, 0, 0, dp(10, density))
         })
+
         aboutPanel.addView(TextView(activity).apply {
             text = "功能简介"
             textSize = 12f
             setTypeface(typeface, Typeface.BOLD)
-            setTextColor(primaryText(activity))
-            setPadding(0, 0, 0, dp(3, density))
+            setTextColor(buttonSuccess(activity))
+            setPadding(0, 0, 0, dp(4, density))
         })
         aboutPanel.addView(TextView(activity).apply {
             text = "· DSU 管理：ROOT 调用 dynamic_system 服务安装 GSI 镜像，自定义 userdata 容量、清理旧缓存、一键重启进入\n" +
@@ -625,21 +700,36 @@ object Ui {
                 "· 容器终端：Termux 风格 Chroot 终端，支持 apt 安装软件包\n" +
                 "· 远程桌面：XFCE / KDE 桌面 + VNC 远程连接，音频桥接、分辨率自选、触控 / 轨迹板双指针模式\n" +
                 "· ROM 固件：HyperOS 与 ColorOS / FlymeOS / realme UI 固件双源，设备品牌 / 机型筛选，版本号新到旧排序，内置 aria2c 下载与复制链接\n" +
+                "· ROM 移植：DNA 工具箱分解 / 合成 SUPER、payload 提取、镜像格式互转，一站式移植开发\n" +
                 "· 下载管理：多任务并行下载，断点续传，全部 / 下载中 / 已完成 / 已暂停分类\n" +
                 "· 文件管理：内置 rootfs 文件浏览器，编辑 / 重命名 / 新建删除\n" +
                 "· 进程管理：/proc 双点采样实测 CPU / 内存 / 后台耗电，后台应用一览\n" +
                 "· OTG 刷机助手：检测 USB 设备 ADB / Fastboot 状态，刷机日志实时输出\n" +
                 "· U 盘启动：本地制作 U 盘 IMG 镜像并虚拟 U 盘暴露给电脑\n" +
+                "· 日历工时记：上下班打卡、日历月视图、工时与工资统计，支持补录与修改每天工时\n" +
                 "· 检查更新：GitHub / Gitee 双源在线检测新版本，下载安装一步完成"
             textSize = 11f
             setTextColor(secondaryText(activity))
             setLineSpacing(dp(3, density).toFloat(), 1f)
         })
-        androidx.appcompat.app.AlertDialog.Builder(activity)
-            .setTitle("设置")
-            .setView(aboutPanel)
+
+        val scroll = android.widget.ScrollView(activity).apply {
+            isFillViewport = true
+            addView(aboutPanel)
+        }
+        val builder = androidx.appcompat.app.AlertDialog.Builder(activity)
+            .setView(scroll)
             .setPositiveButton("关闭", null)
-            .show()
+        val dialog = builder.create()
+        dialog.show()
+        // 弹窗标题「关于信息」改为主色（替代默认蓝字）：取标题 TextView 重设颜色
+        runCatching {
+            val titleTv = dialog.findViewById<TextView>(androidx.appcompat.R.id.alertTitle)
+            titleTv?.text = "关于信息"
+            titleTv?.setTextColor(buttonSuccess(activity))
+            titleTv?.setTextSize(16f)
+            titleTv?.setTypeface(titleTv.typeface, Typeface.BOLD)
+        }
     }
 
     fun pressAnimation(view: View) {
@@ -808,6 +898,10 @@ object Ui {
      * 拟态大图标入口方块：无框大图标 + 标题 + 副标题（Linux / DSU 页网格入口基座）
      * 一排两个往下排的宫格样式，零投影，浮起感由卡片双环描边承担
      */
+    /**
+     * 卡片级入口块：无背景大图标 + 标题 + 副标题。
+     * 用于分区入口（Linux/DSU 页的大图标卡），图标直接悬浮不套背景。
+     */
     fun iconTile(
         context: android.content.Context,
         title: String,
@@ -821,34 +915,34 @@ object Ui {
         val tile = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(6, density), dp(6, density), dp(6, density), dp(6, density))
-            background = glassButton(context, accent)
+            setPadding(dp(14, density), dp(12, density), dp(14, density), dp(12, density))
+            background = neuCard(context, radiusDp = 20f, accent = accent)
             isClickable = true
             isFocusable = true
             setOnClickListener { onClick() }
-            // 无框大图标：去掉凹槽底座，图标本体直接放大
-            addView(ImageView(context).apply {
-                setImageResource(imageRes)
+            // 玻璃瓷砖：拟态玻璃渲染边框 + 内部弥散光斑，图标居中
+            addView(ImageView(context).apply {                setImageResource(imageRes)
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 iconTint?.let { imageTintList = android.content.res.ColorStateList.valueOf(it) }
-                layoutParams = LinearLayout.LayoutParams(dp(40, density), dp(40, density))
+                layoutParams = LinearLayout.LayoutParams(dp(44, density), dp(44, density))
             })
             addView(TextView(context).apply {
                 text = title
-                textSize = 13f
+                textSize = 14f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(primaryText(context))
                 gravity = Gravity.CENTER
-                setPadding(0, dp(4, density), 0, 0)
+                setPadding(0, dp(6, density), 0, 0)
             })
             addView(TextView(context).apply {
                 text = subtitle
-                textSize = 9.5f
+                textSize = 10f
                 setTextColor(secondaryText(context))
                 gravity = Gravity.CENTER
-                setPadding(0, dp(1, density), 0, 0)
+                setPadding(0, dp(2, density), 0, 0)
             })
         }
+        applyNeuShadow(tile, 3f, 20f)
         pressAnimation(tile)
         return tile
     }

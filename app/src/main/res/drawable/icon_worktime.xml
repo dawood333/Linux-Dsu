@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- 圆角背景 -->
+    <path
+        android:fillColor="#00A98F"
+        android:pathData="M0,12C0,5.4 5.4,0 12,0h24c6.6,0 12,5.4 12,12v24c0,6.6 -5.4,12 -12,12H12C5.4,48 0,42.6 0,36z" />
+    <!-- 日历主体 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.25"
+        android:pathData="M10,14h28v26H10z" />
+    <!-- 日历顶部横杆 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M8,12h32v6H8z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,8h4v8h-4zM28,8h4v8h-4z" />
+    <!-- 日期网格 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,22h5v5h-5zM21.5,22h5v5h-5zM29,22h5v5h-5zM14,29h5v5h-5zM21.5,29h5v5h-5z" />
+    <!-- 时钟 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,27a9,9 0 1,0 0.001,0z" />
+    <path
+        android:fillColor="#00A98F"
+        android:pathData="M30,27a6,6 0 1,0 0.001,0z" />
+    <!-- 时钟指针 -->
+    <path
+        android:pathData="M30,28v-5M30,28l3.5,2"
+        android:strokeWidth="1.8"
+        android:strokeColor="#FFFFFF"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+</vector>

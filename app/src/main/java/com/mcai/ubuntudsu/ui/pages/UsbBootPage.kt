@@ -67,50 +67,41 @@ class UsbBootPage(
     private val isoPickerRequest = 411
 
     fun build(): View {
-        val root = LinearLayout(activity).apply {
+        val content = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(16, d))
         }
 
-        root.addView(buildTopBar())
-        root.addView(buildRootStatusCard())
-        root.addView(buildImgCard())
-        root.addView(buildVudCard())
-        root.addView(buildHelpCard())
+        content.addView(buildTopBar())
+        content.addView(buildRootStatusCard())
+        content.addView(buildImgCard())
+        content.addView(buildVudCard())
+        content.addView(buildHelpCard())
 
+        val scroll = android.widget.ScrollView(activity).apply {
+            isFillViewport = false
+            addView(content)
+        }
         refreshAll()
-        return root
+        return scroll
     }
 
     // ==================== 顶栏 ====================
     private fun buildTopBar(): View {
-        val bar = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        val bar = FrameLayout(activity).apply {
             setPadding(0, Ui.dp(4, d), 0, Ui.dp(10, d))
         }
-        bar.addView(TextView(activity).apply {
-            text = "< 返回"
-            textSize = 13f
-            setTextColor(Ui.buttonText(activity))
-            gravity = Gravity.CENTER
-            background = Ui.neuSolidButton(softButtonTopColor(Ui.buttonPrimary(activity)), softButtonBottomColor(Ui.buttonPrimary(activity)), 10f, activity)
-            setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-            setOnClickListener { Haptics.perform(this); onBack() }
-            Ui.pressAnimation(this)
-        })
         TextView(activity).apply {
             text = "U盘启动"
             textSize = 18f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        }.let { bar.addView(it) }
-        TextView(activity).apply {
-            text = " "
-            layoutParams = LinearLayout.LayoutParams(Ui.dp(56, d), ViewGroup.LayoutParams.WRAP_CONTENT)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            )
         }.let { bar.addView(it) }
         return bar
     }

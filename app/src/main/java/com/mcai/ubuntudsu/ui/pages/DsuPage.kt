@@ -29,6 +29,8 @@ import com.mcai.ubuntudsu.ui.Ui
 import com.topjohnwu.superuser.ipc.RootService
 import java.util.concurrent.Executor
 import java.util.zip.ZipInputStream
+import android.os.Environment
+import android.os.StatFs
 
 class DsuPage(
     private val activity: AppCompatActivity,
@@ -55,6 +57,26 @@ class DsuPage(
     private lateinit var installProgressBar: ProgressBar
     private lateinit var installPercentText: TextView
     private lateinit var customCapacityInput: EditText
+
+    private fun availableGB(): Long = runCatching {
+        val stat = StatFs(Environment.getDataDirectory().path)
+        (stat.availableBytes / 1024 / 1024 / 1024)
+    }.getOrDefault(0L)
+
+    /** 参考 DSU-Sideloader：Android 限制 userdata 最多占用 40% 剩余空间，超过则警告 */
+    private fun userdataWarning(GB: Int): String {
+        val availGB = availableGB()
+        if (availGB <= 0) return ""
+        val maxSafeGB = (availGB * 40 / 100).toInt()
+        return when {
+            GB > maxSafeGB * 2 -> "警告：${GB} GB 远超设备剩余空间（${availGB} GB），安装极可能失败，建议改用 ${maxSafeGB.coerceAtLeast(8)} GB"
+            GB > maxSafeGB -> "注意：${GB} GB 超过设备剩余安全容量（约 ${maxSafeGB} GB），安装可能失败"
+            else -> ""
+        }
+    }
+
+    /** 动态上限：剩余空间的 40%（Android 官方限制），下限 8 GB，不设硬顶（覆盖 1TB 设备） */
+    private fun maxAllowedGB(): Int = ((availableGB() * 40 / 100).toInt()).coerceAtLeast(8)
 
     fun onZipPicked(uri: Uri?) {
         uri?.let {
@@ -104,17 +126,26 @@ class DsuPage(
         // 恢复上次选中的 GSI 包（进程重建场景，fileNameText 创建时同步显示）
         restoreSelectedZip()
 
-        // 进度卡
-        val progressCard = card(d)
+        // 进度卡（缩小版：紧凑内边距，避免压住下方图标）
+        val progressCard = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(Ui.dp(12, d), Ui.dp(8, d), Ui.dp(12, d), Ui.dp(8, d))
+            background = Ui.glassSurface(activity, 18f)
+            Ui.applyNeuShadow(this, 3f, 18f)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = Ui.dp(8, d) }
+        }
         installProgressLabel = label("开始状态：未开始", 12f).apply { setTextColor(Ui.secondaryText(activity)) }
         installProgressBar = ProgressBar(activity, null, android.R.attr.progressBarStyleHorizontal).apply {
             max = 100
             progress = 0
             progressDrawable = Ui.pillProgressDrawable(activity)
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(22, d)).apply { topMargin = Ui.dp(8, d) }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(14, d)).apply { topMargin = Ui.dp(4, d) }
         }
         installPercentText = Ui.percentTextView(activity).apply {
-            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(6, d) }
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = Ui.dp(2, d) }
         }
         progressCard.addView(installProgressLabel)
         progressCard.addView(installProgressBar)
@@ -143,11 +174,23 @@ class DsuPage(
                     selectSizeChip(sizeRow, size)
                     // 点选预设时清空自定义输入，保证「唯一生效值」清晰
                     customCapacityInput.setText("")
+                    val w = userdataWarning(size)
+                    if (w.isNotEmpty()) {
+                        Toast.makeText(activity, w, Toast.LENGTH_LONG).show()
+                    }
                 }
             }
             sizeRow.addView(chip)
         }
         parameterCard.addView(sizeRow)
+        // 剩余空间提示（参考 DSU-Sideloader 的 40% 安全限制说明）
+        parameterCard.addView(label(
+            "设备剩余空间：${availableGB()} GB · 建议上限：${maxAllowedGB()} GB（剩余空间的 40%）",
+            11f,
+        ).apply {
+            setTextColor(Ui.secondaryText(activity))
+            setPadding(0, Ui.dp(4, d), 0, 0)
+        })
         // 自定义容量：输入框 + 确定按钮二合一（免弹框，直接输入 GB 数）
         val customRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -168,12 +211,19 @@ class DsuPage(
         customRow.addView(
             smallAction("确定容量", Ui.buttonPrimary(activity), minWidthDp = 88) {
                 val value = customCapacityInput.text.toString().toIntOrNull()
-                if (value != null && value > 0) {
-                    selectedUserdataGB = value
-                    selectSizeChip(sizeRow, value)
-                    Toast.makeText(activity, "已设定 userdata 容量：${value} GB", Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(activity, "请输入有效容量", Toast.LENGTH_SHORT).show()
+                when {
+                    value == null || value <= 0 -> {
+                        Toast.makeText(activity, "请输入有效容量", Toast.LENGTH_SHORT).show()
+                    }
+                    value > maxAllowedGB() -> {
+                        Toast.makeText(activity, "容量 ${value} GB 超过建议上限 ${maxAllowedGB()} GB（剩余空间 ${availableGB()} GB 的 40%），安装可能失败", Toast.LENGTH_LONG).show()
+                    }
+                    else -> {
+                        selectedUserdataGB = value
+                        selectSizeChip(sizeRow, value)
+                        val w = userdataWarning(value)
+                        Toast.makeText(activity, if (w.isNotEmpty()) "已设定 ${value} GB · $w" else "已设定 userdata 容量：${value} GB", Toast.LENGTH_LONG).show()
+                    }
                 }
             },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
@@ -331,7 +381,7 @@ class DsuPage(
             val isSelected = chip.text.toString().removeSuffix(" GB").toIntOrNull() == selected
             chip.setTextColor(if (isSelected) Ui.buttonText(activity) else Ui.primaryText(activity))
             chip.background = Ui.strokeRounded(
-                if (isSelected) Ui.buttonPrimary(activity) else Ui.surface(activity),
+                if (isSelected) Ui.buttonPrimary(activity) else Ui.surfaceGlass(activity),
                 if (isSelected) Ui.buttonPrimary(activity) else Ui.border(activity),
                 1f,
                 activity.resources.displayMetrics.density,

@@ -56,7 +56,7 @@ class OnboardingActivity : AppCompatActivity() {
         private const val KEY_COMPLETED = "completed"
         private const val KEY_AGREED = "agreed"
         private const val KEY_UI_SCALE = "ui_scale"
-        private const val PAGE_COUNT = 5
+        private const val PAGE_COUNT = 7
 
         fun isCompleted(ctx: android.content.Context): Boolean =
             ctx.getSharedPreferences(PREF_ONBOARDING, MODE_PRIVATE).getBoolean(KEY_COMPLETED, false)
@@ -87,7 +87,9 @@ class OnboardingActivity : AppCompatActivity() {
     private var usageAccessGranted = false
     private var rootVerified = false
     private var uiScale = 100
-
+    private val permissionSwitches = linkedMapOf<String, Switch>()
+    private val pendingPermissionKeys = linkedSetOf<String>()
+    private var syncingPermissionRows = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
@@ -98,6 +100,135 @@ class OnboardingActivity : AppCompatActivity() {
         }
 
         buildUi()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshPermissionState()
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        if (requestCode != 1001 && requestCode != 1002 && requestCode != 1003) return
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        val requestedKeys = linkedSetOf<String>()
+        if (permissions.contains(android.Manifest.permission.POST_NOTIFICATIONS)) requestedKeys += "notification"
+        if (
+            permissions.contains(android.Manifest.permission.READ_EXTERNAL_STORAGE) ||
+            permissions.contains(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        ) {
+            requestedKeys += "storage"
+        }
+        refreshPermissionState()
+        requestedKeys.forEach { key ->
+            pendingPermissionKeys.remove(key)
+        }
+    }
+
+    private fun markPendingPermission(key: String) {
+        pendingPermissionKeys += key
+    }
+
+    private fun refreshPermissionState() {
+        notificationGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        storageGranted = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                    checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+        usageAccessGranted = hasUsageAccess()
+        rootVerified = runCatching { com.mcai.ubuntudsu.core.RootShell.available() }.getOrDefault(false)
+        syncPermissionRows()
+    }
+
+    private fun hasUsageAccess(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return runCatching {
+                val appOps = getSystemService(android.app.AppOpsManager::class.java)
+                val flag = appOps.checkOpNoThrow(
+                    android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    android.os.Process.myUid(),
+                    packageName
+                )
+                flag == android.app.AppOpsManager.MODE_ALLOWED
+            }.getOrDefault(false)
+        }
+        return false
+    }
+
+    private fun syncPermissionRows() {
+        syncingPermissionRows = true
+        try {
+            permissionSwitches.entries.forEach { (key, sw) ->
+                if (pendingPermissionKeys.contains(key)) {
+                    return@forEach
+                }
+                sw.isChecked = isRowGranted(key)
+            }
+        } finally {
+            syncingPermissionRows = false
+        }
+    }
+
+    private fun applyPermissionSwitchState(key: String, checked: Boolean) {
+        val sw = permissionSwitches[key] ?: return
+        syncingPermissionRows = true
+        try {
+            sw.isChecked = checked
+        } finally {
+            syncingPermissionRows = false
+        }
+    }
+
+    private fun isRowGranted(key: String): Boolean = when (key) {
+        "notification" -> notificationGranted
+        "storage" -> storageGranted
+        "usage" -> usageAccessGranted
+        "root" -> rootVerified
+        else -> false
+    }
+
+    private fun trackPermissionRow(switch: Switch, key: String) {
+        switch.tag = key
+        permissionSwitches[key] = switch
+    }
+
+    private fun requestOneTapPermissions() {
+        refreshPermissionState()
+        val pending = mutableListOf<String>()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !notificationGranted) {
+            pending += android.Manifest.permission.POST_NOTIFICATIONS
+            markPendingPermission("notification")
+        }
+        val storagePermission = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        } else {
+            android.Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        if (!storageGranted) {
+            pending += storagePermission
+            markPendingPermission("storage")
+        }
+        if (pending.isNotEmpty()) {
+            requestPermissions(pending.toTypedArray(), 1003)
+        }
+        if (!usageAccessGranted) {
+            runCatching {
+                startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
+            }.onFailure {
+                Toast.makeText(this, "系统设置页不可用", Toast.LENGTH_SHORT).show()
+            }
+        }
+        if (!rootVerified) {
+            rootVerified = runCatching { com.mcai.ubuntudsu.core.RootShell.available() }.getOrDefault(false)
+            applyPermissionSwitchState("root", rootVerified)
+        }
+        refreshPermissionState()
+        Toast.makeText(this, "已发起可自动授权项，返回应用后自动检测真实状态", Toast.LENGTH_SHORT).show()
     }
 
     // ==================== UI Construction ====================
@@ -179,10 +310,151 @@ class OnboardingActivity : AppCompatActivity() {
     private fun createPage(index: Int): View = when (index) {
         0 -> createWelcomePage()
         1 -> createAgreementPage()
-        2 -> createPermissionsPage()
-        3 -> createEnvCheckPage()
-        4 -> createDonePage()
+        2 -> createFeaturePage(
+            title = "DSU 与 Linux 桌面",
+            subtitle = "无需解锁、不动原系统，临时启动新系统镜像",
+            items = listOf(
+                Triple(R.drawable.icon_dsu_modern, "DSU 动态系统更新", "ROOT 直装 GSI 镜像，自定义 userdata 容量、清理旧缓存、一键重启切换"),
+                Triple(R.drawable.icon_linux_modern, "Linux ARM® 架构", "Chroot 安装运行 Ubuntu rootfs（本地 / 云端镜像），可卸载还原"),
+                Triple(R.drawable.icon_terminal_runner, "容器终端", "Termux 风格 Chroot 终端，支持 apt 安装软件包"),
+                Triple(R.drawable.ic_desktop_start, "远程桌面", "XFCE / KDE 桌面 + VNC 远程连接，音频桥接、分辨率自选"),
+            ),
+        )
+        3 -> createFeaturePage(
+            title = "ROM 固件与移植",
+            subtitle = "固件双源下载，DNA 工具箱一站式移植开发",
+            items = listOf(
+                Triple(R.drawable.icon_rom_firmware, "ROM 固件下载", "HyperOS 与 ColorOS / FlymeOS / realme UI 双源，品牌机型筛选，aria2c 加速"),
+                Triple(R.drawable.icon_rom_port, "ROM 移植开发", "DNA 工具箱分解 / 合成 SUPER、payload 提取、镜像格式互转"),
+                Triple(R.drawable.icon_otg, "OTG 刷机助手", "检测 USB 设备 ADB / Fastboot 状态，刷机日志实时输出"),
+                Triple(R.drawable.icon_usb_boot, "U 盘启动", "本地制作 U 盘 IMG 镜像并虚拟 U 盘暴露给电脑"),
+            ),
+        )
+        4 -> createPermissionsPage()
+        5 -> createEnvCheckPage()
+        6 -> createDonePage()
         else -> createWelcomePage()
+    }
+
+    /** 功能介绍页：标题 + 副标题 + 图标条目卡片 + 底部「下一步」 */
+    private fun createFeaturePage(
+        title: String,
+        subtitle: String,
+        items: List<Triple<Int, String, String>>,
+    ): View {
+        val d = resources.displayMetrics.density
+        val container = FrameLayout(this)
+
+        val scroll = ScrollView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ).apply {
+                marginStart = Ui.dp(16, d)
+                marginEnd = Ui.dp(16, d)
+                topMargin = Ui.dp(60, d)
+                bottomMargin = Ui.dp(16, d)
+            }
+        }
+
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(Ui.dp(20, d), Ui.dp(24, d), Ui.dp(20, d), Ui.dp(20, d))
+            background = Ui.neuCard(this@OnboardingActivity, 20f)
+            Ui.applyNeuShadow(this, 5f, 20f)
+        }
+
+        card.addView(TextView(this).apply {
+            text = title
+            textSize = 22f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Ui.primaryText(this@OnboardingActivity))
+        })
+        card.addView(TextView(this).apply {
+            text = subtitle
+            textSize = 13f
+            setTextColor(Ui.secondaryText(this@OnboardingActivity))
+            setPadding(0, Ui.dp(8, d), 0, Ui.dp(14, d))
+            setLineSpacing(Ui.dp(4, d).toFloat(), 1f)
+        })
+
+        items.forEachIndexed { index, (iconRes, name, desc) ->
+            if (index > 0) {
+                card.addView(
+                    Ui.crystalDivider(this, d),
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        Ui.dp(2, d),
+                    ).apply { topMargin = Ui.dp(2, d); bottomMargin = Ui.dp(2, d) },
+                )
+            }
+            card.addView(LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, Ui.dp(12, d), 0, Ui.dp(12, d))
+                addView(ImageView(this@OnboardingActivity).apply {
+                    setImageResource(iconRes)
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                    layoutParams = LinearLayout.LayoutParams(Ui.dp(40, d), Ui.dp(40, d))
+                })
+                addView(LinearLayout(this@OnboardingActivity).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                        marginStart = Ui.dp(13, d)
+                    }
+                    addView(TextView(this@OnboardingActivity).apply {
+                        text = name
+                        textSize = 15f
+                        setTypeface(typeface, Typeface.BOLD)
+                        setTextColor(Ui.primaryText(this@OnboardingActivity))
+                    })
+                    addView(TextView(this@OnboardingActivity).apply {
+                        text = desc
+                        textSize = 12f
+                        setTextColor(Ui.secondaryText(this@OnboardingActivity))
+                        setPadding(0, Ui.dp(3, d), 0, 0)
+                        setLineSpacing(Ui.dp(2, d).toFloat(), 1f)
+                    })
+                })
+            })
+        }
+
+        scroll.addView(card)
+        container.addView(scroll)
+        container.addView(bottomNextButton())
+        return container
+    }
+
+    /** 底部「下一步」按钮（功能介绍页共用）：拟态实心渐变 + 阴影外环 */
+    private fun bottomNextButton(): View {
+        val d = resources.displayMetrics.density
+        return TextView(this).apply {
+            text = "下一步"
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            background = Ui.neuSolidButton(
+                if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#62A8FF") else android.graphics.Color.parseColor("#5EA0FF"),
+                if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#2E6CF0") else android.graphics.Color.parseColor("#2F6BF0"),
+                12f, this@OnboardingActivity,
+            )
+            Ui.applyNeuShadow(this, 5f, 12f, Ui.buttonPrimary(this@OnboardingActivity))
+            setPadding(0, Ui.dp(14, d), 0, Ui.dp(14, d))
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM,
+            ).apply {
+                marginStart = Ui.dp(32, d)
+                marginEnd = Ui.dp(32, d)
+                bottomMargin = Ui.dp(56, d)
+            }
+            isClickable = true
+            isFocusable = true
+            Ui.pressAnimation(this)
+            setOnClickListener { goToNextPage() }
+        }
     }
 
     /**
@@ -210,10 +482,10 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
 
-        // Logo (8O.png colorful combined image)
+        // Logo (same launcher icon, unchanged display size)
         val logoSize = Ui.dp(140, d)
         content.addView(ImageView(this).apply {
-            setImageResource(R.drawable.ic_logo_combined)
+            setImageResource(R.mipmap.ic_launcher)
             layoutParams = LinearLayout.LayoutParams(logoSize, logoSize).apply {
                 bottomMargin = Ui.dp(4, d)
             }
@@ -572,29 +844,28 @@ class OnboardingActivity : AppCompatActivity() {
         })
 
         // Notification permission
-        card.addView(makePermissionRow("通知权限", "允许应用发送通知提醒", notificationGranted) { checked ->
-            notificationGranted = checked
+        card.addView(makePermissionRow("通知权限", "允许应用发送通知提醒", "notification", notificationGranted) { checked ->
             if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                markPendingPermission("notification")
                 requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
             }
         })
 
-        // Storage permission
-        card.addView(makePermissionRow("存储访问", "允许访问设备存储空间", storageGranted) { checked ->
-            storageGranted = checked
+        card.addView(makePermissionRow("存储访问", "允许访问设备存储空间", "storage", storageGranted) { checked ->
             if (checked) {
-                requestPermissions(arrayOf(
-                    android.Manifest.permission.READ_EXTERNAL_STORAGE,
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                ), 1002)
+                markPendingPermission("storage")
+                requestPermissions(
+                    arrayOf(
+                        android.Manifest.permission.READ_EXTERNAL_STORAGE,
+                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                    ),
+                    1002
+                )
             }
         })
 
-        // Usage access (special permission — jump to system settings page)
-        card.addView(makePermissionRow("使用情况访问", "进程管理读取任务栏后台应用与前台识别", usageAccessGranted) { checked ->
-            usageAccessGranted = checked
+        card.addView(makePermissionRow("使用情况访问", "进程管理读取任务栏后台应用与前台识别", "usage", usageAccessGranted) { checked ->
             if (checked) {
-                // 特殊权限：跳系统"使用情况访问"页手动授予
                 runCatching {
                     startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
                 }.onFailure {
@@ -611,15 +882,46 @@ class OnboardingActivity : AppCompatActivity() {
             setPadding(0, Ui.dp(8, d), 0, Ui.dp(4, d))
         })
 
-        card.addView(makePermissionRow("验证 Root", "检查 ROOT 权限可用性", rootVerified) { checked ->
-            rootVerified = checked
-            // In real app, would run su check here
+        card.addView(makePermissionRow("验证 Root", "检查 ROOT 权限可用性", "root", rootVerified) { checked ->
+            if (checked) {
+                rootVerified = runCatching { com.mcai.ubuntudsu.core.RootShell.available() }.getOrDefault(false)
+                applyPermissionSwitchState("root", rootVerified)
+                if (!rootVerified) {
+                    Toast.makeText(this@OnboardingActivity, "Root 验证未通过", Toast.LENGTH_SHORT).show()
+                }
+            }
         })
+
+        val oneTapBtn = TextView(this).apply {
+            text = "一键授权"
+            textSize = 16f
+            setTypeface(typeface, Typeface.BOLD)
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            background = Ui.neuSolidButton(
+                if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#22C55E") else android.graphics.Color.parseColor("#4ADE80"),
+                if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#15803D") else android.graphics.Color.parseColor("#16A34A"),
+                12f, this@OnboardingActivity
+            )
+            Ui.applyNeuShadow(this, 5f, 12f, Ui.buttonSuccess(this@OnboardingActivity))
+            setPadding(0, Ui.dp(12, d), 0, Ui.dp(12, d))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = Ui.dp(12, d)
+            }
+            isClickable = true
+            isFocusable = true
+            Ui.pressAnimation(this)
+            setOnClickListener {
+                requestOneTapPermissions()
+            }
+        }
+        card.addView(oneTapBtn)
 
         scroll.addView(card)
         container.addView(scroll)
-
-        // Bottom "下一步" button — placed outside the card, below the indicators
         val nextBtn = TextView(this).apply {
             text = "下一步"
             textSize = 16f
@@ -652,7 +954,7 @@ class OnboardingActivity : AppCompatActivity() {
         return container
     }
 
-    private fun makePermissionRow(title: String, desc: String, initial: Boolean, onToggle: (Boolean) -> Unit): View {
+    private fun makePermissionRow(title: String, desc: String, key: String, initial: Boolean, onToggle: (Boolean) -> Unit): View {
         val d = resources.displayMetrics.density
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -688,8 +990,11 @@ class OnboardingActivity : AppCompatActivity() {
 
         val switch = Switch(this).apply {
             isChecked = initial
-            setOnCheckedChangeListener { _, isChecked -> onToggle(isChecked) }
+            setOnCheckedChangeListener { _, isChecked ->
+                if (!syncingPermissionRows) onToggle(isChecked)
+            }
         }
+        trackPermissionRow(switch, key)
         row.addView(switch)
 
         return row
@@ -956,6 +1261,22 @@ class OnboardingActivity : AppCompatActivity() {
             })
         }
         content.addView(highlightCard)
+
+        // 开源仓库地址（点击复制到剪贴板）
+        content.addView(TextView(this).apply {
+            text = "开源仓库  github.com/hetianming/Linux-Dsu"
+            textSize = 12f
+            setTextColor(Ui.buttonPrimary(this@OnboardingActivity))
+            gravity = Gravity.CENTER
+            setPadding(Ui.dp(12, d), Ui.dp(14, d), Ui.dp(12, d), 0)
+            isClickable = true
+            Ui.pressAnimation(this)
+            setOnClickListener {
+                val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("repo", "https://github.com/hetianming/Linux-Dsu"))
+                Toast.makeText(this@OnboardingActivity, "仓库地址已复制", Toast.LENGTH_SHORT).show()
+            }
+        })
         container.addView(content)
 
         // Bottom "开始使用" button — placed directly below the indicators
@@ -1067,6 +1388,11 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     private fun goToNextPage() {
+        // 协议页只能通过「下一步」按钮且勾选同意后前进，禁止滑动跳过
+        if (currentPage == 1 && !agreementChecked) {
+            Toast.makeText(this, "请先同意用户协议", Toast.LENGTH_SHORT).show()
+            return
+        }
         if (currentPage < PAGE_COUNT - 1) {
             val current = pageContainer.getChildAt(0)
             current?.animate()

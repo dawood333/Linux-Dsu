@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 窗口缩小返回：1.0 → 0.82 缩放 + 淡出，略比进入更快，贴近系统图标返回观感 -->
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:duration="220"
+    android:interpolator="@android:anim/accelerate_interpolator">
+    <scale
+        android:fromXScale="1.0"
+        android:fromYScale="1.0"
+        android:toXScale="0.82"
+        android:toYScale="0.82"
+        android:pivotX="50%"
+        android:pivotY="50%" />
+    <alpha
+        android:fromAlpha="1.0"
+        android:toAlpha="0.0" />
+</set>

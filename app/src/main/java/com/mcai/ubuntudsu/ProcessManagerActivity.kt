@@ -9,10 +9,12 @@ import com.mcai.ubuntudsu.ui.pages.ProcessManagerPage
 
 class ProcessManagerActivity : AppCompatActivity() {
 
+    private var finishing = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setBackgroundDrawableResource(android.R.color.transparent)
-        val page = ProcessManagerPage(this) { finish() }
+        val page = ProcessManagerPage(this)
         val content = page.build()
 
         val root = FrameLayout(this).apply {
@@ -43,7 +45,9 @@ class ProcessManagerActivity : AppCompatActivity() {
     }
 
     override fun finish() {
+        if (finishing) return
+        finishing = true
         super.finish()
-        overridePendingTransition(R.anim.activity_scale_up_enter, R.anim.activity_scale_down_exit)
+        overridePendingTransition(R.anim.zoom_in, R.anim.zoom_out)
     }
 }

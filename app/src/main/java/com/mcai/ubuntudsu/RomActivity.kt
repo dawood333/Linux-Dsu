@@ -57,9 +57,13 @@ class RomActivity : AppCompatActivity() {
         super.onDestroy()
     }
 
+    private var finishing = false
+
     override fun finish() {
+        if (finishing) return
+        finishing = true
         super.finish()
-        overridePendingTransition(R.anim.activity_scale_up_enter, R.anim.activity_scale_down_exit)
+        overridePendingTransition(R.anim.zoom_in, R.anim.zoom_out)
     }
 
     // 全局触摸震动反馈

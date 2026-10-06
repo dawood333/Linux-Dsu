@@ -160,30 +160,20 @@ class OtgAssistantPage(
     private fun solidButtonText(): Int = if (Ui.isDark(activity)) Color.WHITE else Color.BLACK
 
     private fun buildTitleRow(): View {
-        val row = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        val row = FrameLayout(activity).apply {
             setPadding(0, 0, 0, Ui.dp(12, d))
         }
-        row.addView(TextView(activity).apply {
-            text = "‹ 返回"
-            textSize = 13f
-            setTextColor(Ui.buttonText(activity))
-            background = Ui.neuSolidButton(softButtonColors(Ui.buttonPrimary(activity)).first, softButtonColors(Ui.buttonPrimary(activity)).second, 10f, activity)
-            Ui.pressAnimation(this)
-            setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
-            setOnClickListener {
-                Haptics.perform(this)
-                onBack()
-            }
-        })
         row.addView(TextView(activity).apply {
             text = "OTG 刷机助手"
             textSize = 18f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            )
         })
         btnRefreshDevice = TextView(activity).apply {
             text = "刷新"
@@ -196,6 +186,11 @@ class OtgAssistantPage(
                 Haptics.perform(this)
                 refreshDevices()
             }
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.END or Gravity.CENTER_VERTICAL,
+            )
         }
         row.addView(btnRefreshDevice)
         return row

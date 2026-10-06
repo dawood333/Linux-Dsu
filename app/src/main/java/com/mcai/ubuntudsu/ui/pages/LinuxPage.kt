@@ -91,6 +91,7 @@ class LinuxPage(
             ).apply { topMargin = Ui.dp(10, d); bottomMargin = Ui.dp(8, d) },
         )
         // 大图标入口：一排两个往下排（容器终端 / 桌面环境），第三项文件管理独占一排
+        // 大图标直接悬浮在卡片/页面上（已去图标底色），仅靠大字号 emoji 图标 + 标题 + 描述
         val tileRow = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         tileRow.addView(
             Ui.iconTile(activity, "容器终端", "Chroot 容器 · Termux 风格", R.drawable.icon_terminal_runner, Color.parseColor("#E95420")) {

@@ -22,6 +22,7 @@ import com.mcai.ubuntudsu.ui.pages.UsbBootPage
 class UsbBootActivity : AppCompatActivity() {
 
     private lateinit var page: UsbBootPage
+    private var finishing = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,8 +59,10 @@ class UsbBootActivity : AppCompatActivity() {
     }
 
     override fun finish() {
+        if (finishing) return
+        finishing = true
         super.finish()
-        overridePendingTransition(R.anim.activity_scale_up_enter, R.anim.activity_scale_down_exit)
+        overridePendingTransition(R.anim.zoom_in, R.anim.zoom_out)
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {

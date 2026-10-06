@@ -106,23 +106,26 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         val d = resources.displayMetrics.density
 
-        // ===== 标题栏：返回 / 下载管理 / 新建下载 =====
-        val titleRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        // ===== 标题栏：返回 / 下载管理 / 新建下载（标题真正居中） =====
+        val titleRow = FrameLayout(this).apply {
             setPadding(0, 0, 0, Ui.dp(12, d))
         }
         titleRow.addView(TextView(this).apply {
             text = "‹ 返回"
             textSize = 13f
             setTextColor(Ui.buttonText(this@DownloadsActivity))
-            background = Ui.glassButton(this@DownloadsActivity, Ui.buttonPrimary(this@DownloadsActivity))
+            background = Ui.glassButton(this@DownloadsActivity, Ui.buttonSuccess(this@DownloadsActivity))
             Ui.pressAnimation(this)
             setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
             setOnClickListener {
                 Haptics.perform(this)
                 finish()
             }
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.START or Gravity.CENTER_VERTICAL,
+            )
         })
         titleRow.addView(TextView(this).apply {
             text = "下载管理"
@@ -130,7 +133,11 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@DownloadsActivity))
             gravity = Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.CENTER,
+            )
         })
         titleRow.addView(TextView(this).apply {
             text = "新建下载"
@@ -144,6 +151,11 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 Haptics.perform(this)
                 showNewDownloadDialog()
             }
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.END or Gravity.CENTER_VERTICAL,
+            )
         })
         page.addView(titleRow)
 
@@ -223,12 +235,12 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
     private fun isDark(): Boolean = Ui.isDark(this)
 
-    /** 主操作按钮背景：全局拟态实心渐变（日间蓝 / 夜间青蓝） */
+    /** 主操作按钮背景：跟随 APP 日/夜间主题的绿色主色 */
     private fun primaryButtonBg(): android.graphics.drawable.Drawable =
         if (isDark()) {
-            Ui.neuSolidButton(Color.parseColor("#62A8FF"), Color.parseColor("#2E6CF0"), 12f, this)
+            Ui.neuSolidButton(Color.parseColor("#34D399"), Color.parseColor("#15803D"), 12f, this)
         } else {
-            Ui.neuSolidButton(Color.parseColor("#5EA0FF"), Color.parseColor("#2F6BF0"), 12f, this)
+            Ui.neuSolidButton(Color.parseColor("#4ADE80"), Color.parseColor("#16A34A"), 12f, this)
         }
 
     /** 成功色按钮（全部开始） */
@@ -280,12 +292,12 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             if (active) {
                 btn.setTextColor(Color.WHITE)
                 btn.background = if (isDark()) {
-                    GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.parseColor("#2563EB"), Color.parseColor("#1D4ED8"))).apply {
+                    GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.parseColor("#10B981"), Color.parseColor("#047857"))).apply {
                         cornerRadius = Ui.dp(10, d).toFloat()
-                        setStroke(Ui.dp(1, d), Color.argb(220, 100, 160, 255))
+                        setStroke(Ui.dp(1, d), Color.argb(220, 52, 211, 153))
                     }
                 } else {
-                    GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.parseColor("#3B82F6"), Color.parseColor("#2563EB"))).apply {
+                    GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, intArrayOf(Color.parseColor("#22C55E"), Color.parseColor("#16A34A"))).apply {
                         cornerRadius = Ui.dp(10, d).toFloat()
                     }
                 }
@@ -335,7 +347,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 setPadding(0, Ui.dp(12, d), 0, 0)
             })
             addView(TextView(this@DownloadsActivity).apply {
-                text = "去浏览文件或新建下载任务"
+                text = "去浏览 ROM 商店或新建下载任务"
                 textSize = 12f
                 setTextColor(Ui.secondaryText(this@DownloadsActivity))
                 gravity = Gravity.CENTER
@@ -348,11 +360,11 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 gravity = Gravity.CENTER
             }
             btnRow.addView(TextView(this@DownloadsActivity).apply {
-                text = "去浏览文件"
+                text = "去浏览 ROM 商店"
                 textSize = 13f
                 setTypeface(typeface, Typeface.BOLD)
-                setTextColor(Ui.buttonPrimary(this@DownloadsActivity))
-                background = outlineButtonBg(Ui.buttonPrimary(this@DownloadsActivity))
+                setTextColor(Color.WHITE)
+                background = primaryButtonBg()
                 Ui.pressAnimation(this)
                 setPadding(Ui.dp(16, d), Ui.dp(8, d), Ui.dp(16, d), Ui.dp(8, d))
                 setOnClickListener {
@@ -1006,7 +1018,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 ext in listOf("mp4", "mkv", "avi", "mov", "flv", "mpf", "webm") -> "🎬" to Color.parseColor("#8B5CF6")
                 ext in listOf("zip", "rar", "7z", "tar", "gz", "tgz") -> "📦" to Color.parseColor("#F59E0B")
                 ext in listOf("pdf") -> "📕" to Color.parseColor("#EF4444")
-                ext in listOf("doc", "docx") -> "📘" to Color.parseColor("#3B82F6")
+                ext in listOf("doc", "docx") -> "📘" to Color.parseColor("#22C55E")
                 ext in listOf("xls", "xlsx") -> "📗" to Color.parseColor("#22C55E")
                 ext in listOf("ppt", "pptx") -> "📙" to Color.parseColor("#F97316")
                 ext in listOf("mp3", "wav", "flac", "aac") -> "🎵" to Color.parseColor("#EC4899")
@@ -1018,7 +1030,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         private fun progressColors(state: Int): Pair<Int, Int> {
             // 返回 (进度色, 轨道色)
             return when (state) {
-                1 -> Color.parseColor("#3B82F6") to Color.parseColor("#DBEAFE") // 下载中：蓝
+                1 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // 下载中：绿
                 2 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // 已完成：绿
                 5 -> Color.parseColor("#EF4444") to Color.parseColor("#FEE2E2") // 已暂停：红
                 else -> Color.parseColor("#94A3B8") to Color.parseColor("#E2E8F0")
@@ -1027,7 +1039,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         private fun darkProgressColors(state: Int): Pair<Int, Int> {
             return when (state) {
-                1 -> Color.parseColor("#60A5FA") to Color.argb(80, 60, 80, 120)
+                1 -> Color.parseColor("#4ADE80") to Color.argb(80, 40, 80, 60)
                 2 -> Color.parseColor("#4ADE80") to Color.argb(80, 40, 80, 60)
                 5 -> Color.parseColor("#F87171") to Color.argb(80, 120, 50, 50)
                 else -> Color.parseColor("#94A3B8") to Color.argb(80, 80, 80, 90)
@@ -1046,9 +1058,9 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 checkBox.visibility = View.VISIBLE
                 checkBox.background = if (task.selected) {
                     GradientDrawable().apply {
-                        setColor(Ui.buttonPrimary(ctx as Activity))
+                        setColor(Ui.buttonSuccess(ctx as Activity))
                         cornerRadius = Ui.dp(4, d).toFloat()
-                        setStroke(Ui.dp(1, d), Ui.buttonPrimary(ctx as Activity))
+                        setStroke(Ui.dp(1, d), Ui.buttonSuccess(ctx as Activity))
                     }
                 } else {
                     GradientDrawable().apply {
@@ -1149,8 +1161,8 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 2 -> { // 已完成
                     pauseBtn.visibility = View.GONE
                     openBtn.visibility = View.VISIBLE
-                    openBtn.setTextColor(Color.parseColor("#2563EB"))
-                    openBtn.background = outlineButtonBg(Color.parseColor("#3B82F6"))
+                    openBtn.setTextColor(Color.parseColor("#15803D"))
+                    openBtn.background = outlineButtonBg(Color.parseColor("#22C55E"))
                     deleteBtn.visibility = View.VISIBLE
                     deleteBtn.setTextColor(Color.parseColor("#DC2626"))
                     deleteBtn.background = outlineButtonBg(Color.parseColor("#EF4444"))

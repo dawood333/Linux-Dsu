@@ -16,3 +16,14 @@ rootfs下载检测参考脚本.sh
 .staging/
 *.zip
 gradle.properties
+
+# 开发环境辅助文件（不属于项目源码）
+.upload_server.py
+upload_server.py
+__pycache__/
+dist/
+uploads/
+website/
+twrp_dodge/
+*.pyc
+blob_download_1791229037373.png

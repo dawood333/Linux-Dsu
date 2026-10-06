@@ -2,7 +2,6 @@ package com.mcai.ubuntudsu.ui.pages
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Color
 import android.graphics.Typeface
 import android.view.Gravity
 import android.view.View
@@ -11,7 +10,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatDelegate
 import com.mcai.ubuntudsu.ProcessManagerActivity
 import com.mcai.ubuntudsu.R
 import android.view.MotionEvent
@@ -86,7 +84,7 @@ class SettingsPage(
         // 标题（壁纸同步时隐藏，图标上移替代）
         if (!wallpaperSync) {
             page.addView(TextView(activity).apply {
-                text = "阿明℗有趣小程序"
+                text = "阿明®有趣小程序"
                 textSize = 22f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(Ui.primaryText(activity))
@@ -99,12 +97,14 @@ class SettingsPage(
         val gridPrefs = activity.getPreferences(Activity.MODE_PRIVATE)
         val savedOrder = gridPrefs.getString("icon_order", null)
         val keyToItem = mapOf(
-            "theme" to GridItem("主题样式", R.drawable.icon_theme_color, "#5B6CFF") { _ -> showThemeDialog() },
+            "theme" to GridItem("设置", R.drawable.icon_settings, "#5B6CFF") { view -> openSettings(view) },
             "process" to GridItem("进程管理", R.drawable.icon_process_manager, "#E53935") { view -> openProcessManager(view) },
             "rom" to GridItem("ROM固件", R.drawable.icon_rom_firmware, "#FF6B35") { view -> openRomFirmware(view) },
             "otg" to GridItem("OTG助手", R.drawable.icon_otg, "#00897B") { view -> openOtgAssistant(view) },
             "update" to GridItem("软件更新", R.drawable.icon_update_color, "#2D64AA") { _ -> checkUpdate() },
             "usbboot" to GridItem("U盘启动", R.drawable.icon_usb_boot, "#E65100") { view -> openUsbBoot(view) },
+            "worktime" to GridItem("日历工时记", R.drawable.icon_worktime, "#00A98F") { view -> openWorkTime(view) },
+            "dnatools" to GridItem("ROM移植", R.drawable.icon_rom_port, "#7C4DFF") { view -> openDnaTools(view) },
         )
         val defaultKeys = keyToItem.keys.toList()
         val orderedKeys: List<String> = if (savedOrder != null) {
@@ -313,155 +313,42 @@ class SettingsPage(
         return container
     }
 
-    private fun showThemeDialog() {
-        val d = activity.resources.displayMetrics.density
-        val prefs = activity.getPreferences(Activity.MODE_PRIVATE)
-        val current = prefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
-        val wallpaperSync = prefs.getBoolean("wallpaper_sync", false)
+    /** 打开全屏设置页（个性主题 + 关于信息） */
+    private fun openSettings(iconView: View) {
+        launchScaleUp(iconView, com.mcai.ubuntudsu.SettingsActivity::class.java)
+    }
 
-        val container = LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(Ui.dp(20, d), Ui.dp(12, d), Ui.dp(20, d), Ui.dp(8, d))
-        }
-
-        // === 主题模式 ===
-        container.addView(TextView(activity).apply {
-            text = "主题模式"
-            textSize = 14f
-            setTypeface(typeface, Typeface.BOLD)
-            setTextColor(Ui.primaryText(activity))
-            setPadding(0, 0, 0, Ui.dp(8, d))
-        })
-
-        val modes = arrayOf("跟随系统", "浅色", "深色")
-        val checked = when (current) {
-            AppCompatDelegate.MODE_NIGHT_NO -> 1
-            AppCompatDelegate.MODE_NIGHT_YES -> 2
-            else -> 0
-        }
-        val modeGroup = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-        }
-        modes.forEachIndexed { index, label ->
-            modeGroup.addView(TextView(activity).apply {
-                text = label
-                textSize = 12f
-                gravity = Gravity.CENTER
-                setTextColor(if (index == checked) Ui.buttonText(activity) else Ui.secondaryText(activity))
-                background = if (index == checked) {
-                    Ui.glassButton(activity, Ui.buttonPrimary(activity))
-                } else {
-                    Ui.rounded(android.graphics.Color.TRANSPARENT, 10f, d)
-                }
-                setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
-                Ui.pressAnimation(this)
-                layoutParams = LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    if (index > 0) marginStart = Ui.dp(4, d)
-                }
-                setOnClickListener {
-                    val mode = when (index) {
-                        1 -> AppCompatDelegate.MODE_NIGHT_NO
-                        2 -> AppCompatDelegate.MODE_NIGHT_YES
-                        else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
-                    }
-                    prefs.edit().putInt("theme_mode", mode).apply()
-                    AppCompatDelegate.setDefaultNightMode(mode)
-                    onThemeChanged()
-                }
-            })
-        }
-        container.addView(modeGroup)
-
-        // === 分隔线 ===
-        container.addView(View(activity).apply {
-            setBackgroundColor(Ui.secondaryText(activity))
-            alpha = 0.2f
-            layoutParams = LinearLayout.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                Ui.dp(1, d),
-            ).apply { topMargin = Ui.dp(16, d); bottomMargin = Ui.dp(16, d) }
-        })
-
-        // === 壁纸同步 ===
-        val wallpaperRow = LinearLayout(activity).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        wallpaperRow.addView(LinearLayout(activity).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, android.view.ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            addView(TextView(activity).apply {
-                text = "系统壁纸同步"
-                textSize = 14f
-                setTypeface(typeface, Typeface.BOLD)
-                setTextColor(Ui.primaryText(activity))
-            })
-            addView(TextView(activity).apply {
-                text = "开启后应用背景跟随系统壁纸"
-                textSize = 11f
-                setTextColor(Ui.secondaryText(activity))
-                setPadding(0, Ui.dp(2, d), 0, 0)
-            })
-        })
-
-        // 开关按钮
-        val toggleBtn = TextView(activity).apply {
-            text = if (wallpaperSync) "已开启" else "已关闭"
-            textSize = 11f
-            gravity = Gravity.CENTER
-            setTextColor(Ui.buttonText(activity))
-            background = Ui.glassButton(
-                activity,
-                if (wallpaperSync) Ui.buttonSuccess(activity) else Ui.secondaryText(activity),
-            )
-            setPadding(Ui.dp(14, d), Ui.dp(6, d), Ui.dp(14, d), Ui.dp(6, d))
-            Ui.pressAnimation(this)
-            setOnClickListener {
-                val newState = !wallpaperSync
-                prefs.edit().putBoolean("wallpaper_sync", newState).apply()
-                text = if (newState) "已开启" else "已关闭"
-                background = Ui.glassButton(
-                    activity,
-                    if (newState) Ui.buttonSuccess(activity) else Ui.secondaryText(activity),
-                )
-                onThemeChanged()
-            }
-        }
-        wallpaperRow.addView(toggleBtn)
-        container.addView(wallpaperRow)
-
-        AlertDialog.Builder(activity)
-            .setTitle("主题样式")
-            .setView(container)
-            .setPositiveButton("关闭", null)
-            .show()
+    private fun launchScaleUp(iconView: View, target: Class<out Activity>) {
+        val intent = Intent(activity, target)
+        val options = android.app.ActivityOptions.makeScaleUpAnimation(iconView, 0, 0, iconView.width, iconView.height)
+        activity.startActivity(intent, options.toBundle())
     }
 
     private fun openProcessManager(iconView: View) {
-        val intent = Intent(activity, com.mcai.ubuntudsu.ProcessManagerActivity::class.java)
-        val options = android.app.ActivityOptions.makeScaleUpAnimation(iconView, 0, 0, iconView.width, iconView.height)
-        activity.startActivity(intent, options.toBundle())
+        launchScaleUp(iconView, com.mcai.ubuntudsu.ProcessManagerActivity::class.java)
     }
 
     private fun openRomFirmware(iconView: View) {
-        val intent = Intent(activity, com.mcai.ubuntudsu.RomActivity::class.java)
-        val options = android.app.ActivityOptions.makeScaleUpAnimation(iconView, 0, 0, iconView.width, iconView.height)
-        activity.startActivity(intent, options.toBundle())
+        launchScaleUp(iconView, com.mcai.ubuntudsu.RomActivity::class.java)
     }
 
     private fun openOtgAssistant(iconView: View) {
-        val intent = Intent(activity, com.mcai.ubuntudsu.OtgAssistantActivity::class.java)
-        val options = android.app.ActivityOptions.makeScaleUpAnimation(iconView, 0, 0, iconView.width, iconView.height)
-        activity.startActivity(intent, options.toBundle())
+        launchScaleUp(iconView, com.mcai.ubuntudsu.OtgAssistantActivity::class.java)
     }
 
     private fun openUsbBoot(iconView: View) {
-        val intent = Intent(activity, com.mcai.ubuntudsu.UsbBootActivity::class.java)
-        val options = android.app.ActivityOptions.makeScaleUpAnimation(
-            iconView, 0, 0, iconView.width, iconView.height
-        )
-        activity.startActivity(intent, options.toBundle())
+        launchScaleUp(iconView, com.mcai.ubuntudsu.UsbBootActivity::class.java)
     }
+
+    private fun openWorkTime(iconView: View) {
+        launchScaleUp(iconView, com.mcai.ubuntudsu.WorkTimeActivity::class.java)
+    }
+
+    private fun openDnaTools(iconView: View) {
+        // 进入 DNA 工具箱首页（工具链状态 + 工程管理 + 分解/合成/转换/其他 全部功能入口）
+        launchScaleUp(iconView, com.mcai.ubuntudsu.DnaToolsActivity::class.java)
+    }
+
 
     // 在线检查更新：GitHub Releases 最新版比对本地版本，提示 / 下载 / 安装
     private fun checkUpdate() {
