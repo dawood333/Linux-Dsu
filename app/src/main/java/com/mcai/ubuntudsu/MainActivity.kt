@@ -6,6 +6,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -111,7 +112,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        // 全局震动反馈
         if (event.actionMasked == MotionEvent.ACTION_UP) {
             Ui.dispatchHaptic(window.decorView, event)
         }
@@ -128,7 +128,6 @@ class MainActivity : AppCompatActivity() {
                 val dx = event.x - swipeDownX
                 val dy = event.y - swipeDownY
                 if (!dragActive) {
-                    // 水平拖拽起步（阈值取系统 touch slop 的 2.2 倍，纵向滚动不误触）
                     val slop = android.view.ViewConfiguration.get(this).scaledTouchSlop * 2.2f
                     if (kotlin.math.abs(dx) > slop && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.5f) {
                         val target = if (dx < 0) currentTab + 1 else currentTab - 1
@@ -141,14 +140,13 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (dragActive && dragTargetTab != -1) {
-                    // 玻璃透镜跟手：在当前 tab 与目标 tab 之间按拖动比例实时滚动
-                    val progress = (kotlin.math.abs(dx) / tabWidth()).coerceIn(0f, 1f)
+                    // 酷安式跟手：pageHost 横向平移，相邻页从边缘自然露出；透镜同步跟手
+                    val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+                    val progress = (kotlin.math.abs(dx) / sw.toFloat()).coerceIn(0f, 1f)
+                    val fromOffset = -currentTab.toFloat() * sw
+                    val toOffset = -dragTargetTab.toFloat() * sw
+                    pageHost.translationX = fromOffset + (toOffset - fromOffset) * progress
                     moveLiquidIndicatorLive(currentTab, dragTargetTab, progress)
-                    // 页面轻微视差跟手，松手后由 selectTab 换页或弹回
-                    pageHost.getChildAt(0)?.let { child ->
-                        val cap = Ui.dp(90, resources.displayMetrics.density).toFloat()
-                        child.translationX = (dx * 0.28f).coerceIn(-cap, cap)
-                    }
                     if (!dragHalfHaptic && progress >= 0.5f) {
                         dragHalfHaptic = true
                         Haptics.perform(liquidIndicator)
@@ -157,17 +155,17 @@ class MainActivity : AppCompatActivity() {
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (dragActive && dragTargetTab != -1) {
+                    val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
                     val commit = event.actionMasked == MotionEvent.ACTION_UP &&
-                        kotlin.math.abs(event.x - swipeDownX) >= tabWidth() * 0.3f
+                        kotlin.math.abs(event.x - swipeDownX) >= sw * 0.3f
                     if (commit) {
                         selectTab(dragTargetTab)
                     } else {
                         springLiquidIndicatorBack()
-                        pageHost.getChildAt(0)?.animate()?.translationX(0f)?.setDuration(180)?.start()
+                        animatePageSlide(currentTab, 220)
                     }
                     liquidIndicator?.setLiquidPressed(false)
                 } else if (event.actionMasked == MotionEvent.ACTION_UP && dragDownInNav) {
-                    // 导航栏整块可点：缝隙/边距/文字外触摸都按坐标切 tab
                     tabAtPoint(event.rawX, event.rawY).takeIf { it >= 0 }?.let { selectTab(it) }
                 }
                 dragActive = false
@@ -181,6 +179,7 @@ class MainActivity : AppCompatActivity() {
         val d = resources.displayMetrics.density
         val root = FrameLayout(this)
         rootLayout = root
+        root.clipChildren = false
         // 根布局承接全屏液体渐变背景（含状态栏区域），页面自身保持透明
         Ui.animateLiquidBackground(root)
         pageHost = FrameLayout(this).apply {
@@ -188,6 +187,8 @@ class MainActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             )
+            clipChildren = false
+            clipToPadding = false
         }
         root.addView(pageHost)
 
@@ -273,8 +274,12 @@ class MainActivity : AppCompatActivity() {
 
         setContentView(root)
         Ui.enableEdgeToEdge(this, root)
-        // 布局完成后定位初始透镜到第 0 项
-        root.post { moveLiquidIndicator(0) }
+        // 预构建四个页面并水平排布（酷安式跟手横滑），pageHost 通过 translationX 整体横向平移
+        root.post {
+            ensureAllPagesBuilt()
+            positionPageHost(currentTab)
+            moveLiquidIndicator(currentTab)
+        }
         // 沉浸式适配统一在根布局处理：
         // 1. 顶部留出状态栏高度 + 呼吸间距，页面内容整体下移
         // 2. 底部导航栏避开手势条，页面内容底部避让导航栏 + 手势条
@@ -297,8 +302,50 @@ class MainActivity : AppCompatActivity() {
         selectTab(tab)
     }
 
+    /** 预构建四个页面并水平排布到 pageHost，保证横滑时相邻页即时可见（酷安式跟手） */
+    private fun ensureAllPagesBuilt() {
+        val sw = pageHost.width.takeIf { it > 0 } ?: return run {
+            // 页面宿主尚未完成布局：等布局完成后重试
+            pageHost.post { ensureAllPagesBuilt() }
+            Unit
+        }
+        tabs.forEachIndexed { index, _ ->
+            if (pageCache.containsKey(index)) return@forEachIndexed
+            val page: View = when (index) {
+                1 -> { if (linuxPage == null) linuxPage = LinuxPage(this, executor); linuxPage!!.build() }
+                2 -> { if (dsuPage == null) { dsuPage = DsuPage(this, executor, pickZipLauncher); dsuPage?.bindRootService() }; dsuPage!!.build() }
+                3 -> { if (settingsPage == null) settingsPage = SettingsPage(this, { recreate() }); settingsPage!!.build() }
+                else -> { if (homePage == null) homePage = HomePage(this, executor); homePage!!.build() }
+            }
+            val wrapped = ScrollView(this).apply {
+                if (index == 3) isFillViewport = true
+                addView(page)
+            }
+            pageCache[index] = wrapped
+            val lp = FrameLayout.LayoutParams(sw, ViewGroup.LayoutParams.MATCH_PARENT)
+            lp.marginStart = index * sw
+            pageHost.addView(wrapped, lp)
+        }
+    }
+
+    /** 立即（无动画）将 pageHost 定位到第 [tab] 页 */
+    private fun positionPageHost(tab: Int) {
+        val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        pageHost.translationX = -tab.toFloat() * sw
+    }
+
+    /** 带动画地将 pageHost 滑动到第 [tab] 页（酷安式横滑，无缩放/透明变形） */
+    private fun animatePageSlide(tab: Int, duration: Long = 280) {
+        val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        pageHost.animate()
+            .translationX(-tab.toFloat() * sw)
+            .setDuration(duration)
+            .setInterpolator(DecelerateInterpolator())
+            .start()
+    }
+
     private fun selectTab(tab: Int) {
-        if (tab == currentTab && pageHost.childCount > 0) {
+        if (tab == currentTab) {
             moveLiquidIndicator(tab)
             return
         }
@@ -313,7 +360,6 @@ class MainActivity : AppCompatActivity() {
                 item.setTextColor(if (active) android.graphics.Color.WHITE else android.graphics.Color.argb(200, 255, 255, 255))
                 item.setShadowLayer(4f, 1f, 1f, android.graphics.Color.argb(180, 0, 0, 0))
             } else {
-                // 透镜后方导航项：激活项按主题取色（日间白透镜→深蓝字，夜间暗透镜→亮白字），非激活灰蓝
                 val activeTextColor = if (Ui.isDark(this)) 0xFFFFFFFF.toInt() else 0xFF101826.toInt()
                 val inactiveTextColor = if (Ui.isDark(this)) 0xFF2A3040.toInt() else 0xFF2C3A52.toInt()
                 item.setTextColor(if (active) activeTextColor else inactiveTextColor)
@@ -325,82 +371,13 @@ class MainActivity : AppCompatActivity() {
             item.setTypeface(item.typeface, if (active) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
             item.background = null
         }
-        // 液态透镜滑动到选中的导航项
         moveLiquidIndicator(tab)
-        // 水滴切换动画保留：旧 tab 位置泛起涟漪向新 tab 飞溅
         if (previousTab != tab && previousTab in navItems.indices) {
             spawnNavDrop(navItems[previousTab], navItems[tab])
         }
-        val cached = pageCache[tab]
-        val wrapped: View
-        if (cached != null) {
-            wrapped = cached
-        } else {
-            if (tab == 1 && linuxPage == null) {
-                linuxPage = LinuxPage(this, executor)
-            }
-            if (tab == 2 && dsuPage == null) {
-                dsuPage = DsuPage(this, executor, pickZipLauncher)
-                dsuPage?.bindRootService()
-            }
-            if (tab == 3 && settingsPage == null) {
-                settingsPage = SettingsPage(this, { recreate() })
-            }
-            if (tab == 0 && homePage == null) {
-                homePage = HomePage(this, executor)
-            }
-            val page: View = when (tab) {
-                1 -> linuxPage!!.build()
-                2 -> dsuPage!!.build()
-                3 -> settingsPage!!.build()
-                else -> homePage!!.build()
-            }
-            wrapped = ScrollView(this).apply {
-                // 更多页：填充视口，让壁纸背景覆盖全屏，图标可垂直居中
-                if (tab == 3) isFillViewport = true
-                addView(page)
-            }
-            pageCache[tab] = wrapped
-        }
-        pageHost.removeAllViews()
-
-        // 更多页开启壁纸同步时：取消 root 和 pageHost 的 padding，让壁纸延伸到屏幕边缘（含状态栏）
-        val wallpaperSync = getPreferences(android.app.Activity.MODE_PRIVATE).getBoolean("wallpaper_sync", false)
-        val rootInsets = window.decorView.rootWindowInsets
-        if (tab == 3 && wallpaperSync) {
-            rootLayout.setPadding(0, 0, 0, 0)
-            pageHost.setPadding(0, 0, 0, 0)
-        } else {
-            val topInset = if (rootInsets != null) {
-                WindowInsetsCompat.toWindowInsetsCompat(rootInsets)
-                    .getInsets(WindowInsetsCompat.Type.systemBars()).top
-            } else 0
-            val bottomInset = if (rootInsets != null) {
-                WindowInsetsCompat.toWindowInsetsCompat(rootInsets)
-                    .getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-            } else 0
-            rootLayout.setPadding(0, topInset + Ui.dp(2, d), 0, 0)
-            pageHost.setPadding(0, 0, 0, Ui.dp(56 + 16 + 12, d) + bottomInset)
-        }
-
-        // 页面水感入场：先设初始动画状态（透明+缩放+偏移），再 addView，避免闪屏
-        wrapped.alpha = 0f
-        wrapped.scaleX = 0.92f
-        wrapped.scaleY = 0.92f
-        wrapped.translationY = Ui.dp(14, resources.displayMetrics.density).toFloat()
-        wrapped.pivotY = (resources.displayMetrics.heightPixels * 0.85).toFloat()
-        pageHost.addView(
-            wrapped,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
-        )
-        wrapped.animate()
-            .alpha(1f)
-            .scaleX(1f)
-            .scaleY(1f)
-            .translationY(0f)
-            .setDuration(420)
-            .setInterpolator(android.view.animation.OvershootInterpolator(0.9f))
-            .start()
+        // 酷安式：pageHost 整体横向平移，相邻页从边缘自然露出，无缩放/透明变形
+        ensureAllPagesBuilt()
+        animatePageSlide(tab)
         when (tab) {
             0 -> homePage?.refreshStatus()
         }
