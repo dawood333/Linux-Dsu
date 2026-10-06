@@ -30,6 +30,8 @@ class MainActivity : AppCompatActivity() {
     private val tabs = listOf("首页", "Linux", "DSU", "更多")
     private var currentTab = 0
     private lateinit var pageHost: FrameLayout
+    private lateinit var pageStrip: android.widget.HorizontalScrollView
+    private lateinit var pageRow: LinearLayout
     private lateinit var rootLayout: FrameLayout
     private val navItems = mutableListOf<TextView>()
     private var homePage: HomePage? = null
@@ -140,12 +142,12 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
                 if (dragActive && dragTargetTab != -1) {
-                    // 酷安式跟手：pageHost 横向平移，相邻页从边缘自然露出；透镜同步跟手
-                    val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+                    // 酷安式跟手：pageStrip scrollX 横向平移，相邻页从边缘自然露出；透镜同步跟手
+                    val sw = pageStrip.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
                     val progress = (kotlin.math.abs(dx) / sw.toFloat()).coerceIn(0f, 1f)
-                    val fromOffset = -currentTab.toFloat() * sw
-                    val toOffset = -dragTargetTab.toFloat() * sw
-                    pageHost.translationX = fromOffset + (toOffset - fromOffset) * progress
+                    val fromScroll = currentTab * sw
+                    val toScroll = dragTargetTab * sw
+                    pageStrip.scrollX = (fromScroll + (toScroll - fromScroll) * progress).toInt()
                     moveLiquidIndicatorLive(currentTab, dragTargetTab, progress)
                     if (!dragHalfHaptic && progress >= 0.5f) {
                         dragHalfHaptic = true
@@ -155,7 +157,7 @@ class MainActivity : AppCompatActivity() {
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (dragActive && dragTargetTab != -1) {
-                    val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+                    val sw = pageStrip.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
                     val commit = event.actionMasked == MotionEvent.ACTION_UP &&
                         kotlin.math.abs(event.x - swipeDownX) >= sw * 0.3f
                     if (commit) {
@@ -190,7 +192,34 @@ class MainActivity : AppCompatActivity() {
             clipChildren = false
             clipToPadding = false
         }
+        // 横向页条：HorizontalScrollView 承载 4 个并排功能页（各 1 屏宽），
+        // 自身 1 屏宽；scrollX 驱动切页，触摸坐标系正确跟随（不会锁触摸）
+        pageStrip = object : android.widget.HorizontalScrollView(this) {
+            // 拦截关闭：水平滑动手势由 Activity.dispatchTouchEvent 统一驱动，
+            // 这里不消费水平触摸，避免抢占页面内垂直滚动与点击
+            override fun onInterceptTouchEvent(ev: MotionEvent) = false
+        }.apply {
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+            isHorizontalScrollBarEnabled = false
+            isHorizontalFadingEdgeEnabled = false
+            isVerticalScrollBarEnabled = false
+            clipChildren = false
+            clipToPadding = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
+        pageRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+        }
+        pageStrip.addView(pageRow)
         root.addView(pageHost)
+        pageHost.addView(pageStrip)
 
         // 底部导航舱：玻璃舱体 + 可滑动的液态玻璃透镜指示器（选中的 tab 后方）
         val navContainer = FrameLayout(this).apply {
@@ -302,13 +331,9 @@ class MainActivity : AppCompatActivity() {
         selectTab(tab)
     }
 
-    /** 预构建四个页面并水平排布到 pageHost，保证横滑时相邻页即时可见（酷安式跟手） */
+    /** 预构建四个页面并水平并排到 pageRow，保证横滑时相邻页即时可见（酷安式跟手） */
     private fun ensureAllPagesBuilt() {
-        val sw = pageHost.width.takeIf { it > 0 } ?: return run {
-            // 页面宿主尚未完成布局：等布局完成后重试
-            pageHost.post { ensureAllPagesBuilt() }
-            Unit
-        }
+        val sw = pageStrip.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
         tabs.forEachIndexed { index, _ ->
             if (pageCache.containsKey(index)) return@forEachIndexed
             val page: View = when (index) {
@@ -322,26 +347,37 @@ class MainActivity : AppCompatActivity() {
                 addView(page)
             }
             pageCache[index] = wrapped
-            val lp = FrameLayout.LayoutParams(sw, ViewGroup.LayoutParams.MATCH_PARENT)
-            lp.marginStart = index * sw
-            pageHost.addView(wrapped, lp)
+            // 每页 1 屏宽并排，pageRow 总宽 4 屏，由 HorizontalScrollView 横向滚动展示
+            pageRow.addView(
+                wrapped,
+                LinearLayout.LayoutParams(sw, ViewGroup.LayoutParams.MATCH_PARENT),
+            )
         }
     }
 
-    /** 立即（无动画）将 pageHost 定位到第 [tab] 页 */
+    /** 立即（无动画）将 pageStrip 定位到第 [tab] 页（scrollX 正确偏移触摸坐标系） */
     private fun positionPageHost(tab: Int) {
-        val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
-        pageHost.translationX = -tab.toFloat() * sw
+        val sw = pageStrip.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        pageStrip.scrollX = tab * sw
     }
 
-    /** 带动画地将 pageHost 滑动到第 [tab] 页（酷安式横滑，无缩放/透明变形） */
+    /** 带动画地将 pageStrip 滑动到第 [tab] 页（酷安式横滑，无缩放/透明变形） */
     private fun animatePageSlide(tab: Int, duration: Long = 280) {
-        val sw = pageHost.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
-        pageHost.animate()
-            .translationX(-tab.toFloat() * sw)
-            .setDuration(duration)
-            .setInterpolator(DecelerateInterpolator())
-            .start()
+        val sw = pageStrip.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        val from = pageStrip.scrollX
+        val to = tab * sw
+        if (from == to) return
+        val start = System.currentTimeMillis()
+        val anim = object : Runnable {
+            override fun run() {
+                val elapsed = System.currentTimeMillis() - start
+                val t = (elapsed.toFloat() / duration).coerceIn(0f, 1f)
+                val eased = 1f - (1f - t) * (1f - t) * (1f - t)
+                pageStrip.scrollX = (from + (to - from) * eased).toInt()
+                if (t < 1f) pageStrip.post(this)
+            }
+        }
+        pageStrip.post(anim)
     }
 
     private fun selectTab(tab: Int) {
