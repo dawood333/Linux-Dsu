@@ -14,6 +14,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.mcai.ubuntudsu.ui.Haptics
 import com.mcai.ubuntudsu.ui.Ui
 import com.mcai.ubuntudsu.ui.pages.DsuPage
 import com.mcai.ubuntudsu.ui.pages.HomePage
@@ -41,8 +42,10 @@ class MainActivity : AppCompatActivity() {
     private var liquidIndicator: com.mcai.ubuntudsu.ui.glass.LiquidGlassIndicator? = null
     private var swipeDownX = 0f
     private var swipeDownY = 0f
-    private var swipeTracked = false
-    private val swipeThresholdDp = 48
+    private var dragActive = false
+    private var dragTargetTab = -1
+    private var dragDownInNav = false
+    private var dragHalfHaptic = false
 
     private val pickZipLauncher =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { result ->
@@ -116,21 +119,60 @@ class MainActivity : AppCompatActivity() {
             MotionEvent.ACTION_DOWN -> {
                 swipeDownX = event.x
                 swipeDownY = event.y
-                swipeTracked = false
+                dragActive = false
+                dragTargetTab = -1
+                dragHalfHaptic = false
+                dragDownInNav = tabAtPoint(event.rawX, event.rawY) >= 0
             }
             MotionEvent.ACTION_MOVE -> {
-                if (!swipeTracked) {
-                    val dx = event.x - swipeDownX
-                    val dy = event.y - swipeDownY
-                    val thresholdPx = swipeThresholdDp * resources.displayMetrics.density
-                    if (kotlin.math.abs(dx) > thresholdPx && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 2) {
-                        swipeTracked = true
-                        val next = if (dx < 0) currentTab + 1 else currentTab - 1
-                        if (next in tabs.indices) selectTab(next)
+                val dx = event.x - swipeDownX
+                val dy = event.y - swipeDownY
+                if (!dragActive) {
+                    // 水平拖拽起步（阈值取系统 touch slop 的 2.2 倍，纵向滚动不误触）
+                    val slop = android.view.ViewConfiguration.get(this).scaledTouchSlop * 2.2f
+                    if (kotlin.math.abs(dx) > slop && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.5f) {
+                        val target = if (dx < 0) currentTab + 1 else currentTab - 1
+                        if (target in tabs.indices) {
+                            dragActive = true
+                            dragTargetTab = target
+                            liquidIndicator?.animate()?.cancel()
+                            liquidIndicator?.setLiquidPressed(true)
+                        }
+                    }
+                }
+                if (dragActive && dragTargetTab != -1) {
+                    // 玻璃透镜跟手：在当前 tab 与目标 tab 之间按拖动比例实时滚动
+                    val progress = (kotlin.math.abs(dx) / tabWidth()).coerceIn(0f, 1f)
+                    moveLiquidIndicatorLive(currentTab, dragTargetTab, progress)
+                    // 页面轻微视差跟手，松手后由 selectTab 换页或弹回
+                    pageHost.getChildAt(0)?.let { child ->
+                        val cap = Ui.dp(90, resources.displayMetrics.density).toFloat()
+                        child.translationX = (dx * 0.28f).coerceIn(-cap, cap)
+                    }
+                    if (!dragHalfHaptic && progress >= 0.5f) {
+                        dragHalfHaptic = true
+                        Haptics.perform(liquidIndicator)
                     }
                 }
             }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> swipeTracked = false
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                if (dragActive && dragTargetTab != -1) {
+                    val commit = event.actionMasked == MotionEvent.ACTION_UP &&
+                        kotlin.math.abs(event.x - swipeDownX) >= tabWidth() * 0.3f
+                    if (commit) {
+                        selectTab(dragTargetTab)
+                    } else {
+                        springLiquidIndicatorBack()
+                        pageHost.getChildAt(0)?.animate()?.translationX(0f)?.setDuration(180)?.start()
+                    }
+                    liquidIndicator?.setLiquidPressed(false)
+                } else if (event.actionMasked == MotionEvent.ACTION_UP && dragDownInNav) {
+                    // 导航栏整块可点：缝隙/边距/文字外触摸都按坐标切 tab
+                    tabAtPoint(event.rawX, event.rawY).takeIf { it >= 0 }?.let { selectTab(it) }
+                }
+                dragActive = false
+                dragTargetTab = -1
+            }
         }
         return super.dispatchTouchEvent(event)
     }
@@ -169,7 +211,8 @@ class MainActivity : AppCompatActivity() {
         // 单 tab 宽 = (栏宽 - 左右内边距) / 4；透镜略收一点留缝隙
         val containerInnerW = (resources.displayMetrics.widthPixels - 2 * Ui.dp(24, d))  // 左右 12dp 边距 + 6dp 栏内边
         val indicatorW = ((containerInnerW - 4 * Ui.dp(6, d)) / 4 * 0.9f).toInt().coerceAtLeast(Ui.dp(56, d))
-        // 透镜高 = 栏体高（上下各 12dp 内边 + 文字 16dp），贴合不溢出；略小于栏体留上下缝
+        // 导航栏固定高度：每个 tab 整格可点（文字区外触摸也有响应），透镜高保持溢出少量形成玻璃球凸起感
+        val navBarH = Ui.dp(46, d)
         val indicatorH = (Ui.dp(12, d) * 4 + Ui.dp(16, d)) * 0.85f
         val indicator = com.mcai.ubuntudsu.ui.glass.LiquidGlassIndicator(this)
         indicator.elevation = Ui.dp(4, d).toFloat()
@@ -208,9 +251,11 @@ class MainActivity : AppCompatActivity() {
         }
         navContainer.addView(navBar, FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT,
+            navBarH,
             Gravity.CENTER_VERTICAL,
         ))
+        // 导航层 Z 轴高于透镜：文字始终在玻璃球上方，触摸优先命中导航项（整格区域）
+        navBar.elevation = Ui.dp(8, d).toFloat()
         this.navBar = navBar
         this.navContainer = navContainer
 
@@ -362,7 +407,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * 液态玻璃透镜指示器滑动到选中导航项后方。
+     * 液态玻璃透镜滑动到选中导航项后方。
      * 计算第 [tab] 个导航项在 [navContainer] 内的中心,把 [liquidIndicator]
      * 滑过去并垂直贴中,末尾轻微放大回弹表现"液态玻璃聚焦"。
      */
@@ -402,6 +447,61 @@ class MainActivity : AppCompatActivity() {
         indicator.setLiquidPressed(false)
         // 导航项在最前、透镜贴在其后方
         (navContainer as? FrameLayout)?.bringChildToFront(navBar ?: indicator)
+    }
+
+    /** 拖拽跟手：透镜在 [from] 与 [to] 两个导航项之间按 [progress]（0..1）实时位移，无动画 */
+    private fun moveLiquidIndicatorLive(from: Int, to: Int, progress: Float) {
+        val indicator = liquidIndicator ?: return
+        if (from !in navItems.indices || to !in navItems.indices) return
+        val a = navItems[from]
+        val b = navItems[to]
+        if (a.width == 0 || b.width == 0) return
+        indicator.visibility = View.VISIBLE
+        val ax = a.left + a.width / 2f - indicator.width / 2f
+        val bx = b.left + b.width / 2f - indicator.width / 2f
+        indicator.translationX = ax + (bx - ax) * progress
+        indicator.translationY = 0f
+        indicator.scaleX = 1.1f
+        indicator.scaleY = 1.1f
+    }
+
+    /** 拖拽未达阈值松手：透镜弹回当前选中项，轻微回弹表现液态回缩 */
+    private fun springLiquidIndicatorBack() {
+        val indicator = liquidIndicator ?: return
+        if (currentTab !in navItems.indices) return
+        val target = navItems[currentTab]
+        if (target.width == 0) return
+        val cx = target.left + target.width / 2f - indicator.width / 2f
+        indicator.animate()
+            .translationX(cx)
+            .translationY(0f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(240)
+            .setInterpolator(android.view.animation.OvershootInterpolator(0.6f))
+            .start()
+    }
+
+    /** 单个 tab 的宽度（导航项布局后取实测值，未布局时用屏宽估算） */
+    private fun tabWidth(): Float {
+        val item = navItems.firstOrNull() ?: return resources.displayMetrics.widthPixels / 4f
+        return if (item.width > 0) item.width.toFloat() else resources.displayMetrics.widthPixels / 4f
+    }
+
+    /** 屏幕坐标 → 导航 tab 序号；不在导航栏区域返回 -1（整栏含内边距都可命中） */
+    private fun tabAtPoint(rawX: Float, rawY: Float): Int {
+        val container = navContainer ?: return -1
+        val loc = IntArray(2)
+        container.getLocationOnScreen(loc)
+        if (rawX < loc[0] || rawX > loc[0] + container.width) return -1
+        if (rawY < loc[1] || rawY > loc[1] + container.height) return -1
+        val bar = navBar ?: return -1
+        if (bar.width == 0) return -1
+        val barLoc = IntArray(2)
+        bar.getLocationOnScreen(barLoc)
+        val rel = (rawX - barLoc[0]) / bar.width.toFloat()
+        val idx = (rel * tabs.size).toInt()
+        return idx.coerceIn(0, tabs.size - 1)
     }
 
     // 导航水滴动画：从旧按钮中心溅起水滴，弧线飞向新按钮落点
