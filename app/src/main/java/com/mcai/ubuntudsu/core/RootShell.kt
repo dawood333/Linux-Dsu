@@ -13,8 +13,8 @@ object RootShell {
     @Volatile
     var lastLog: ((String) -> Unit)? = null
 
-    fun available(): Boolean {
-        val result = exec("id -u", timeoutMs = 15000)
+    fun available(timeoutMs: Long = 15000): Boolean {
+        val result = exec("id -u", timeoutMs = timeoutMs)
         return result.success && result.stdout.trim().endsWith("0")
     }
 

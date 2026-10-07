@@ -819,11 +819,69 @@ object DnaTools {
     }
 
     /**
-     * 分解 bin / OTA zip：root CLI 调 payload_extract（tools.zip 若无该二进制则 run() 返回失败，
-     * UI 侧 briefOf 提示退化到 dna 内核手动分解）。
-     *
-     * v3.42.15 同步：批量一次提取全部勾选分区（--images 逗号拼接）+ 8 线程分区级并行；
-     * v3.42.16 同步：输入输出换底层真实路径（绕 FUSE daemon），真实路径无产物回退 FUSE 重跑。
+     * 直接以 root 运行内置提取器，无需等待 DNA 工具链下载、解压和中转。
+     * 保持 run() 的流式日志、取消和超时行为，但不注入 dna 专用环境变量。
+     */
+    private fun runPayloadCommand(
+        command: String,
+        onLog: ((String) -> Unit)?,
+        isCancelled: () -> Boolean,
+        timeoutMs: Long,
+    ): Result {
+        val script = buildString {
+            append("exec 2>&1\n")
+            append(command.trim()).append("\n")
+            append("__rc=\$?\n")
+            append("echo __DNA_EXIT_\${__rc}__\n")
+        }
+        return try {
+            val process = ProcessBuilder("su").start()
+            process.outputStream.use { stream ->
+                stream.write(script.toByteArray())
+                stream.flush()
+            }
+            val output = StringBuilder()
+            val exitCode = AtomicInteger(-1)
+            val reader = Thread({
+                runCatching {
+                    BufferedReader(InputStreamReader(process.inputStream)).forEachLine { line ->
+                        val marker = Regex("__DNA_EXIT_(\\d+)__").find(line)
+                        if (marker != null) {
+                            exitCode.set(marker.groupValues[1].toIntOrNull() ?: -1)
+                            return@forEachLine
+                        }
+                        synchronized(output) { output.appendLine(line) }
+                        onLog?.invoke(line)
+                    }
+                }
+            }).apply { isDaemon = true; start() }
+            val startedAt = System.currentTimeMillis()
+            while (true) {
+                if (process.waitFor(1, TimeUnit.SECONDS)) break
+                if (isCancelled()) {
+                    process.destroyForcibly()
+                    reader.join(1500)
+                    return Result(false, output.toString(), "已取消", -1)
+                }
+                if (System.currentTimeMillis() - startedAt > timeoutMs) {
+                    process.destroyForcibly()
+                    reader.join(1500)
+                    return Result(false, output.toString(), "执行超时（${timeoutMs / 60000} 分钟）", -1)
+                }
+            }
+            reader.join(2000)
+            val out = synchronized(output) { output.toString() }
+            val code = exitCode.get()
+            Result(code == 0, out, if (code == 0) "完成" else "退出码 $code", code)
+        } catch (e: Exception) {
+            Result(false, "", e.message ?: "执行失败", -1)
+        }
+    }
+
+    /**
+     * 分解 bin / OTA zip：优先使用 APK 内置 payload-dumper-rust（零下载/零中转），
+     * 按 CPU 核心数自适应并发；旧安装包缺少内置二进制时才回退 DNA 工具链。
+     * 输入输出使用 /data/media 底层真实路径，避免 /sdcard FUSE 成为大包吞吐瓶颈。
      */
     @JvmStatic
     @JvmOverloads
@@ -836,15 +894,29 @@ object DnaTools {
         isCancelled: () -> Boolean = { false },
         timeoutMs: Long = 20 * 60_000L,
     ): Result {
-        val tool = File(ctx.filesDir, "dna-tools/payload_extract")
-        val bin = if (tool.isFile) tool.absolutePath else "payload_extract"
-        val tail = " --threads 8 --no-verify"
+        val bundledTool = File(ctx.applicationInfo.nativeLibraryDir, "libpayload_extract.so")
+        val useBundledTool = bundledTool.isFile
+        val legacyTool = File(ctx.filesDir, "dna-tools/payload_extract")
+        val bin = when {
+            useBundledTool -> bundledTool.absolutePath
+            legacyTool.isFile -> legacyTool.absolutePath
+            else -> "payload_extract"
+        }
+        // payload-dumper-rust 官方默认策略为 CPU 核心数的两倍、最高 32；显式传入以保证一致。
+        val threads = (Runtime.getRuntime().availableProcessors() * 2).coerceIn(4, 32)
+        val tail = " --threads $threads --no-verify"
         val inReal = realPath(input)
         val outReal = realPath(outputDir)
+        if (useBundledTool) onLog?.invoke("… 使用内置高速提取器（$threads 线程）…")
+        fun execute(command: String): Result = if (useBundledTool) {
+            runPayloadCommand(command, onLog, isCancelled, timeoutMs)
+        } else {
+            run(ctx, command, onLog, isCancelled, timeoutMs)
+        }
         val cmd = "mkdir -p " + quote(outReal) + " && " + quote(bin) + " " + quote(inReal) +
             " --images " + quote(partitions) +
             " --out " + quote(outReal) + tail
-        var r = run(ctx, cmd, onLog, isCancelled, timeoutMs)
+        var r = execute(cmd)
         // 真实路径一个目标文件都没产出（极端场景 /data/media 不可访问）→ 回退 FUSE 视图路径重跑
         if (!r.success && (inReal != input || outReal != outputDir) && !isCancelled()) {
             val names = partitions.split(",").map { it.trim() }.filter { it.isNotEmpty() }
@@ -854,7 +926,7 @@ object DnaTools {
                 val cmdFallback = "mkdir -p " + quote(outputDir) + " && " + quote(bin) + " " +
                     quote(input) + " --images " + quote(partitions) +
                     " --out " + quote(outputDir) + tail
-                r = run(ctx, cmdFallback, onLog, isCancelled, timeoutMs)
+                r = execute(cmdFallback)
             }
         }
         return r

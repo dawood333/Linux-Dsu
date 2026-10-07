@@ -3,8 +3,8 @@
 # sshlib → Tink 引用的编译期注解（运行时不存在，安全忽略）
 -dontwarn javax.annotation.Nullable
 
-# 应用自身代码整体保留（体积小，安全第一）
--keep class com.mcai.ubuntudsu.** { *; }
+# 不保留整个应用命名空间：让 R8 对应用代码也执行收缩、优化与混淆。
+# Android 组件由 Manifest 与 AGP 的默认规则保活；序列化/反射所需成员在下方单独保留。
 
 # 终端视图模块（XML 反射实例化 + 自定义 View）
 -keep class com.termux.** { *; }

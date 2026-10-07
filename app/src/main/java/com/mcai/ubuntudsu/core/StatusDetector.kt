@@ -2,6 +2,7 @@ package com.mcai.ubuntudsu.core
 
 import android.content.Context
 import android.app.ActivityManager
+import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import java.io.File
@@ -126,30 +127,38 @@ object StatusDetector {
         return if (gb >= 1.0) "%.1f GB".format(java.util.Locale.US, gb) else "%.0f MB".format(java.util.Locale.US, bytes / (1024.0 * 1024.0))
     }
 
-    fun rootAvailable(): Boolean = runCatching { RootShell.available() }.getOrDefault(false)
+    /** 首页刷新使用较短超时，避免未授权 su 让状态卡长期停在“检测中”。 */
+    fun rootAvailable(timeoutMs: Long = 15_000L): Boolean =
+        runCatching { RootShell.available(timeoutMs) }.getOrDefault(false)
 
-    fun gsiState(): Pair<GsiState, String> {
-        val result = RootShell.exec("gsi_tool status 2>&1 || gsi_tool getstatus 2>&1", timeoutMs = 20000)
-        val text = result.stdout.trim().lowercase()
-        if (result.success && text.isNotEmpty()) {
-            val state = when {
-                text.contains("running") -> GsiState.RUNNING
-                text.contains("enabled") -> GsiState.ENABLED
-                text.contains("installed") -> GsiState.INSTALLED
-                text.contains("disabled") -> GsiState.DISABLED
-                text.contains("normal") -> GsiState.NORMAL
-                else -> null
+    /**
+     * ROOT 可用时优先调用 gsi_tool；未授权时仅使用无需 su 的系统属性兜底。
+     * 这样在首次启动、Magisk 授权弹窗未处理或设备没有 ROOT 时也能快速结束检测。
+     */
+    fun gsiState(rootAccess: Boolean = rootAvailable()): Pair<GsiState, String> {
+        if (rootAccess) {
+            val result = RootShell.exec("gsi_tool status 2>&1 || gsi_tool getstatus 2>&1", timeoutMs = 7_000L)
+            val text = result.stdout.trim().lowercase()
+            if (result.success && text.isNotEmpty()) {
+                val state = when {
+                    text.contains("running") -> GsiState.RUNNING
+                    text.contains("enabled") -> GsiState.ENABLED
+                    text.contains("installed") -> GsiState.INSTALLED
+                    text.contains("disabled") -> GsiState.DISABLED
+                    text.contains("normal") -> GsiState.NORMAL
+                    else -> null
+                }
+                if (state != null) return state to text
             }
-            if (state != null) return state to text
         }
-        val fp = RootShell.getprop("ro.build.fingerprint").lowercase()
-        val device = RootShell.getprop("ro.product.device").lowercase()
-        val dynamic = RootShell.getprop("ro.boot.dynamic_system").lowercase()
+        val fp = systemProperty("ro.build.fingerprint").ifBlank { Build.FINGERPRINT }.lowercase()
+        val device = systemProperty("ro.product.device").ifBlank { Build.DEVICE }.lowercase()
+        val dynamic = systemProperty("ro.boot.dynamic_system").lowercase()
         return when {
             fp.contains("generic") || device.contains("gsi") || device.startsWith("generic") ->
                 GsiState.RUNNING to "getprop: generic fingerprint"
             dynamic == "1" -> GsiState.INSTALLED to "dynamic_system=1"
-            else -> GsiState.UNKNOWN to "gsi_tool unavailable"
+            else -> GsiState.UNKNOWN to if (rootAccess) "gsi_tool unavailable" else "root unavailable"
         }
     }
 

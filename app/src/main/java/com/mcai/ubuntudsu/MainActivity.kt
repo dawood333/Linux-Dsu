@@ -340,7 +340,7 @@ class MainActivity : AppCompatActivity() {
                 1 -> { if (linuxPage == null) linuxPage = LinuxPage(this, executor); linuxPage!!.build() }
                 2 -> { if (dsuPage == null) { dsuPage = DsuPage(this, executor, pickZipLauncher); dsuPage?.bindRootService() }; dsuPage!!.build() }
                 3 -> { if (settingsPage == null) settingsPage = SettingsPage(this, { recreate() }); settingsPage!!.build() }
-                else -> { if (homePage == null) homePage = HomePage(this, executor); homePage!!.build() }
+                else -> { if (homePage == null) homePage = HomePage(this); homePage!!.build() }
             }
             val wrapped = ScrollView(this).apply {
                 if (index == 3) isFillViewport = true

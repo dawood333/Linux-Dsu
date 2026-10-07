@@ -14,11 +14,12 @@ import com.mcai.ubuntudsu.MainActivity
 import com.mcai.ubuntudsu.R
 import com.mcai.ubuntudsu.core.Env
 import com.mcai.ubuntudsu.ui.Ui
-import java.util.concurrent.Executor
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 class HomePage(
     private val activity: MainActivity,
-    private val executor: Executor,
 ) {
     private lateinit var deviceText: TextView
     private lateinit var gsiText: TextView
@@ -41,9 +42,22 @@ class HomePage(
     private var heroScrim: View? = null
     private var heroTitle: TextView? = null
     private var heroSubtitle: TextView? = null
+    // 首页不能和 Linux/DSU 的耗时任务共用 MainActivity 单线程队列：
+    // 否则 GPU/ROOT 探测超时后会把“ROOT/GSI/Linux/桌面”永久堵在“检测中”。
+    private val metricsExecutor = Executors.newSingleThreadExecutor()
+    private val statusExecutor = Executors.newSingleThreadExecutor()
+    private val imageExecutor = Executors.newSingleThreadExecutor()
+    private val metricsRunning = AtomicBoolean(false)
+    private val statusRunning = AtomicBoolean(false)
+    private val statusGeneration = AtomicLong(0L)
 
     fun build(): View {
         val d = activity.resources.displayMetrics.density
+        activity.addLifecycleStopHook(Runnable {
+            metricsExecutor.shutdownNow()
+            statusExecutor.shutdownNow()
+            imageExecutor.shutdownNow()
+        })
         val page = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(16, d))
@@ -337,16 +351,23 @@ class HomePage(
     }
 
     private fun updateMetrics(onResult: (Int?, Int?) -> Unit) {
-        executor.execute {
-            val result = com.mcai.ubuntudsu.core.StatusDetector.deviceMetrics(activity, cpuSample)
-            cpuSample = result.second
-            val metrics = result.first
-            activity.runOnUiThread {
-                storageValue.text = "${metrics.storagePercent}%"
-                storageDetail.text = "${metrics.storageUsed} / ${metrics.storageTotal}"
-                memoryValue.text = "${metrics.memoryPercent}%"
-                memoryDetail.text = "${metrics.memoryUsed} / ${metrics.memoryTotal}"
-                onResult(metrics.cpuPercent, metrics.gpuPercent)
+        // GPU 节点在未授权 ROOT 设备上可能需要数秒超时；跳过重入，避免 2 秒轮询无限堆积。
+        if (!metricsRunning.compareAndSet(false, true)) return
+        metricsExecutor.execute {
+            try {
+                val result = com.mcai.ubuntudsu.core.StatusDetector.deviceMetrics(activity, cpuSample)
+                cpuSample = result.second
+                val metrics = result.first
+                activity.runOnUiThread {
+                    if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
+                    storageValue.text = "${metrics.storagePercent}%"
+                    storageDetail.text = "${metrics.storageUsed} / ${metrics.storageTotal}"
+                    memoryValue.text = "${metrics.memoryPercent}%"
+                    memoryDetail.text = "${metrics.memoryUsed} / ${metrics.memoryTotal}"
+                    onResult(metrics.cpuPercent, metrics.gpuPercent)
+                }
+            } finally {
+                metricsRunning.set(false)
             }
         }
     }
@@ -488,6 +509,7 @@ class HomePage(
 
     fun refreshStatus() {
         val ctx = activity
+        statusGeneration.incrementAndGet()
         gsiText.text = "GSI 系统：检测中..."
         ubuntuText.text = "Linux：检测中..."
         desktopText.text = "桌面：检测中..."
@@ -502,44 +524,69 @@ class HomePage(
         grayDot(ubuntuDot)
         grayDot(desktopDot)
         grayDot(rootDot)
-        executor.execute {
-            val device = com.mcai.ubuntudsu.core.StatusDetector.deviceSummary()
-            val gsiState = com.mcai.ubuntudsu.core.StatusDetector.gsiState().first
-            val rootOk = com.mcai.ubuntudsu.core.StatusDetector.rootAvailable()
-            val gsiLabel = when (gsiState) {
-                com.mcai.ubuntudsu.core.GsiState.RUNNING -> "运行中"
-                com.mcai.ubuntudsu.core.GsiState.INSTALLED -> "已安装"
-                com.mcai.ubuntudsu.core.GsiState.ENABLED -> "已启用"
-                com.mcai.ubuntudsu.core.GsiState.DISABLED -> "已停用"
-                com.mcai.ubuntudsu.core.GsiState.NORMAL -> "未安装"
-                com.mcai.ubuntudsu.core.GsiState.UNKNOWN -> "未检测到"
-            }
-            fun dotColor(colorHex: String) = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.OVAL
-                setColor(android.graphics.Color.parseColor(colorHex))
-            }
-            activity.runOnUiThread {
-                deviceText.text = device
-                gsiText.text = "GSI 系统：$gsiLabel"
-                ubuntuText.text = if (Env.ubuntuInstalled(ctx)) "Linux：已安装" else "Linux：未安装"
-                val desktopLabel = Env.desktopState(ctx)
-                desktopText.text = "桌面：$desktopLabel"
-                rootLabel.text = if (rootOk) "ROOT：已授权" else "ROOT：未授权"
-                rootDot.background = dotColor(if (rootOk) "#5CE1A5" else "#FF756F")
-                // GSI 点：运行/安装/启用=绿，停用=琥珀，未安装/未知=灰
-                gsiDot.background = dotColor(
-                    when (gsiState) {
-                        com.mcai.ubuntudsu.core.GsiState.RUNNING,
-                        com.mcai.ubuntudsu.core.GsiState.INSTALLED,
-                        com.mcai.ubuntudsu.core.GsiState.ENABLED,
-                        -> "#5CE1A5"
-                        com.mcai.ubuntudsu.core.GsiState.DISABLED -> "#FBBF24"
-                        else -> "#B0B0B0"
-                    },
-                )
-                ubuntuDot.background = dotColor(if (Env.ubuntuInstalled(ctx)) "#5CE1A5" else "#B0B0B0")
-                val hasDesktop = !desktopLabel.startsWith("未安装")
-                desktopDot.background = dotColor(if (hasDesktop) "#5CE1A5" else "#B0B0B0")
+        scheduleStatusRefresh(ctx)
+    }
+
+    /** 状态刷新独占轻量队列；请求合并后只渲染最新一次，避免旧结果覆盖新状态。 */
+    private fun scheduleStatusRefresh(ctx: MainActivity) {
+        if (!statusRunning.compareAndSet(false, true)) return
+        statusExecutor.execute {
+            var renderedGeneration = -1L
+            try {
+                while (true) {
+                    val generation = statusGeneration.get()
+                    val device = com.mcai.ubuntudsu.core.StatusDetector.deviceSummary()
+                    // 先探测 ROOT，再把结果传给 GSI 检测，避免无 ROOT 时重复启动 su 并长时间阻塞。
+                    val rootOk = com.mcai.ubuntudsu.core.StatusDetector.rootAvailable(timeoutMs = 5_000L)
+                    val gsiState = com.mcai.ubuntudsu.core.StatusDetector.gsiState(rootOk).first
+                    val linuxInstalled = Env.ubuntuInstalled(ctx)
+                    val desktopLabel = Env.desktopState(ctx)
+                    if (generation == statusGeneration.get()) {
+                        val gsiLabel = when (gsiState) {
+                            com.mcai.ubuntudsu.core.GsiState.RUNNING -> "运行中"
+                            com.mcai.ubuntudsu.core.GsiState.INSTALLED -> "已安装"
+                            com.mcai.ubuntudsu.core.GsiState.ENABLED -> "已启用"
+                            com.mcai.ubuntudsu.core.GsiState.DISABLED -> "已停用"
+                            com.mcai.ubuntudsu.core.GsiState.NORMAL -> "未安装"
+                            com.mcai.ubuntudsu.core.GsiState.UNKNOWN -> "未检测到"
+                        }
+                        activity.runOnUiThread {
+                            if (activity.isFinishing || activity.isDestroyed || generation != statusGeneration.get()) return@runOnUiThread
+                            fun dotColor(colorHex: String) = android.graphics.drawable.GradientDrawable().apply {
+                                shape = android.graphics.drawable.GradientDrawable.OVAL
+                                setColor(android.graphics.Color.parseColor(colorHex))
+                            }
+                            deviceText.text = device
+                            gsiText.text = "GSI 系统：$gsiLabel"
+                            ubuntuText.text = if (linuxInstalled) "Linux：已安装" else "Linux：未安装"
+                            desktopText.text = "桌面：$desktopLabel"
+                            rootLabel.text = if (rootOk) "ROOT：已授权" else "ROOT：未授权"
+                            rootDot.background = dotColor(if (rootOk) "#5CE1A5" else "#FF756F")
+                            // GSI 点：运行/安装/启用=绿，停用=琥珀，未安装/未知=灰
+                            gsiDot.background = dotColor(
+                                when (gsiState) {
+                                    com.mcai.ubuntudsu.core.GsiState.RUNNING,
+                                    com.mcai.ubuntudsu.core.GsiState.INSTALLED,
+                                    com.mcai.ubuntudsu.core.GsiState.ENABLED,
+                                    -> "#5CE1A5"
+                                    com.mcai.ubuntudsu.core.GsiState.DISABLED -> "#FBBF24"
+                                    else -> "#B0B0B0"
+                                },
+                            )
+                            ubuntuDot.background = dotColor(if (linuxInstalled) "#5CE1A5" else "#B0B0B0")
+                            val hasDesktop = !desktopLabel.startsWith("未安装")
+                            desktopDot.background = dotColor(if (hasDesktop) "#5CE1A5" else "#B0B0B0")
+                        }
+                        renderedGeneration = generation
+                    }
+                    if (generation == statusGeneration.get()) break
+                }
+            } finally {
+                statusRunning.set(false)
+                // 检测完成后正好有新请求到达时，再启动一轮，保证不遗留“检测中”。
+                if (renderedGeneration != statusGeneration.get() && !activity.isFinishing && !activity.isDestroyed) {
+                    scheduleStatusRefresh(ctx)
+                }
             }
         }
     }
@@ -669,7 +716,7 @@ class HomePage(
 
     // 图片选择回调：拷贝到应用私有目录（持久保存），刷新头图
     fun onHeroImagePicked(uri: android.net.Uri) {
-        executor.execute {
+        imageExecutor.execute {
             val copied = runCatching {
                 val target = Env.background(activity)
                 activity.contentResolver.openInputStream(uri)?.use { input ->
