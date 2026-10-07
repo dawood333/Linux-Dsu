@@ -908,8 +908,8 @@ public final class DnaBinActivity extends DnaBaseActivity {
             dialog.dismiss();
             extract();
         });
-        Button[] bottomButtons = {allBtn, noneBtn, cancel, ok};
-        float[] weights = {0.9f, 0.9f, 1.0f, 1.35f};
+        Button[] bottomButtons = {ok, allBtn, noneBtn, cancel};
+        float[] weights = {1.35f, 0.9f, 0.9f, 1.0f};
         for (int i = 0; i < bottomButtons.length; i++) {
             LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(0, dp(42), weights[i]);
             if (i > 0) buttonLp.leftMargin = dp(6);
