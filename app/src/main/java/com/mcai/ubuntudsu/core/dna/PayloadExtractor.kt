@@ -5,11 +5,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Payload 提取器（参考 Dsu-Manager 移植，UbuntuDSU 本地化）：
- *  - fastListPartitions / fastIsIncremental 为纯 Kotlin 实现（直读 payload 头 + manifest），保留原样；
- *  - 参考版的 JNI 提取（libpayload_extract_jni.so）在本项目不可用（tools.zip 未内置该 .so），
- *    open/listPartitions/getMetadata/extractPartition/close 统一降级到 DnaTools.payloadExtractCli
- *    （root CLI 调 payload_extract 二进制）。partition 提取走 CLI，元数据/列表走 fast* 或 dumper 回退。
+ * Payload metadata and extraction façade. Listing stays in Kotlin; local extraction uses the
+ * independently implemented, bounded-parallel JNI fast path. Callers retain CLI fallback.
  */
 class PayloadExtractor {
 
@@ -28,11 +25,11 @@ class PayloadExtractor {
     private var handle: Long = 0
     private var input: String = ""
 
-    /** 打开输入（本项目无 JNI，仅记录路径供 CLI 提取用） */
+    /** 打开输入（记录路径；manifest 解析由 JNI 提取任务按需缓存） */
     fun open(inputPath: String): Boolean {
         input = inputPath
         handle = 1L
-        Log.d(TAG, "open(input=$inputPath) —— CLI 模式")
+        Log.d(TAG, "open(input=$inputPath)")
         return true
     }
 
@@ -52,7 +49,7 @@ class PayloadExtractor {
         return Metadata(null, 4096, parts.size)
     }
 
-    /** 提取单分区：本项目 tools.zip 无 payload_extract 二进制，提取失败抛异常（由调用方提示） */
+    /** 提取单分区；JNI 在目标 extents 不重叠时并行执行独立 payload 操作。 */
     fun extractPartition(
         inputPath: String,
         outputDir: String,
@@ -61,12 +58,20 @@ class PayloadExtractor {
         verify: Boolean = false,
         token: Long,
     ) {
-        Log.d(TAG, "CLI 提取 $partitionName -> $outputDir (token=$token)")
-        throw RuntimeException("本版本未内置 payload_extract 提取器，请改用 dna 内核手动分解")
+        Log.d(TAG, "JNI 提取 $partitionName -> $outputDir (threads=$threads, token=$token)")
+        PayloadExtractNative.extractPartition(inputPath, outputDir, partitionName, threads, verify, token)
     }
 
-    /** 本项目无 JNI 进度，返回 null（调用方走 CLI 无进度回退） */
-    fun getExtractProgress(token: Long): android.util.Pair<Int, Int>? = null
+    /** 进度为 Pair(phase, permille)，写入实际解码字节驱动；未运行时返回 null。 */
+    fun getExtractProgress(token: Long): android.util.Pair<Int, Int>? {
+        val raw = PayloadExtractNative.getExtractProgress(token)
+        if (raw < 0L) return null
+        return android.util.Pair((raw ushr 16).toInt(), (raw and 0xFFFF).toInt())
+    }
+
+    fun cancelExtract(token: Long) {
+        PayloadExtractNative.cancelExtract(token)
+    }
 
     fun close() {
         if (handle != 0L) {

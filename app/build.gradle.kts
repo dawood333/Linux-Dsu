@@ -5,6 +5,36 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// Optional reproducible native build. The checked-in ARM64 .so keeps ordinary Gradle builds
+// independent of Rust; run ./gradlew buildPayloadExtractJni after changing native sources.
+tasks.register<Exec>("buildPayloadExtractJni") {
+    group = "build"
+    description = "Build the independent ARM64 payload extraction JNI library with Rust/NDK"
+    val cargoHome = System.getenv("CARGO_HOME") ?: "${System.getProperty("user.home")}/.cargo"
+    val cargo = file("$cargoHome/bin/cargo").takeIf { it.isFile }?.absolutePath ?: "cargo"
+    val nativeManifest = rootProject.file("native/payload_extract_jni/Cargo.toml")
+    val nativeLockfile = rootProject.file("native/payload_extract_jni/Cargo.lock")
+    val nativeOutput = rootProject.file("native/payload_extract_jni/target/aarch64-linux-android/release/libpayload_extract_jni.so")
+    val jniDestination = file("src/main/jniLibs/arm64-v8a")
+    val packagedOutput = file("src/main/jniLibs/arm64-v8a/libpayload_extract_jni.so")
+    workingDir(rootProject.projectDir)
+    commandLine(cargo, "build", "--manifest-path", nativeManifest.absolutePath,
+        "--target", "aarch64-linux-android", "--release")
+    environment("CC_aarch64_linux_android", "${android.ndkDirectory}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android23-clang")
+    environment("AR_aarch64_linux_android", "${android.ndkDirectory}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar")
+    environment("CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER", "${android.ndkDirectory}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android23-clang")
+    inputs.dir(rootProject.file("native/payload_extract_jni/src"))
+    inputs.file(nativeManifest)
+    inputs.file(nativeLockfile)
+    outputs.files(nativeOutput, packagedOutput)
+    doLast {
+        copy {
+            from(nativeOutput)
+            into(jniDestination)
+        }
+    }
+}
+
 android {
     namespace = "com.mcai.ubuntudsu"
     compileSdk = 36
@@ -14,8 +44,8 @@ android {
         applicationId = "com.mcai.ubuntudsu"
         minSdk = 26
         targetSdk = 28
-        versionCode = 65
-        versionName = "1.8.16"
+        versionCode = 66
+        versionName = "1.8.17"
         ndk {
             abiFilters += listOf("arm64-v8a")
         }

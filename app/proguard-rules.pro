@@ -25,3 +25,6 @@
 
 # 通用：保留源码行号便于崩溃定位
 -keepattributes SourceFile,LineNumberTable
+
+# JNI 方法通过静态导出符号绑定；类名和 native 方法名必须与 Rust 导出符号一致。
+-keep class com.mcai.ubuntudsu.core.dna.PayloadExtractNative { *; }

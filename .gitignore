@@ -25,5 +25,6 @@ dist/
 uploads/
 website/
 twrp_dodge/
+native/payload_extract_jni/target/
 *.pyc
 blob_download_1791229037373.png
