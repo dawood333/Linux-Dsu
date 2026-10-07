@@ -830,6 +830,10 @@ object DnaTools {
     ): Result {
         val script = buildString {
             append("exec 2>&1\n")
+            // Rust dumper 会在 --list 前创建 --out 目录；su 默认 cwd 可能是只读的 /。
+            append("mkdir -p /data/local/tmp/linux-dsu-payload || exit 71\n")
+            append("cd /data/local/tmp/linux-dsu-payload || exit 72\n")
+            append("export TMPDIR=/data/local/tmp/linux-dsu-payload\n")
             append(command.trim()).append("\n")
             append("__rc=\$?\n")
             append("echo __DNA_EXIT_\${__rc}__\n")
@@ -892,7 +896,11 @@ object DnaTools {
         if (!bundledTool.isFile) {
             return Result(false, "", "APK 内置 payload 提取器不存在: ${bundledTool.absolutePath}", -1)
         }
-        val command = quote(bundledTool.absolutePath) + " " + quote(realPath(input)) + " --list"
+        // dumper 在执行 --list 前仍会创建 --out；显式使用应用私有缓存路径，
+        // 避免 su 的只读根目录把整次解析提前打断。
+        val listOutput = File(ctx.cacheDir, "payload-list").absolutePath
+        val command = quote(bundledTool.absolutePath) + " " + quote(realPath(input)) +
+            " --list --out " + quote(listOutput)
         return runPayloadCommand(command, onLog, isCancelled, timeoutMs)
     }
 
