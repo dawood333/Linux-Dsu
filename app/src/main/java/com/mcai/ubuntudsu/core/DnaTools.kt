@@ -974,25 +974,31 @@ object DnaTools {
         val inReal = realPath(input)
         val outReal = realPath(outputDir)
         if (useBundledTool) onLog?.invoke("… 使用内置高速提取器（$threads 线程）…")
-        fun execute(command: String): Result = if (useBundledTool) {
-            runPayloadCommand(command, onLog, isCancelled, timeoutMs, outReal)
+        fun execute(command: String, watchDir: String): Result = if (useBundledTool) {
+            runPayloadCommand(command, onLog, isCancelled, timeoutMs, watchDir)
         } else {
             run(ctx, command, onLog, isCancelled, timeoutMs)
         }
-        val cmd = "mkdir -p " + quote(outReal) + " && " + quote(bin) + " " + quote(inReal) +
+        val invocation = quote(bin) + " " + quote(inReal) +
             " --images " + quote(partitions) +
             " --out " + quote(outReal) + tail
-        var r = execute(cmd)
+        // 内置二进制由 runPayloadCommand 在前台先 mkdir，再直接后台启动可执行文件；
+        // 不要将 “mkdir && binary” 整体放入后台，否则 $! 可能是 shell 子进程而非 dumper PID，
+        // /proc/PID/fd 看不到真正写镜像的 FD，预分配的目标大小会被误报为已提取。
+        val cmd = if (useBundledTool) invocation else "mkdir -p " + quote(outReal) + " && " + invocation
+        var r = execute(cmd, outReal)
         // 真实路径一个目标文件都没产出（极端场景 /data/media 不可访问）→ 回退 FUSE 视图路径重跑
         if (!r.success && (inReal != input || outReal != outputDir) && !isCancelled()) {
             val names = partitions.split(",").map { it.trim() }.filter { it.isNotEmpty() }
             val anyOutput = names.any { File(outputDir, "$it.img").let { f -> f.isFile && f.length() > 0 } }
             if (!anyOutput) {
                 onLog?.invoke("… 真实路径无产物，回退 FUSE 路径重试 ...")
-                val cmdFallback = "mkdir -p " + quote(outputDir) + " && " + quote(bin) + " " +
+                val fallbackInvocation = quote(bin) + " " +
                     quote(input) + " --images " + quote(partitions) +
                     " --out " + quote(outputDir) + tail
-                r = execute(cmdFallback)
+                val cmdFallback = if (useBundledTool) fallbackInvocation else
+                    "mkdir -p " + quote(outputDir) + " && " + fallbackInvocation
+                r = execute(cmdFallback, outputDir)
             }
         }
         return r
