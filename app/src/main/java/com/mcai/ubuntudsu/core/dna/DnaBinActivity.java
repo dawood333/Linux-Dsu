@@ -879,7 +879,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         };
         render[0].run();
 
-        // 底部同排：全选、清空、取消、确定（确定即开始提取）
+        // 底部同排：全选、取消、清空、确定（确定即开始提取）
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER_VERTICAL);
@@ -908,8 +908,8 @@ public final class DnaBinActivity extends DnaBaseActivity {
             dialog.dismiss();
             extract();
         });
-        Button[] bottomButtons = {ok, allBtn, noneBtn, cancel};
-        float[] weights = {1.35f, 0.9f, 0.9f, 1.0f};
+        Button[] bottomButtons = {allBtn, cancel, noneBtn, ok};
+        float[] weights = {0.9f, 1.0f, 0.9f, 1.35f};
         for (int i = 0; i < bottomButtons.length; i++) {
             LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(0, dp(42), weights[i]);
             if (i > 0) buttonLp.leftMargin = dp(6);
