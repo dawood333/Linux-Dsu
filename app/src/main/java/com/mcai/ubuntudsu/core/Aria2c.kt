@@ -164,6 +164,7 @@ object Aria2c {
         referer: String? = null,
         userAgent: String? = null,
         onStats: ((speedText: String) -> Unit)? = null,
+        stallTimeoutMs: Long = STALL_TIMEOUT_MS,
     ): Result {
         val dir = target.parentFile ?: return Result(false, null, "无效的保存路径")
         // 目录准备：app 可写则直建，否则经 root 创建
@@ -188,13 +189,16 @@ object Aria2c {
             plans.add(true)
             for (useRoot in plans) {
                 if (!tried.add("$binary|$useRoot")) continue
-                val result = runOnce(ctx, binary, useRoot, url, target, onProgress, isCancelled, onLog, expectedSize, referer, userAgent, onStats)
+                val result = runOnce(
+                    ctx, binary, useRoot, url, target, onProgress, isCancelled, onLog,
+                    expectedSize, referer, userAgent, onStats, stallTimeoutMs,
+                )
                 if (result.success) return result
                 if (result.message == "已取消") return result
                 lastError = result.message
                 onLog?.invoke("尝试失败（${if (useRoot) "root" else "直跑"}）：${result.message.take(120)}")
-                // 网络类故障与运行身份无关，直接交给外层换线路，不做无意义的 root 重试
-                if (result.message.startsWith("网络无进展") || result.message.startsWith("下载超时")) break
+                // 网络类故障与运行身份/二进制无关，立即交给外层换线路，避免重复等待同一坏链路
+                if (result.message.startsWith("网络无进展") || result.message.startsWith("下载超时")) return result
             }
         }
         return Result(false, null, lastError)
@@ -213,6 +217,7 @@ object Aria2c {
         referer: String? = null,
         userAgent: String? = null,
         onStats: ((speedText: String) -> Unit)? = null,
+        stallTimeoutMs: Long,
     ): Result {
         val dir = target.parentFile?.absolutePath ?: return Result(false, null, "无效的保存路径")
         if (isCancelled()) return Result(false, null, "已取消")
@@ -330,10 +335,10 @@ object Aria2c {
                     reader.join(300)
                     return Result(false, null, "下载超时（超过 15 分钟）")
                 }
-                if (now - lastProgressAt.get() > STALL_TIMEOUT_MS) {
+                if (now - lastProgressAt.get() > stallTimeoutMs.coerceAtLeast(1000L)) {
                     process.destroyForcibly()
                     reader.join(300)
-                    return Result(false, null, "网络无进展（${STALL_TIMEOUT_MS / 1000} 秒无数据），切换线路重试")
+                    return Result(false, null, "网络无进展（${stallTimeoutMs / 1000} 秒无数据），切换线路重试")
                 }
             }
             reader.join(2000)

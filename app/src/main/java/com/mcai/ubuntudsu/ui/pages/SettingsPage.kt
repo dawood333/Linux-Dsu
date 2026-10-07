@@ -457,9 +457,14 @@ class SettingsPage(
                                 }
                                 true
                             }
-                            line.startsWith("aria2c 失败") || line.startsWith("文件大小校验") -> {
+                            line.startsWith("aria2c 失败") || line.startsWith("文件大小校验") ||
+                                line.startsWith("SHA-256 校验") -> {
                                 lastReason = line.take(90)
                                 false
+                            }
+                            line.startsWith("正在测速") || line.startsWith("线路测速结果") -> {
+                                statusSuffix = " · ${line.take(30)}"
+                                true
                             }
                             line.contains("切换") -> {
                                 statusSuffix = " · ${line.take(26)}"
@@ -467,7 +472,7 @@ class SettingsPage(
                                 true
                             }
                             line.startsWith("线路 ") -> {
-                                statusSuffix = ""
+                                statusSuffix = " · ${line.take(30)}"
                                 true
                             }
                             else -> false

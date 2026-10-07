@@ -9,12 +9,22 @@ import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import java.security.MessageDigest
+import java.util.concurrent.Callable
+import java.util.concurrent.ExecutorCompletionService
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
-// 在线更新：Gitee（国内直连）+ GitHub 双源检查，下载 APK 并静默安装
+// 在线更新：GitHub Release API + 可用代理 API 兜底；下载时测速择优并校验资产摘要
 object AppUpdater {
-    // 两个常量需与仓库实际 owner/repo 一致；Gitee 侧需手动创建同名仓库并发布同 tag Release
+    // Gitee 镜像仓库目前不存在；国内网络通过已用于 ROM 工具链的 gh-proxy.com 代理 API 兜底。
     private const val GITHUB_API = "https://api.github.com/repos/hetianming/Linux-Dsu/releases/latest"
-    private const val GITEE_API = "https://gitee.com/api/v5/repos/hetianming/Linux-Dsu/releases/latest"
+    private const val GH_PROXY_PREFIX = "https://gh-proxy.com/"
+    private val RELEASE_APIS = listOf(GITHUB_API, GH_PROXY_PREFIX + GITHUB_API)
+    private const val API_TIMEOUT_MS = 7000
+    private const val API_DEADLINE_MS = 10000L
+    private const val API_RESULT_GRACE_MS = 1200L
 
     data class ReleaseInfo(
         val version: String,        // tag 名，如 v1.0.3
@@ -22,34 +32,50 @@ object AppUpdater {
         val apkUrl: String,         // apk 下载直链
         val apkName: String,        // apk 文件名
         val apkSize: Long,          // apk 大小（字节）
+        val apkSha256: String = "", // GitHub Release asset digest（缺省时跳过摘要校验）
     )
 
-    // 并行请求 Gitee 与 GitHub：Gitee 国内秒回，GitHub 常超时，互为兜底；
-    // 两边都成功时取版本较高者，版本相同优先 Gitee（下载线路国内更稳）
+    // 并行查询 GitHub API 与已验证可用的代理 API；某一源先成功后给另一个源短暂补充时间。
+    // 用 completion queue + 总截止时间，避免串行 join 超时或遗留后台线程造成误报“无更新”。
     fun fetchLatest(): ReleaseInfo? {
-        var gitee: ReleaseInfo? = null
-        var github: ReleaseInfo? = null
-        val tg = Thread { gitee = fetchFrom(GITEE_API) }
-        val th = Thread { github = fetchFrom(GITHUB_API) }
-        tg.start(); th.start()
-        tg.join(15000); th.join(15000)
-        return when {
-            gitee == null -> github
-            github == null -> gitee
-            isNewer(gitee!!.version, github!!.version) -> gitee
-            isNewer(github!!.version, gitee!!.version) -> github
-            else -> gitee
+        val executor = Executors.newFixedThreadPool(RELEASE_APIS.size)
+        val completion = ExecutorCompletionService<ReleaseInfo?>(executor)
+        val requests: List<Future<ReleaseInfo?>> = RELEASE_APIS.map { apiUrl ->
+            completion.submit(Callable { fetchFrom(apiUrl) })
         }
+        val deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(API_DEADLINE_MS)
+        var best: ReleaseInfo? = null
+        var firstSuccessAt = 0L
+        try {
+            while (true) {
+                val until = if (firstSuccessAt == 0L) deadline else minOf(
+                    deadline,
+                    firstSuccessAt + TimeUnit.MILLISECONDS.toNanos(API_RESULT_GRACE_MS),
+                )
+                val remaining = until - System.nanoTime()
+                if (remaining <= 0L) break
+                val future = completion.poll(remaining, TimeUnit.NANOSECONDS) ?: break
+                val candidate = runCatching { future.get() }.getOrNull() ?: continue
+                val current = best
+                if (current == null || isNewer(current.version, candidate.version)) best = candidate
+                if (firstSuccessAt == 0L) firstSuccessAt = System.nanoTime()
+            }
+        } catch (_: InterruptedException) {
+            Thread.currentThread().interrupt()
+        } finally {
+            requests.forEach { if (!it.isDone) it.cancel(true) }
+            executor.shutdownNow()
+        }
+        return best
     }
 
-    // 拉取单个源的 latest Release；Gitee/GitHub JSON 结构一致
-    // Gitee 资产无 size 字段（apkSize=-1），下载后自动跳过大小校验
+    // 拉取单个 GitHub-compatible latest Release API；保留大小与 SHA-256，供下载后完整性校验。
     private fun fetchFrom(apiUrl: String): ReleaseInfo? {
         var connection: HttpURLConnection? = null
         return try {
             connection = URL(apiUrl).openConnection() as HttpURLConnection
-            connection.connectTimeout = 12000
-            connection.readTimeout = 12000
+            connection.connectTimeout = API_TIMEOUT_MS
+            connection.readTimeout = API_TIMEOUT_MS
             connection.instanceFollowRedirects = true
             connection.setRequestProperty("User-Agent", "UbuntuDSU-Updater")
             connection.setRequestProperty("Accept", "application/vnd.github+json")
@@ -57,17 +83,24 @@ object AppUpdater {
             if (connection.responseCode !in 200..299) return null
             val body = connection.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
             val json = JSONObject(body)
+            val version = json.optString("tag_name").removePrefix("v")
+            if (version.isBlank() || version == "null") return null
             val assets = json.optJSONArray("assets") ?: return null
             for (index in 0 until assets.length()) {
                 val asset = assets.optJSONObject(index) ?: continue
                 val name = asset.optString("name")
                 if (name.endsWith(".apk", true)) {
+                    val apkUrl = asset.optString("browser_download_url")
+                    if (!apkUrl.startsWith("https://")) continue
+                    val rawDigest = asset.optString("digest").removePrefix("sha256:")
+                        .lowercase(java.util.Locale.ROOT)
                     return ReleaseInfo(
-                        version = json.optString("tag_name").removePrefix("v"),
+                        version = version,
                         notes = json.optString("body"),
-                        apkUrl = asset.optString("browser_download_url"),
+                        apkUrl = apkUrl,
                         apkName = name,
                         apkSize = asset.optLong("size", -1L),
+                        apkSha256 = rawDigest.takeIf { it.matches(Regex("[0-9a-f]{64}")) } ?: "",
                     )
                 }
             }
@@ -92,17 +125,15 @@ object AppUpdater {
         return false
     }
 
-    // GitHub Release 直链会 302 到 release-assets.githubusercontent.com，该域名在国内常被静默丢包。
-    // 直链无进展时依次切换公共加速线路，保证国内可下载（安装时系统仍会校验签名，镜像无法伪造）。
-    // 列表内的镜像均实测过 206 Range 可用；镜像失效时直链逻辑仍可兜底，替换即可。
+    // 与 ROM 工具链保持一致：删除已失效的 mirror.ghproxy.com / kkgithub，补入 gh-proxy.com。
+    // 下载前用 Range 小样本并行测速，优先选当前网络最快且返回大小匹配的线路。
     private val gitHubMirrors = listOf(
-        "https://mirror.ghproxy.com/",
-        "https://ghproxy.net/",
+        GH_PROXY_PREFIX,
         "https://ghfast.top/",
-        "https://kkgithub.com/",
+        "https://ghproxy.net/",
     )
 
-    // 下载线路：直链优先，GitHub 资产再追加加速镜像
+    // GitHub 资产保留原始直链，并追加下载镜像；实际尝试顺序由并行测速决定。
     fun urlCandidates(apkUrl: String): List<String> {
         val list = mutableListOf(apkUrl)
         if (apkUrl.startsWith("https://github.com/")) {
@@ -111,8 +142,83 @@ object AppUpdater {
         return list
     }
 
-    // 下载 apk：逐线路尝试 aria2c（多线程提速）→ HttpURLConnection 兜底；
-    // 每条线路校验文件大小，全部失败返回 null，绝不向上抛出
+    private const val ROUTE_PROBE_TIMEOUT_MS = 3000
+    private const val ROUTE_PROBE_BYTES = 128 * 1024
+
+    private fun orderCandidates(
+        urls: List<String>,
+        expectedSize: Long,
+        isCancelled: () -> Boolean,
+        onLog: ((String) -> Unit)?,
+    ): List<String> {
+        if (urls.size <= 1 || isCancelled()) return urls
+        onLog?.invoke("正在测速 ${urls.size} 条更新线路")
+        val executor = Executors.newFixedThreadPool(urls.size)
+        val probes = urls.map { url -> url to executor.submit(Callable { probeRoute(url, expectedSize, isCancelled) }) }
+        val speeds = LinkedHashMap<String, Long>()
+        try {
+            probes.forEach { (url, future) ->
+                speeds[url] = runCatching { future.get(ROUTE_PROBE_TIMEOUT_MS + 1000L, TimeUnit.MILLISECONDS) }
+                    .getOrDefault(0L)
+            }
+        } finally {
+            probes.forEach { (_, future) -> if (!future.isDone) future.cancel(true) }
+            executor.shutdownNow()
+        }
+        if (isCancelled() || speeds.values.all { it <= 0L }) return urls
+        val ordered = urls.sortedByDescending { speeds[it] ?: 0L }
+        onLog?.invoke("线路测速结果：" + ordered.joinToString(" ") {
+            "${routeName(it)} ${(speeds[it] ?: 0L) / 1024}KB/s"
+        })
+        return ordered
+    }
+
+    private fun probeRoute(url: String, expectedSize: Long, isCancelled: () -> Boolean): Long {
+        var connection: HttpURLConnection? = null
+        return try {
+            if (isCancelled()) return 0L
+            connection = URL(url).openConnection() as HttpURLConnection
+            connection.connectTimeout = ROUTE_PROBE_TIMEOUT_MS
+            connection.readTimeout = ROUTE_PROBE_TIMEOUT_MS
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", "UbuntuDSU-Updater")
+            connection.setRequestProperty("Range", "bytes=0-${ROUTE_PROBE_BYTES - 1}")
+            connection.connect()
+            val code = connection.responseCode
+            if (code !in 200..299) return 0L
+            val declaredSize = if (code == HttpURLConnection.HTTP_PARTIAL) {
+                Regex("""bytes\s+\d+-\d+/(\d+)""")
+                    .find(connection.getHeaderField("Content-Range") ?: "")
+                    ?.groupValues?.get(1)?.toLongOrNull() ?: -1L
+            } else connection.contentLengthLong
+            if (expectedSize > 0L && declaredSize > 0L && declaredSize != expectedSize) return 0L
+            val startedAt = System.nanoTime()
+            var bytes = 0L
+            val buffer = ByteArray(16 * 1024)
+            connection.inputStream.use { input ->
+                while (bytes < ROUTE_PROBE_BYTES && !isCancelled()) {
+                    val count = input.read(buffer, 0, minOf(buffer.size.toLong(), ROUTE_PROBE_BYTES - bytes).toInt())
+                    if (count < 0) break
+                    bytes += count
+                }
+            }
+            val elapsed = (System.nanoTime() - startedAt).coerceAtLeast(1L)
+            if (bytes == 0L) 0L else bytes * 1_000_000_000L / elapsed
+        } catch (_: Exception) {
+            0L
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    private fun routeName(url: String): String = when {
+        url.startsWith(GH_PROXY_PREFIX) -> "gh-proxy.com"
+        url.startsWith("https://ghfast.top/") -> "ghfast.top"
+        url.startsWith("https://ghproxy.net/") -> "ghproxy.net"
+        else -> "直连"
+    }
+
+    // 下载 apk：逐线路尝试 aria2c（多线程提速）→ HttpURLConnection 兜底；校验文件大小和 API digest。
     fun download(
         ctx: Context,
         info: ReleaseInfo,
@@ -123,38 +229,63 @@ object AppUpdater {
     ): File? {
         val target = File(targetDir, "update-${info.version}.apk")
         if (!targetDir.exists() && !targetDir.mkdirs()) return null
-        // GitHub 资产自带 size；Gitee 资产无 size 字段，用 Range 探测真实大小
+        // GitHub 资产自带 size；若源缺失则用 Range 探测真实大小
         // （供无 Content-Length 的线路按已下载字节计算百分比，并做完整性校验）
         val expectedSize = if (info.apkSize > 0) info.apkSize else probeContentLength(info.apkUrl)
         val candidates = urlCandidates(info.apkUrl)
-        for ((index, url) in candidates.withIndex()) {
+        val orderedCandidates = orderCandidates(candidates, expectedSize, isCancelled, onLog)
+        for ((index, url) in orderedCandidates.withIndex()) {
             if (isCancelled()) return null
             if (index > 0) {
-                onLog?.invoke("直链无进展，切换备用线路 $index/${candidates.size - 1}")
+                onLog?.invoke("当前线路失败，切换备用线路 $index/${orderedCandidates.size - 1}")
                 // 跨线路不复用断点文件，避免续传错位导致文件损坏
                 runCatching { target.delete() }
                 runCatching { File(targetDir, "${target.name}.aria2").delete() }
             }
             onProgress(0)
-            onLog?.invoke("线路 ${index + 1}/${candidates.size}：开始下载")
-            var file = downloadWithAria2(ctx, url, target, expectedSize, onProgress, onLog, isCancelled)
+            onLog?.invoke("线路 ${index + 1}/${orderedCandidates.size} · ${routeName(url)}：开始下载")
+            val ariaResult = downloadWithAria2(ctx, url, target, expectedSize, onProgress, onLog, isCancelled)
             if (isCancelled()) return null
-            if (file == null) file = downloadWithHttp(url, target, expectedSize, onProgress, isCancelled)
+            var file = ariaResult.file?.takeIf { ariaResult.success }
+            val routeStalled = ariaResult.message.startsWith("网络无进展") || ariaResult.message.startsWith("下载超时")
+            if (file == null && ariaResult.message != "已取消" && !routeStalled) {
+                file = downloadWithHttp(url, target, expectedSize, onProgress, isCancelled)
+            }
             if (isCancelled()) return null
-            if (file != null && file.isFile && file.length() > 0 &&
-                (expectedSize <= 0 || file.length() == expectedSize)
-            ) {
-                onProgress(100)
-                return file
+            if (file != null && file.isFile && file.length() > 0) {
+                val sizeMatches = expectedSize <= 0L || file.length() == expectedSize
+                val digestMatches = info.apkSha256.isBlank() ||
+                    runCatching { sha256(file).equals(info.apkSha256, ignoreCase = true) }.getOrDefault(false)
+                if (sizeMatches && digestMatches) {
+                    onProgress(100)
+                    return file
+                }
+                if (!sizeMatches) {
+                    onLog?.invoke("文件大小校验不通过（${file.length()} / $expectedSize），切换备用线路")
+                } else {
+                    onLog?.invoke("SHA-256 校验失败，文件可能不完整，切换备用线路")
+                }
             }
-            if (file != null) {
-                onLog?.invoke("文件大小校验不通过（${file.length()} / $expectedSize），重试其它线路")
-            }
+            runCatching { target.delete() }
+            runCatching { File(targetDir, "${target.name}.aria2").delete() }
         }
         return null
     }
 
-    // Range 0-0 探测真实大小（部分服务器拒绝 HEAD）；Gitee 附件经重定向响应 Content-Range
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                digest.update(buffer, 0, count)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xff) }
+    }
+
+    // Range 0-0 探测真实大小（部分服务器拒绝 HEAD）；最终完整性优先由 Release digest 校验。
     private fun probeContentLength(url: String): Long {
         var connection: HttpURLConnection? = null
         return try {
@@ -188,16 +319,19 @@ object AppUpdater {
         onProgress: (Int) -> Unit,
         onLog: ((String) -> Unit)?,
         isCancelled: () -> Boolean,
-    ): File? {
+    ): Aria2c.Result {
         val result = Aria2c.download(
             ctx, url, target, onProgress,
-            isCancelled = isCancelled, onLog = onLog, expectedSize = expectedSize,
+            isCancelled = isCancelled,
+            onLog = onLog,
+            expectedSize = expectedSize,
+            stallTimeoutMs = 12000L,
         )
         if (!result.success) onLog?.invoke("aria2c 失败：${result.message}")
-        return if (result.success && target.isFile && target.length() > 0) target else null
+        return result
     }
 
-    // HttpURLConnection 下载（兜底，aria2c 不可用时）
+    // HttpURLConnection 下载（兜底，aria2c 不可用/服务端拒绝分段时）
     private fun downloadWithHttp(
         url: String,
         target: File,
@@ -208,9 +342,9 @@ object AppUpdater {
         var connection: HttpURLConnection? = null
         try {
             connection = URL(url).openConnection() as HttpURLConnection
-            connection.connectTimeout = 20000
-            // 单次 read 超时对齐 aria2c 的无进展判定，避免慢速/被阻断线路长时间无响应
-            connection.readTimeout = 60000
+            connection.connectTimeout = 10000
+            // 快速放弃被静默丢包的线路，及时切换国内代理；避免单一路线等待 60 秒。
+            connection.readTimeout = 15000
             connection.instanceFollowRedirects = true
             connection.setRequestProperty("User-Agent", "UbuntuDSU-Updater")
             connection.connect()

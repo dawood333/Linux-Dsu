@@ -719,7 +719,7 @@ object Ui {
                 "· OTG 刷机助手：检测 USB 设备 ADB / Fastboot 状态，刷机日志实时输出\n" +
                 "· U 盘启动：本地制作 U 盘 IMG 镜像并虚拟 U 盘暴露给电脑\n" +
                 "· 日历工时记：上下班打卡、日历月视图、工时与工资统计，支持补录与修改每天工时\n" +
-                "· 检查更新：GitHub / Gitee 双源在线检测新版本，下载安装一步完成"
+                "· 检查更新：GitHub Release 在线检测，国内代理 API 兜底，下载线路测速切换并校验文件完整性"
             textSize = 11f
             setTextColor(secondaryText(activity))
             setLineSpacing(dp(3, density).toFloat(), 1f)
