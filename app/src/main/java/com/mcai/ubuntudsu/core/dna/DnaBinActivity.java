@@ -959,11 +959,15 @@ public final class DnaBinActivity extends DnaBaseActivity {
 
             main.post(() -> {
                 log("⏳ " + t("正在并行提取", "Extracting in parallel") + " " + ordered.size()
-                        + t(" 个分区（8 线程）…", " partition(s), 8 threads..."));
+                        + t(" 个分区…", " partition(s)..."));
                 status.setText("⏳ " + t("正在提取", "Extracting") + " · 0/" + ordered.size());
             });
             notify(t("正在并行提取", "Extracting in parallel") + " " + ordered.size()
                     + t(" 个分区", " partition(s)"), true, false, 0, 0);
+
+            // root shell 监控 dumper 的 /proc/PID/fd；单个镜像文件关闭即实时回报完成。
+            final Set<String> liveLogged = java.util.concurrent.ConcurrentHashMap.newKeySet();
+            final java.util.concurrent.atomic.AtomicInteger liveDone = new java.util.concurrent.atomic.AtomicInteger(0);
 
             // 进度条刷新行不进日志，只解析 x/y 刷新状态栏
             final java.util.regex.Matcher[] hold = new java.util.regex.Matcher[1];
@@ -971,6 +975,23 @@ public final class DnaBinActivity extends DnaBaseActivity {
                     String.join(",", ordered),
                     line -> {
                         String s = line == null ? "" : line;
+                        if (s.startsWith("__DNA_IMAGE_DONE__")) {
+                            String[] fields = s.substring("__DNA_IMAGE_DONE__".length()).split("\\|", 2);
+                            if (fields.length == 2 && fields[0].endsWith(".img")) {
+                                String name = fields[0].substring(0, fields[0].length() - 4);
+                                long size = 0;
+                                try { size = Long.parseLong(fields[1]); } catch (NumberFormatException ignored) {}
+                                if (size > 0 && ordered.contains(name) && liveLogged.add(name)) {
+                                    final long imageSize = size;
+                                    int done = liveDone.incrementAndGet();
+                                    main.post(() -> {
+                                        log("✓ " + name + ".img (" + fmtSizeShort(imageSize) + ") " + t("提取完成", "extracted"));
+                                        status.setText("⏳ " + t("正在提取", "Extracting") + " · " + done + "/" + ordered.size());
+                                    });
+                                }
+                            }
+                            return kotlin.Unit.INSTANCE;
+                        }
                         java.util.regex.Matcher m = java.util.regex.Pattern
                                 .compile("(\\d+)\\s*/\\s*(\\d+)").matcher(s);
                         if (m.find()) hold[0] = m;
@@ -1003,8 +1024,10 @@ public final class DnaBinActivity extends DnaBaseActivity {
                 long sz = outFile.isFile() ? outFile.length() : 0;
                 if (sz > 0) {
                     okCount++;
-                    final long size = sz;
-                    main.post(() -> log("✓ " + n + ".img (" + fmtSizeShort(size) + ") " + t("提取完成", "extracted")));
+                    if (liveLogged.add(n)) {
+                        final long size = sz;
+                        main.post(() -> log("✓ " + n + ".img (" + fmtSizeShort(size) + ") " + t("提取完成", "extracted")));
+                    }
                 } else {
                     failed.add(n);
                 }

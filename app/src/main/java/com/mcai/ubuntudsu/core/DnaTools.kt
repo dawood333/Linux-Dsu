@@ -827,6 +827,7 @@ object DnaTools {
         onLog: ((String) -> Unit)?,
         isCancelled: () -> Boolean,
         timeoutMs: Long,
+        watchedOutputDir: String? = null,
     ): Result {
         val script = buildString {
             append("exec 2>&1\n")
@@ -834,8 +835,39 @@ object DnaTools {
             append("mkdir -p /data/local/tmp/linux-dsu-payload || exit 71\n")
             append("cd /data/local/tmp/linux-dsu-payload || exit 72\n")
             append("export TMPDIR=/data/local/tmp/linux-dsu-payload\n")
-            append(command.trim()).append("\n")
-            append("__rc=\$?\n")
+            if (watchedOutputDir == null) {
+                append(command.trim()).append("\n")
+                append("__rc=\$?\n")
+            } else {
+                // Rust dumper 会对每个镜像先 set_len 再写 extent；监视文件长度不可靠。
+                // 在 root shell 中查看 dumper 的 /proc/PID/fd，文件描述符关闭即代表该镜像确实写完。
+                append("mkdir -p ").append(quote(watchedOutputDir)).append(" || exit 73\n")
+                append("__dna_seen=/data/local/tmp/linux-dsu-payload/seen-\$\$; mkdir -p \"\$__dna_seen\" || exit 74\n")
+                append(command.trim()).append(" &\n")
+                append("__dna_pid=\$!\n")
+                append("while kill -0 \"\$__dna_pid\" 2>/dev/null; do\n")
+                append("  for __dna_file in ").append(quote(watchedOutputDir)).append("/*.img; do\n")
+                append("    [ -f \"\$__dna_file\" ] || continue\n")
+                append("    __dna_name=\${__dna_file##*/}; [ -e \"\$__dna_seen/\$__dna_name\" ] && continue\n")
+                append("    __dna_open=0\n")
+                append("    for __dna_fd in /proc/\$__dna_pid/fd/*; do\n")
+                append("      [ -e \"\$__dna_fd\" ] || continue\n")
+                append("      __dna_target=\$(readlink \"\$__dna_fd\" 2>/dev/null) || continue\n")
+                append("      if [ \"\$__dna_target\" = \"\$__dna_file\" ]; then __dna_open=1; break; fi\n")
+                append("    done\n")
+                append("    if [ \"\$__dna_open\" -eq 0 ]; then\n")
+                append("      __dna_size=\$(wc -c < \"\$__dna_file\" 2>/dev/null | tr -d '[:space:]')\n")
+                append("      if [ -n \"\$__dna_size\" ] && [ \"\$__dna_size\" -gt 0 ] 2>/dev/null; then\n")
+                append("        : > \"\$__dna_seen/\$__dna_name\"\n")
+                append("        printf '__DNA_IMAGE_DONE__%s|%s\\n' \"\$__dna_name\" \"\$__dna_size\"\n")
+                append("      fi\n")
+                append("    fi\n")
+                append("  done\n")
+                append("  sleep 1\n")
+                append("done\n")
+                append("wait \"\$__dna_pid\"; __rc=\$?\n")
+                append("rm -rf \"\$__dna_seen\"\n")
+            }
             append("echo __DNA_EXIT_\${__rc}__\n")
         }
         return try {
@@ -855,6 +887,10 @@ object DnaTools {
                             return@forEachLine
                         }
                         synchronized(output) { output.appendLine(line) }
+                        if (line.startsWith("__DNA_IMAGE_DONE__")) {
+                            onLog?.invoke(line)
+                            return@forEachLine
+                        }
                         onLog?.invoke(line)
                     }
                 }
@@ -935,7 +971,7 @@ object DnaTools {
         val outReal = realPath(outputDir)
         if (useBundledTool) onLog?.invoke("… 使用内置高速提取器（$threads 线程）…")
         fun execute(command: String): Result = if (useBundledTool) {
-            runPayloadCommand(command, onLog, isCancelled, timeoutMs)
+            runPayloadCommand(command, onLog, isCancelled, timeoutMs, outReal)
         } else {
             run(ctx, command, onLog, isCancelled, timeoutMs)
         }
