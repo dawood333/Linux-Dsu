@@ -89,6 +89,9 @@ class HomePage(
         unifiedCard = unified
         page.addView(unified)
 
+        // MainActivity 的首次 onResume 发生在 root.post 懒加载首页之前，
+        // 因此 onResume 中的 homePage?.refreshStatus() 会被跳过。页面就绪后主动启动首轮检测。
+        refreshStatus()
         return page
     }
 

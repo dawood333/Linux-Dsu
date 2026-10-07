@@ -628,27 +628,28 @@ public final class DnaBinActivity extends DnaBaseActivity {
         sourceCount.setText(total == 0 ? "" : " " + (binPath != null ? 1 : 0) + "/" + total);
     }
 
-    // ================= 解析（fastList → payload_dumper --list → JNI） =================
+    // ================= 解析（payload.bin 快速解析 → APK 内置 Rust dumper） =================
 
-    /** nativeLibraryDir 下的 Rust 版 payload_dumper（root 链路，支持 bin/zip 直读） */
-    private String dumperPath() {
-        return new File(getApplicationInfo().nativeLibraryDir, "libpayload_dumper.so").getAbsolutePath();
-    }
-
-    /** 解析 payload_dumper --list 表格输出：「boot<空白>1.00 MB」每行一个分区 */
+    /** 解析 Rust payload-dumper 的列表输出：支持「system (1.5 GiB)」及表格格式。 */
     private static List<PayloadExtractor.PartitionInfo> parseDumperList(String output) {
         List<PayloadExtractor.PartitionInfo> out = new ArrayList<>();
         if (output == null) return out;
-        for (String raw : output.split("\n")) {
+        for (String raw : output.replaceAll("\\u001B\\[[;\\d]*[ -/]*[@-~]", "").split("[\\r\\n]+")) {
             String line = raw.trim();
-            if (line.isEmpty() || line.startsWith("Partition Name") || line.startsWith("---")) continue;
-            // 「name   1.00 MB」或「name   Unknown」
+            if (line.isEmpty() || line.startsWith("---") || line.startsWith("Payload ")
+                    || line.startsWith("Partition Name") || line.startsWith("Name ")
+                    || line.toLowerCase(Locale.ROOT).startsWith("partitions:")) continue;
+            // Rust 版 --list 示例为「system (1.5 GiB)」；兼容旧表格「system   1.00 MB」。
             java.util.regex.Matcher m = java.util.regex.Pattern
-                    .compile("^([A-Za-z0-9_.\\-]+)\\s+(.+)$").matcher(line);
+                    .compile("^([A-Za-z0-9_.\\-]+)\\s+(?:\\(([^()]*)\\)|(.+))$").matcher(line);
             if (!m.matches()) continue;
             String name = m.group(1);
-            if (name.equalsIgnoreCase("Partition")) continue;
-            out.add(new PayloadExtractor.PartitionInfo(name, readableToBytes(m.group(2)), null));
+            if (name.equalsIgnoreCase("Partition") || name.equalsIgnoreCase("Payload")
+                    || name.equalsIgnoreCase("Version") || name.equalsIgnoreCase("Found")) continue;
+            String sizeText = m.group(2) != null ? m.group(2).trim() : m.group(3).trim();
+            if (!sizeText.equalsIgnoreCase("Unknown")
+                    && !sizeText.matches("(?i)^[\\d,.]+\\s*(?:B|KB|KiB|MB|MiB|GB|GiB|TB|TiB|bytes?)$")) continue;
+            out.add(new PayloadExtractor.PartitionInfo(name, readableToBytes(sizeText), null));
         }
         return out;
     }
@@ -657,19 +658,17 @@ public final class DnaBinActivity extends DnaBaseActivity {
     private static long readableToBytes(String s) {
         if (s == null) return 0;
         java.util.regex.Matcher m = java.util.regex.Pattern
-                .compile("^([\\d.]+)\\s*(B|KB|MB|GB|TB)$", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .compile("^([\\d,.]+)\\s*(B|KB|KIB|MB|MIB|GB|GIB|TB|TIB|BYTES?)$", java.util.regex.Pattern.CASE_INSENSITIVE)
                 .matcher(s.trim());
         if (!m.matches()) return 0;
         try {
-            double v = Double.parseDouble(m.group(1));
+            double v = Double.parseDouble(m.group(1).replace(",", ""));
             String u = m.group(2).toUpperCase(Locale.ROOT);
             long mul = 1;
-            switch (u) {
-                case "TB": mul = 1L << 40; break;
-                case "GB": mul = 1L << 30; break;
-                case "MB": mul = 1L << 20; break;
-                case "KB": mul = 1L << 10; break;
-            }
+            if (u.startsWith("T")) mul = 1L << 40;
+            else if (u.startsWith("G")) mul = 1L << 30;
+            else if (u.startsWith("M")) mul = 1L << 20;
+            else if (u.startsWith("K")) mul = 1L << 10;
             return (long) (v * mul);
         } catch (NumberFormatException ignored) {
             return 0;
@@ -696,68 +695,49 @@ public final class DnaBinActivity extends DnaBaseActivity {
                 if (extractor != null) { try { extractor.close(); } catch (Exception ignored) {} extractor = null; }
                 String input = path;
                 log("… " + t("正在读取 payload", "Reading payload") + " ...");
-                // v3.40.17：解析链（毫秒级优先）：
-                // ① root 放行底层真实路径（FUSE 视图 chmod/chown 对 root 属主文件无效）
-                // ② Java 直读 manifest（字段号已校准：partitions=13 / new_info=7）—— 裸 payload.bin
-                // ③ payload_dumper --list（Rust，root，支持 OTA zip 直读）
-                // ④ JNI 兜底
+                // 解析链：① 快速读取裸 payload.bin manifest；② APK 内置 Rust dumper 原地解析
+                // payload.bin 或 ZIP（不下载/解压 DNA 工具链、不整包复制、不误用不存在的 so）。
                 DnaTools.rootRelaxForApp(path,
                         msg -> { main.post(() -> log(msg)); return kotlin.Unit.INSTANCE; });
                 List<PayloadExtractor.PartitionInfo> parts = PayloadExtractor.fastListPartitions(input);
                 final boolean incremental = PayloadExtractor.fastIsIncremental(input);
-                PayloadExtractor.Metadata meta = null;
                 if (parts == null || parts.isEmpty()) {
                     log("… " + t("改用 payload_dumper 解析", "payload_dumper fallback") + " ...");
-                    DnaTools.Result r = DnaTools.run(this,
-                            DnaTools.quote(dumperPath()) + " --list " + DnaTools.quote(path),
-                            line -> kotlin.Unit.INSTANCE,   // 静默（日志只留汇总）
-                            () -> cancelFlag.get(), 120000);
-                    if (r.getSuccess()) parts = parseDumperList(r.getOutput());
-                }
-                if (parts == null || parts.isEmpty()) {
-                    // 回退 3（异常格式）：JNI open + listPartitions
-                    log("… " + t("改用 JNI 解析", "JNI fallback") + " ...");
-                    PayloadExtractor ex = new PayloadExtractor();
-                    boolean ok = ex.open(input);
-                    if (!ok) {
-                        File cache = new File(getCacheDir(), "bin_parse_input");
-                        com.topjohnwu.superuser.Shell.cmd(
-                                "cp -f " + DnaTools.quote(path) + " " + DnaTools.quote(cache.getAbsolutePath())
-                                        + " && chmod 644 " + DnaTools.quote(cache.getAbsolutePath())).exec();
-                        if (cache.isFile() && cache.length() > 0) {
-                            input = cache.getAbsolutePath();
-                            ex = new PayloadExtractor();
-                            ok = ex.open(input);
-                        }
+                    DnaTools.Result r = DnaTools.payloadListCli(this, path,
+                            line -> kotlin.Unit.INSTANCE, () -> cancelFlag.get(), 120000);
+                    parts = r.getSuccess() ? parseDumperList(r.getOutput()) : null;
+                    if (parts == null || parts.isEmpty()) {
+                        String detail = r.getOutput() == null ? "" : r.getOutput().trim();
+                        if (detail.length() > 1200) detail = detail.substring(detail.length() - 1200);
+                        throw new IllegalStateException(t("未能读取到分区列表（文件无 payload.bin、权限不足或列表格式不兼容）",
+                                "No partitions found (missing payload.bin, access denied, or unsupported list format)")
+                                + (r.getSuccess() ? "" : " · " + r.getMessage())
+                                + (detail.isEmpty() ? "" : "\n" + detail));
                     }
-                    if (!ok) throw new IllegalStateException(t("无法打开文件（损坏或非 payload 镜像）", "cannot open (corrupt or not a payload)"));
-                    log("… " + t("正在读取分区表", "Reading partition table") + " ...");
-                    parts = ex.listPartitions(true);
-                    meta = ex.getMetadata();
-                    extractor = ex;
-                } else {
-                    // 快速路径：extractPartition 自带 input 参数，无需 open 句柄
-                    extractor = new PayloadExtractor();
                 }
+                // 后续提取通过 payloadExtractCli 完成；此对象只用于保持页面生命周期兼容。
+                extractor = new PayloadExtractor();
                 final String finalInput = input;
                 final List<PayloadExtractor.PartitionInfo> fParts = parts;
-                final PayloadExtractor.Metadata fMeta = meta;
                 main.post(() -> {
                     openInput = finalInput;
                     partitions.clear();
                     checked.clear();
                     if (fParts != null) partitions.addAll(fParts);
-                    if (fMeta != null)
-                        log("ℹ payload v" + (fMeta.getVersion() != null ? fMeta.getVersion() : "?")
-                                + " · " + t("分区数", "partitions") + ": " + fMeta.getPartitionCount());
                     if (incremental)
                         log("⚠ " + t("检测到增量（delta）包，请使用「分解增量包」功能", "Delta payload detected, use the Incremental page"));
                     log("✓ " + t("解析完成", "Parsed") + " · " + partitions.size()
                             + t(" 个分区，请在弹窗勾选要提取的 img", " partitions, select img in dialog"));
                     status.setText("✓ " + t("解析完成", "Parsed") + " · " + partitions.size() + t(" 个分区", " partitions"));
                     status.setTextColor(pal.success);
-                    notifyDone(true, t("解析完成", "Parsed") + " · " + partitions.size() + t(" 个分区", " partitions"));
-                    showPartitionDialog();
+                    notifyDone(true, t("解析完成", "Parsed") + " · " + partitions.size() + " 个分区");
+                    if (partitions.isEmpty()) {
+                        status.setText("✗ " + t("未发现可提取分区", "No extractable partitions"));
+                        status.setTextColor(pal.danger);
+                        notifyDone(false, t("未发现可提取分区", "No extractable partitions"));
+                    } else {
+                        showPartitionDialog();
+                    }
                 });
             } catch (final Exception e) {
                 final String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();

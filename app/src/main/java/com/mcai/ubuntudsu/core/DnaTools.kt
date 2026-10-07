@@ -878,6 +878,24 @@ object DnaTools {
         }
     }
 
+    /** 使用 APK 内置 Rust payload-dumper 原地列出 payload.bin / OTA ZIP 分区，不初始化 DNA 工具链。 */
+    @JvmStatic
+    @JvmOverloads
+    fun payloadListCli(
+        ctx: Context,
+        input: String,
+        onLog: ((String) -> Unit)? = null,
+        isCancelled: () -> Boolean = { false },
+        timeoutMs: Long = 120_000L,
+    ): Result {
+        val bundledTool = File(ctx.applicationInfo.nativeLibraryDir, "libpayload_extract.so")
+        if (!bundledTool.isFile) {
+            return Result(false, "", "APK 内置 payload 提取器不存在: ${bundledTool.absolutePath}", -1)
+        }
+        val command = quote(bundledTool.absolutePath) + " " + quote(realPath(input)) + " --list"
+        return runPayloadCommand(command, onLog, isCancelled, timeoutMs)
+    }
+
     /**
      * 分解 bin / OTA zip：优先使用 APK 内置 payload-dumper-rust（零下载/零中转），
      * 按 CPU 核心数自适应并发；旧安装包缺少内置二进制时才回退 DNA 工具链。
