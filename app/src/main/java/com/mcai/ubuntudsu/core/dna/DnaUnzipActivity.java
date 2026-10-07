@@ -30,6 +30,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class DnaUnzipActivity extends DnaBaseActivity {
 
+    private static final int PICK_ROM_ZIP = 3412;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, android.content.Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_ROM_ZIP || resultCode != RESULT_OK || data == null) return;
+        String path = data.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH);
+        if (path == null || !path.startsWith("/")) return;
+        chosenZip = path;
+        chosenSizeText = "";
+        renderSelection();
+        log("📦 " + path.substring(path.lastIndexOf('/') + 1));
+    }
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private final java.util.concurrent.ExecutorService io =
             java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
@@ -227,14 +241,10 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         Button browse = pillButton("📂", 15, pal.accent, dp(38), dp(32));
         browse.setOnClickListener(v -> {
             Haptics.perform(v);
-            FileBrowserDialog.show(this, t("选择 ROM 压缩包", "Select ROM zip"),
-                    new String[]{".zip", ".zip2"}, "/storage/emulated/0",
-                    path -> {
-                        chosenZip = path;
-                        chosenSizeText = "";
-                        renderSelection();
-                        log("📦 " + path.substring(path.lastIndexOf('/') + 1));
-                    });
+            startActivityForResult(
+                    com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
+                            this, t("选择 ROM 压缩包", "Select ROM zip"), new String[]{".zip", ".zip2"}),
+                    PICK_ROM_ZIP);
         });
         android.widget.LinearLayout.LayoutParams brLp = new LinearLayout.LayoutParams(dp(38), dp(32));
         brLp.leftMargin = dp(6);

@@ -404,11 +404,21 @@ public final class DnaModuleActivity extends DnaBaseActivity {
     }
 
 
-    /** 选择 .zip2 插件包（v3.30.15：内置文件浏览器替换系统 SAF；后缀在导入时严格校验） */
+    /** 使用 rootfs 文件管理器选择 .zip2 插件包；导入时仍严格校验后缀。 */
     private void pickModule() {
         Haptics.perform(runButtonStub());
-        FileBrowserDialog.show(this, t("导入插件（.zip2）", "Import module (.zip2)"),
-                new String[]{".zip2"}, DnaTools.WORK_ROOT, path -> importModule(path));
+        startActivityForResult(
+                com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
+                        this, t("导入插件（.zip2）", "Import module (.zip2)"), new String[]{".zip2"}),
+                PICK_MODULE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_MODULE || resultCode != RESULT_OK || data == null) return;
+        String path = data.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH);
+        if (path != null && path.startsWith("/")) importModule(path);
     }
 
     private View runButtonStub() {

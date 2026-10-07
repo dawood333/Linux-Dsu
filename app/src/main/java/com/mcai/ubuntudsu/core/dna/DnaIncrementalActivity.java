@@ -36,6 +36,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class DnaIncrementalActivity extends DnaBaseActivity {
 
+    private static final int PICK_SOURCE_FILE = 3411;
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private final java.util.concurrent.ExecutorService io =
             java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
@@ -48,6 +50,17 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
 
     private static final String NOTE_CHANNEL = "dna_inc_channel";
     private static final int NOTE_ID = 4021;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_SOURCE_FILE || resultCode != RESULT_OK || data == null) return;
+        String path = data.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH);
+        if (path == null || !path.startsWith("/")) return;
+        binPath = path;
+        renderSources(null);
+        log("📦 " + new File(path).getName());
+    }
 
     // 数据
     private String project;          // 输出工程
@@ -398,9 +411,11 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         Button browseBtn = pillButton("📂", 15, pal.accent, dp(38), dp(32));
         browseBtn.setOnClickListener(v -> {
             Haptics.perform(v);
-            FileBrowserDialog.show(this, t("选择增量 payload.bin / OTA zip", "Pick delta payload.bin / OTA zip"),
-                    new String[]{"payload.bin", ".zip", ".zip2"}, DnaTools.WORK_ROOT,
-                    path -> { binPath = path; renderSources(null); log("📦 " + new File(path).getName()); });
+            startActivityForResult(
+                    com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
+                            this, t("选择增量 payload.bin / OTA zip", "Pick delta payload.bin / OTA zip"),
+                            new String[]{"payload.bin", ".zip", ".zip2"}),
+                    PICK_SOURCE_FILE);
         });
         android.widget.LinearLayout.LayoutParams brLp = new LinearLayout.LayoutParams(dp(38), dp(32));
         brLp.leftMargin = dp(8);

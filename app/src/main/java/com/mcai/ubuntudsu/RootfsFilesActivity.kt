@@ -44,6 +44,18 @@ class RootfsFilesActivity : AppCompatActivity() {
         const val EXTRA_EXT = "extra_ext"
         const val EXTRA_EXT_ALL = "extra_ext_all"
         const val RESULT_FILE_PATH = "result_file_path"
+
+        @JvmStatic
+        fun createPickIntent(
+            context: android.content.Context,
+            title: String,
+            extensions: Array<String>?,
+        ): android.content.Intent = android.content.Intent(context, RootfsFilesActivity::class.java).apply {
+            putExtra(EXTRA_PICK, true)
+            putExtra(EXTRA_TITLE, title)
+            if (extensions.isNullOrEmpty()) putExtra(EXTRA_EXT_ALL, true)
+            else putExtra(EXTRA_EXT, extensions.joinToString(","))
+        }
     }
 
     override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {

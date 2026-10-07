@@ -38,6 +38,8 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class DnaBinActivity extends DnaBaseActivity {
 
+    private static final int PICK_SOURCE_FILE = 3410;
+
     private final Handler main = new Handler(Looper.getMainLooper());
     private final java.util.concurrent.ExecutorService io =
             java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
@@ -114,6 +116,17 @@ public final class DnaBinActivity extends DnaBaseActivity {
     }
 
     // ================= 通知栏同步（v3.30.31：进度实时，不延迟） =================
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_SOURCE_FILE || resultCode != RESULT_OK || data == null) return;
+        String path = data.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH);
+        if (path == null || !path.startsWith("/")) return;
+        binPath = path;
+        renderSourceSelection();
+        log("📥 " + path.substring(path.lastIndexOf('/') + 1));
+    }
 
     private static final String NOTE_CHANNEL = "dna_tools_progress";
     private static final int NOTE_ID = 3407;
@@ -291,13 +304,11 @@ public final class DnaBinActivity extends DnaBaseActivity {
         Button browseBtn = pillButton("📂", 15, pal.accent, dp(38), dp(32));
         browseBtn.setOnClickListener(v -> {
             Haptics.perform(v);
-            FileBrowserDialog.show(this, t("选择 payload.bin / OTA zip", "Pick payload.bin / OTA zip"),
-                    new String[]{"payload.bin", ".zip", ".zip2"}, DnaTools.WORK_ROOT,
-                    path -> {
-                        binPath = path;
-                        renderSourceSelection();
-                        log("📥 " + path.substring(path.lastIndexOf('/') + 1));
-                    });
+            startActivityForResult(
+                    com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
+                            this, t("选择 payload.bin / OTA zip", "Pick payload.bin / OTA zip"),
+                            new String[]{"payload.bin", ".zip", ".zip2"}),
+                    PICK_SOURCE_FILE);
         });
         android.widget.LinearLayout.LayoutParams brLp = new LinearLayout.LayoutParams(dp(38), dp(32));
         brLp.leftMargin = dp(8);
@@ -800,7 +811,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         title.setPadding(dp(2), 0, 0, dp(10));
         panel.addView(title, new LinearLayout.LayoutParams(-1, -2));
 
-        // 头部：计数 + 全选 / 清空
+        // 头部仅显示计数；批量操作统一放到底部操作栏
         LinearLayout head = new LinearLayout(this);
         head.setOrientation(LinearLayout.HORIZONTAL);
         head.setGravity(Gravity.CENTER_VERTICAL);
@@ -809,23 +820,6 @@ public final class DnaBinActivity extends DnaBaseActivity {
         count.setTypeface(null, 1);
         count.setTextColor(pal.success);
         head.addView(count, new LinearLayout.LayoutParams(0, -2, 1f));
-        Button allBtn = pillButton(t("全选", "All"), 11.5f, pal.success, dp(52), dp(30));
-        allBtn.setOnClickListener(v -> {
-            Haptics.perform(v);
-            checked.clear();
-            for (PayloadExtractor.PartitionInfo p : partitions) checked.add(p.getName());
-            render[0].run();
-        });
-        head.addView(allBtn, new LinearLayout.LayoutParams(dp(52), dp(30)));
-        Button noneBtn = pillButton(t("清空", "None"), 11.5f, pal.danger, dp(52), dp(30));
-        android.widget.LinearLayout.LayoutParams nLp = new LinearLayout.LayoutParams(dp(52), dp(30));
-        nLp.leftMargin = dp(6);
-        head.addView(noneBtn, nLp);
-        noneBtn.setOnClickListener(v -> {
-            Haptics.perform(v);
-            checked.clear();
-            render[0].run();
-        });
         panel.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
         // 可滚动分区列表：圆点勾选 + 名称 + 大小（不显示哈希）
@@ -885,13 +879,25 @@ public final class DnaBinActivity extends DnaBaseActivity {
         };
         render[0].run();
 
-        // 底部：取消 + 确定（确定即开始提取）
+        // 底部同排：全选、清空、取消、确定（确定即开始提取）
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER_VERTICAL);
-        Button cancel = pillButton(t("取消", "Cancel"), 13f, pal.subtitle, dp(76), dp(46));
+        Button allBtn = pillButton(t("全选", "All"), 11.5f, pal.success, dp(52), dp(42));
+        allBtn.setOnClickListener(v -> {
+            Haptics.perform(v);
+            checked.clear();
+            for (PayloadExtractor.PartitionInfo p : partitions) checked.add(p.getName());
+            render[0].run();
+        });
+        Button noneBtn = pillButton(t("清空", "None"), 11.5f, pal.danger, dp(52), dp(42));
+        noneBtn.setOnClickListener(v -> {
+            Haptics.perform(v);
+            checked.clear();
+            render[0].run();
+        });
+        Button cancel = pillButton(t("取消", "Cancel"), 12f, pal.subtitle, dp(64), dp(42));
         cancel.setOnClickListener(v -> { Haptics.perform(v); dialog.dismiss(); });
-        btnRow.addView(cancel, new LinearLayout.LayoutParams(dp(76), dp(46)));
         Button ok = gradientButton("✓  " + t("确定", "Extract"), new int[]{0xFF2f9c8f, 0xFF1d6b46}, dp(16));
         ok.setOnClickListener(v -> {
             Haptics.perform(v);
@@ -902,9 +908,13 @@ public final class DnaBinActivity extends DnaBaseActivity {
             dialog.dismiss();
             extract();
         });
-        LinearLayout.LayoutParams okLp = new LinearLayout.LayoutParams(0, dp(46), 1f);
-        okLp.leftMargin = dp(10);
-        btnRow.addView(ok, okLp);
+        Button[] bottomButtons = {allBtn, noneBtn, cancel, ok};
+        float[] weights = {0.9f, 0.9f, 1.0f, 1.35f};
+        for (int i = 0; i < bottomButtons.length; i++) {
+            LinearLayout.LayoutParams buttonLp = new LinearLayout.LayoutParams(0, dp(42), weights[i]);
+            if (i > 0) buttonLp.leftMargin = dp(6);
+            btnRow.addView(bottomButtons[i], buttonLp);
+        }
         LinearLayout.LayoutParams brLp = new LinearLayout.LayoutParams(-1, -2);
         brLp.topMargin = dp(12);
         panel.addView(btnRow, brLp);

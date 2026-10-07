@@ -499,9 +499,10 @@ public final class DnaActivity extends DnaBaseActivity {
         pickSaf.setStateListAnimator(null);
         pickSaf.setOnClickListener(v -> {
             Haptics.perform(v);
-            // v3.30.15：内置文件浏览器替换系统 SAF 选择器（层级深、找文件麻烦）
-            FileBrowserDialog.show(this, t("选择文件", "Pick file"), browseExts(),
-                    DnaTools.WORK_ROOT, path -> onBrowserPicked(path));
+            startActivityForResult(
+                    com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
+                            this, t("选择文件", "Pick file"), browseExts()),
+                    PICK_FILE);
         });
         pickHead.addView(pickSaf, safLp);
         pickCard.addView(pickHead, new LinearLayout.LayoutParams(-1, -2));
@@ -2467,6 +2468,11 @@ public final class DnaActivity extends DnaBaseActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode != PICK_FILE || resultCode != RESULT_OK || data == null) return;
+        String pickedPath = data.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH);
+        if (pickedPath != null && pickedPath.startsWith("/")) {
+            onBrowserPicked(pickedPath);
+            return;
+        }
         Uri uri = data.getData();
         if (uri == null) return;
         String path = resolvePath(uri);
