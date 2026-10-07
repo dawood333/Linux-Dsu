@@ -199,14 +199,14 @@ class RootfsFilesActivity : AppCompatActivity() {
             Ui.applyNeuShadow(this, 6f, 12f)
         }
         if (pickMode) {
-            toolBar.addView(smallAction("上级", Ui.buttonSecondary(this)) { navigateUp() }.apply {
-                layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginEnd = Ui.dp(6, d) }
-            })
             toolBar.addView(smallAction("根目录", Ui.buttonPrimary(this)) {
                 history.clear()
                 currentDir = pickRoot()
                 refresh()
             }.apply {
+                layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginEnd = Ui.dp(6, d) }
+            })
+            toolBar.addView(smallAction("上级", Ui.buttonSecondary(this)) { navigateUp() }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginStart = Ui.dp(6, d) }
             })
         } else {
