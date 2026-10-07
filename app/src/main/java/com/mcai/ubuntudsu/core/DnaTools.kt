@@ -846,6 +846,10 @@ object DnaTools {
                 append(command.trim()).append(" &\n")
                 append("__dna_pid=\$!\n")
                 append("while kill -0 \"\$__dna_pid\" 2>/dev/null; do\n")
+                // Android 的 mksh 可能在 wait 前保留已退出子进程的 zombie PID；kill -0 对 zombie 仍成功。
+                // 识别 Z 状态后跳出扫描并执行 wait，避免所有 img 都完成后最终总结一直不返回。
+                append("  __dna_state=\$(awk '\$1 == \"State:\" { print \$2; exit }' /proc/\$__dna_pid/status 2>/dev/null)\n")
+                append("  [ \"\$__dna_state\" = Z ] && break\n")
                 append("  for __dna_file in ").append(quote(watchedOutputDir)).append("/*.img; do\n")
                 append("    [ -f \"\$__dna_file\" ] || continue\n")
                 append("    __dna_name=\${__dna_file##*/}; [ -e \"\$__dna_seen/\$__dna_name\" ] && continue\n")
