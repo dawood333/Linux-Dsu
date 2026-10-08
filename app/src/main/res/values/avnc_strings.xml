@@ -185,10 +185,10 @@
     <string name="pref_gesture_style">Gesture style</string>
     <string name="pref_gesture_style_auto" translatable="false">@string/title_automatic</string>
     <string name="pref_gesture_style_auto_summary">Based on application settings</string>
-    <string name="pref_gesture_style_touchscreen">触摸屏</string>
-    <string name="pref_gesture_style_touchscreen_summary">在触摸位置执行操作</string>
-    <string name="pref_gesture_style_touchpad">触摸板</string>
-    <string name="pref_gesture_style_touchpad_summary">在鼠标指针位置执行操作</string>
+    <string name="pref_gesture_style_touchscreen">Touchscreen</string>
+    <string name="pref_gesture_style_touchscreen_summary">Perform actions at the touch location</string>
+    <string name="pref_gesture_style_touchpad">Touchpad</string>
+    <string name="pref_gesture_style_touchpad_summary">Perform actions at the mouse pointer location</string>
     <string name="pref_single_tap">Single tap</string>
     <string name="pref_two_finger_tap">Two-finger tap</string>
     <string name="pref_three_finger_tap">Three-finger tap</string>
