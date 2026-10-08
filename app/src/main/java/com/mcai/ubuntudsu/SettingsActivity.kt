@@ -18,12 +18,12 @@ import com.mcai.ubuntudsu.ui.Haptics
 import com.mcai.ubuntudsu.ui.Ui
 
 /**
- * 全屏设置页（参考 Dsu-Manager 的 SettingsActivity 布局）：
- * 返回条 + 「个性主题」分区 + 「关于信息」分区，整体沿用主应用拟态玻璃架构。
+ * 全屏Settings页（参考 Dsu-Manager 的 SettingsActivity 布局）：
+ * 返回条 + 「个性主题」分区 + 「About」分区，整体沿用主应用拟态玻璃架构。
  *
  * 主题偏好与主界面共用 MainActivity 的私有 SharedPreferences 文件
  * （MainActivity 用 getPreferences() 读写，文件名即类名 "MainActivity"），
- * 保证设置页改主题后主界面立即生效。
+ * 保证Settings页改主题后主界面立即生效。
  */
 class SettingsActivity : AppCompatActivity() {
 
@@ -71,7 +71,7 @@ class SettingsActivity : AppCompatActivity() {
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(24, d))
         }
 
-        // ===== 返回条：‹ 返回 / 设置（标题真正居中） =====
+        // ===== 返回条：‹ 返回 / Settings（标题真正居中） =====
         val titleRow = FrameLayout(this).apply {
             setPadding(0, 0, 0, Ui.dp(16, d))
         }
@@ -93,7 +93,7 @@ class SettingsActivity : AppCompatActivity() {
             )
         })
         titleRow.addView(TextView(this).apply {
-            text = "设置"
+            text = "Settings"
             textSize = 20f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@SettingsActivity))
@@ -106,7 +106,7 @@ class SettingsActivity : AppCompatActivity() {
         })
         page.addView(titleRow)
 
-        // ===== 分区一：关于信息（置顶，使用主色绿替代蓝字） =====
+        // ===== 分区一：About（置顶，使用主色绿替代蓝字） =====
         val aboutInfoCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = Ui.neuCard(this@SettingsActivity, 18f)
@@ -117,7 +117,7 @@ class SettingsActivity : AppCompatActivity() {
             ).apply { bottomMargin = Ui.dp(12, d) }
         }
         aboutInfoCard.addView(TextView(this).apply {
-            text = "关于信息"
+            text = "About"
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@SettingsActivity))
@@ -140,7 +140,7 @@ class SettingsActivity : AppCompatActivity() {
             setPadding(0, 0, 0, Ui.dp(10, d))
         })
         aboutInfoCard.addView(TextView(this).apply {
-            text = "Ubuntu Chroot / DSU / ROM 移植一站式工具。首页右上角「关于信息」可查看完整功能简介。"
+            text = "Ubuntu Chroot / DSU / ROM 移植一站式工具。首页右上角「About」可查看完整功能简介。"
             textSize = 12f
             setTextColor(Ui.secondaryText(this@SettingsActivity))
             setLineSpacing(Ui.dp(3, d).toFloat(), 1f)
@@ -158,7 +158,7 @@ class SettingsActivity : AppCompatActivity() {
             ).apply { bottomMargin = Ui.dp(12, d) }
         }
         themeCard.addView(TextView(this).apply {
-            text = "主题模式"
+            text = "Theme"
             textSize = 13f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@SettingsActivity))
@@ -185,14 +185,14 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
         aboutCard.addView(TextView(this).apply {
-            text = "查看特别鸣谢"
+            text = "View Credits"
             textSize = 14f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@SettingsActivity))
             setPadding(0, 0, 0, Ui.dp(6, d))
         })
         aboutCard.addView(TextView(this).apply {
-            text = "感谢本软件采用的开源项目、工具链与社区贡献者。查看完整鸣谢列表"
+            text = "Thanks to the open-source projects, toolchains, and community contributors. View the full credits."
             textSize = 12f
             setTextColor(Ui.secondaryText(this@SettingsActivity))
             setLineSpacing(Ui.dp(3, d).toFloat(), 1f)
@@ -202,7 +202,7 @@ class SettingsActivity : AppCompatActivity() {
         return page
     }
 
-    /** 主题模式三选一：跟随系统 / 浅色 / 深色（选中项高亮，切换后立即重建生效） */
+    /** Theme三选一：Follow System / Light / Dark（选中项高亮，切换后立即重建生效） */
     private fun buildThemeModeRow(): View {
         val prefs = getSharedPreferences(THEME_PREFS, Activity.MODE_PRIVATE)
         val current = prefs.getInt(KEY_THEME_MODE, AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
@@ -211,7 +211,7 @@ class SettingsActivity : AppCompatActivity() {
             AppCompatDelegate.MODE_NIGHT_YES -> 2
             else -> 0
         }
-        val modes = arrayOf("跟随系统", "浅色", "深色")
+        val modes = arrayOf("Follow System", "Light", "Dark")
         val group = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         modes.forEachIndexed { index, label ->
             group.addView(TextView(this).apply {
