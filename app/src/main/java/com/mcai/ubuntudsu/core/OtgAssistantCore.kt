@@ -305,7 +305,7 @@ object OtgAssistantCore {
                 lastObservedBytes = writtenBytes
                 lastObservedImages = files.size
             }
-            onProgress(-1, "Extracting partitions: generated ${files.size} 个镜像，已写入 ${formatBytes(writtenBytes)}")
+            onProgress(-1, "Extracting partitions: generated ${files.size}  images，written  ${formatBytes(writtenBytes)}")
             Thread.sleep(500)
         }
         outputReader.join(2000)
@@ -314,7 +314,7 @@ object OtgAssistantCore {
         if (exitCode != 0) throw IllegalStateException("payload_extract failed (exit code $exitCode）: ${outputText.takeLast(1200)}")
         val images = extracted.listFiles()?.filter { it.isFile && it.extension.equals("img", true) }.orEmpty()
         if (images.isEmpty()) throw IllegalStateException("payload_extract produced no images: ${outputText.takeLast(1200)}")
-        onProgress(100, "Partition extraction complete; generated ${images.size} 个镜像")
+        onProgress(100, "Partition extraction complete; generated ${images.size}  images")
         return OtaExtractionResult(
             root = root,
             containsPayload = true,
@@ -524,7 +524,7 @@ object OtgAssistantCore {
                 lastObservedBytes = writtenBytes
                 lastObservedImages = files.size
             }
-            onProgress(-1, "Extracting partitions: generated ${files.size} 个镜像，已写入 ${formatBytes(writtenBytes)}")
+            onProgress(-1, "Extracting partitions: generated ${files.size}  images，written  ${formatBytes(writtenBytes)}")
             Thread.sleep(500)
         }
         outputReader.join(2000)
@@ -533,7 +533,7 @@ object OtgAssistantCore {
         if (exitCode != 0) throw IllegalStateException("payload_extract failed (exit code $exitCode）: ${outputText.takeLast(1200)}")
         val images = extracted.listFiles()?.filter { it.isFile && it.extension.equals("img", true) }.orEmpty()
         if (images.isEmpty()) throw IllegalStateException("payload_extract produced no images: ${outputText.takeLast(1200)}")
-        onProgress(100, "Partition extraction complete; generated ${images.size} 个镜像")
+        onProgress(100, "Partition extraction complete; generated ${images.size}  images")
         return OtaExtractionResult(
             root = File(context.filesDir, "ota"),
             containsPayload = true,
