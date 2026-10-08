@@ -32,12 +32,12 @@ import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * DNA 插件管理页（v3.28.11：弹窗 → 独立二级页面，重新设计 UI）。
+ * DNA Plugins管理页（v3.28.11：弹窗 → 独立二级页面，重新设计 UI）。
  * 逻辑对齐原版 modun.sh / dna.xml：
  * - 导入：dna unzip <file.zip2> <module目录>（仅识别 .zip2，suffix="zip2"）
  * - 执行：插件内 sh 脚本；$MODDIR=插件自身目录，$DNA_PRO/$DNA_DRO 由 DnaTools.run 注入当前工程
  * - 删除：rm -rf 插件目录（原版 project.sh sub）
- * 插件作用于当前工程分解后的文件：执行前校验已选工程，执行时 cd $DNA_DRO。
+ * 插件作用于当前工程分解后的文件：执行前校验Selected工程，执行时 cd $DNA_DRO。
  */
 public final class DnaModuleActivity extends DnaBaseActivity {
 
@@ -76,7 +76,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
-    /** 插件安装目录（沿用 v3.28.8 路径，已导入插件无需重装） */
+    /** 插件安装目录（沿用 v3.28.8 路径，已Import Plugin无需重装） */
     private File moduleRoot() {
         File dir = new File(getFilesDir(), "dna-module");
         if (!dir.isDirectory()) dir.mkdirs();
@@ -121,15 +121,15 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         titleBar.setOrientation(LinearLayout.HORIZONTAL);
         titleBar.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = new TextView(this);
-        title.setText(t("DNA 插件", "DNA Modules"));
+        title.setText(t("DNA Plugins", "DNA Modules"));
         title.setTextSize(19);
         title.setTextColor(pal.title);
         title.setTypeface(null, 1);
         title.setPadding(dp(12), 0, 0, 0);
         titleBar.addView(title, new LinearLayout.LayoutParams(0, -2, 1f));
-        // v3.28.12：右上角改为带文字的胶囊按钮（明确"导入插件"入口），替代含义不清的 ＋ 圆钮
+        // v3.28.12：右上角改为带文字的胶囊按钮（明确"Import Plugin"入口），替代含义不清的 ＋ 圆钮
         Button importTop = new Button(this);
-        importTop.setText("＋ " + t("导入插件", "Import"));
+        importTop.setText("＋ " + t("Import Plugin", "Import"));
         importTop.setTextSize(13f);
         importTop.setAllCaps(false);
         importTop.setTypeface(null, 1);
@@ -165,7 +165,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         LinearLayout projText = new LinearLayout(this);
         projText.setOrientation(LinearLayout.VERTICAL);
         TextView projLabel = new TextView(this);
-        projLabel.setText("🧬  " + t("作用工程（点击切换）", "Acts on project (tap to switch)"));
+        projLabel.setText("🧬  " + t("Target Project (tap to switch)", "Acts on project (tap to switch)"));
         projLabel.setTextSize(11.5f);
         projLabel.setTextColor(pal.subtitle);
         projText.addView(projLabel, new LinearLayout.LayoutParams(-1, -2));
@@ -200,7 +200,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         projRow.addView(switchProject, new LinearLayout.LayoutParams(dp(42), dp(42)));
         projCard.addView(projRow, new LinearLayout.LayoutParams(-1, -2));
         TextView projHint = new TextView(this);
-        projHint.setText(t("插件将作用于该工程分解后的文件（$DNA_DRO），执行时自动切换工作目录",
+        projHint.setText(t("The plugin operates on extracted project files ($DNA_DRO) and switches the working directory automatically",
                 "Plugins act on this project's extracted files ($DNA_DRO)"));
         projHint.setTextSize(10.5f);
         projHint.setTextColor(pal.subtitle);
@@ -219,9 +219,9 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         moduleList.setOrientation(LinearLayout.VERTICAL);
         content.addView(moduleList, new LinearLayout.LayoutParams(-1, -2));
 
-        // v3.28.12：删除底部重复的导入大按钮（右上角"＋ 导入插件"已是唯一入口），仅保留小字说明
+        // v3.28.12：删除底部重复的导入大按钮（右上角"＋ Import Plugin"已是唯一入口），仅保留小字说明
         TextView footNote = new TextView(this);
-        footNote.setText(t("仅识别 .zip2 结尾的插件包 · 插件内的 sh 脚本点击即执行",
+        footNote.setText(t("Only .zip2 plugin packages are supported · tap an sh script to run it",
                 "Only .zip2 packs · tap a sh script inside to run"));
         footNote.setTextSize(10.5f);
         footNote.setTextColor(pal.subtitle);
@@ -244,7 +244,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         consoleHead.setGravity(Gravity.CENTER_VERTICAL);
         consoleHead.setPadding(0, 0, 0, dp(8));
         consoleTitle = new TextView(this);
-        consoleTitle.setText(t("执行任务", "Run Task"));
+        consoleTitle.setText(t("Run Task", "Run Task"));
         consoleTitle.setTextSize(14f);
         consoleTitle.setTypeface(null, 1);
         consoleTitle.setTextColor(pal.title);
@@ -255,7 +255,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         consoleActions.setOrientation(LinearLayout.HORIZONTAL);
         consoleActions.setGravity(Gravity.CENTER_VERTICAL);
         Button copyConsole = new Button(this, null, 0);
-        copyConsole.setText(t("复制日志", "Copy Log"));
+        copyConsole.setText(t("Copy Log", "Copy Log"));
         copyConsole.setAllCaps(false);
         copyConsole.setTextSize(11f);
         copyConsole.setTypeface(null, 1);
@@ -273,7 +273,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         copyConsole.setOnClickListener(v -> {
             Haptics.perform(v);
             CharSequence text = consoleText.getText();
-            if (text.length() == 0) { toast(t("暂无日志", "Nothing to copy")); return; }
+            if (text.length() == 0) { toast(t("No logs", "Nothing to copy")); return; }
             android.content.ClipboardManager cm =
                     (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             cm.setPrimaryClip(android.content.ClipData.newPlainText("DNA module log", text));
@@ -281,7 +281,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         });
         consoleActions.addView(copyConsole, new LinearLayout.LayoutParams(-2, dp(30)));
         Button clearConsole = new Button(this, null, 0);
-        clearConsole.setText(t("清除日志", "Clear Log"));
+        clearConsole.setText(t("Clear Log", "Clear Log"));
         clearConsole.setAllCaps(false);
         clearConsole.setTextSize(11f);
         clearConsole.setTypeface(null, 1);
@@ -299,7 +299,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         clearConsole.setOnClickListener(v -> {
             Haptics.perform(v);
             consoleText.setText("");
-            toast(t("日志已清空", "Log cleared"));
+            toast(t("日志已Clear", "Log cleared"));
         });
         LinearLayout.LayoutParams clearLp = new LinearLayout.LayoutParams(-2, dp(30));
         clearLp.leftMargin = dp(6);
@@ -346,7 +346,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         consoleScroll.addView(consoleText, new ScrollView.LayoutParams(-1, -2));
         consoleCard.addView(consoleScroll, new LinearLayout.LayoutParams(-1, dp(420)));
         consoleStop = new Button(this, null, 0);
-        consoleStop.setText(t("■ 停止执行", "■ Stop"));
+        consoleStop.setText(t("■ Stop", "■ Stop"));
         consoleStop.setAllCaps(false);
         consoleStop.setTextSize(13f);
         consoleStop.setTypeface(null, 1);
@@ -372,7 +372,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         setContentView(root);
     }
 
-    /** v3.41.14：插件执行日志改为弹出小窗口（顶部关闭/复制/清空，底部保留停止/收起） */
+    /** v3.41.14：插件执行日志改为弹出小窗口（顶部Close/复制/Clear，底部保留停止/收起） */
     private void expandConsole() {
         if (consoleCard == null) return;
         if (consoleDialog == null) {
@@ -409,7 +409,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         Haptics.perform(runButtonStub());
         startActivityForResult(
                 com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
-                        this, t("导入插件（.zip2）", "Import module (.zip2)"), new String[]{".zip2"}),
+                        this, t("Import Plugin（.zip2）", "Import module (.zip2)"), new String[]{".zip2"}),
                 PICK_MODULE);
     }
 
@@ -434,7 +434,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
             projectBadge.setText(project);
             projectBadge.setTextColor(pal.success);
         } else {
-            projectBadge.setText(t("⚠ 未选择工程 —— 执行插件前请先在 DNA 页切换工程",
+            projectBadge.setText(t("⚠ 未Select Project —— 执行插件前请先在 DNA 页切换工程",
                     "⚠ No project — switch to one on the DNA page before running"));
             projectBadge.setTextColor(pal.danger);
         }
@@ -442,7 +442,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         File[] modules = moduleRoot().listFiles(File::isDirectory);
         if (modules == null || modules.length == 0) {
             emptyView = new TextView(this);
-            emptyView.setText("🧩  " + t("暂无插件\n点右上角 ＋ 或下方按钮导入 .zip2 插件包",
+            emptyView.setText("🧩  " + t("No plugins\nTap ＋ above or the button below to import a .zip2 plugin",
                     "No modules yet\nImport a .zip2 pack via ＋ or the button below"));
             emptyView.setTextSize(13f);
             emptyView.setTextColor(pal.subtitle);
@@ -485,7 +485,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         bg.setStroke(Math.max(1, dp(1)), 0x66FFFFFF);
         panel.setBackground(bg);
         TextView title = new TextView(this);
-        title.setText(t("选择工程", "Select project"));
+        title.setText(t("Select Project", "Select project"));
         title.setTextSize(16);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -497,7 +497,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         listScroll.addView(list, new ScrollView.LayoutParams(-1, -2));
         if (projects.isEmpty()) {
             TextView empty = new TextView(this);
-            empty.setText(t("暂无工程，请先在 DNA 页新建工程", "No projects yet. Create one on DNA page"));
+            empty.setText(t("No projects. Create one on the DNA page first.", "No projects yet. Create one on DNA page"));
             empty.setTextSize(13);
             empty.setTextColor(pal.subtitle);
             empty.setPadding(0, dp(8), 0, dp(8));
@@ -525,13 +525,13 @@ public final class DnaModuleActivity extends DnaBaseActivity {
                 Haptics.perform(v);
                 DnaTools.setCurrentProject(this, name);
                 dialog.dismiss();
-                toast(t("已切换工程", "Project switched") + ": " + name);
+                toast(t("Project switched", "Project switched") + ": " + name);
                 refreshModules();
             });
         }
         panel.addView(listScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
         Button close = new Button(this);
-        close.setText(t("关闭", "Close"));
+        close.setText(t("Close", "Close"));
         close.setAllCaps(false);
         close.setTextColor(pal.accent);
         close.setGravity(Gravity.CENTER);
@@ -624,7 +624,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
 
             if (scripts.isEmpty()) {
                 TextView none = new TextView(this);
-                none.setText(t("插件内没有 sh 脚本", "No sh scripts in this module"));
+                none.setText(t("No sh script in plugin", "No sh scripts in this module"));
                 none.setTextSize(12f);
                 none.setTextColor(pal.subtitle);
                 none.setPadding(dp(4), dp(6), dp(4), dp(6));
@@ -663,7 +663,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
                 });
             }
             Button delete = new Button(this, null, 0);
-            delete.setText("🗑  " + t("删除插件", "Delete module"));
+            delete.setText("🗑  " + t("Delete Plugin", "Delete module"));
             delete.setAllCaps(false);
             delete.setTextSize(13f);
             delete.setTypeface(null, 1);
@@ -676,7 +676,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
                 Haptics.perform(v);
                 RootShell.INSTANCE.exec("rm -rf " + DnaTools.quote(mod.getAbsolutePath()), 30000, null);
                 if (mod.equals(expandedModule)) expandedModule = null;
-                toast(t("已删除插件", "Module deleted"));
+                toast(t("已Delete Plugin", "Module deleted"));
                 refreshModules();
             });
             card.addView(delete, new LinearLayout.LayoutParams(-1, dp(42)));
@@ -706,17 +706,17 @@ public final class DnaModuleActivity extends DnaBaseActivity {
 
     /** 执行插件脚本：校验工程 → 控制台流式输出（$MODDIR 注入 + cd $DNA_DRO） */
     private void runScript(File mod, String rel, File sh) {
-        if (running.get()) { toast(t("正在执行其他脚本，请先停止", "A script is running, stop it first")); return; }
+        if (running.get()) { toast(t("Another script is running; stop it first", "A script is running, stop it first")); return; }
         String project = DnaTools.currentProject(this);
         if (project == null) {
-            toast(t("请先在 DNA 页切换到要作用的工程", "Switch to a project on the DNA page first"));
+            toast(t("Switch to the target project on the DNA page first", "Switch to a project on the DNA page first"));
             return;
         }
         running.set(true);
         cancelFlag.set(false);
         consoleTitle.setText("▶ " + mod.getName() + " · " + rel);
         consoleText.setText("");
-        consoleStop.setText(t("■ 停止执行", "■ Stop"));
+        consoleStop.setText(t("■ Stop", "■ Stop"));
         // v3.41.14：控制台改为弹出小窗口
         expandConsole();
         final String command = "export MODDIR=" + DnaTools.quote(mod.getAbsolutePath())
@@ -732,31 +732,31 @@ public final class DnaModuleActivity extends DnaBaseActivity {
             mainHandler.post(() -> {
                 running.set(false);
                 appendConsole((result.getSuccess() ? "✓ " : "✗ ") + result.getMessage());
-                consoleStop.setText(t("收起控制台", "Hide console"));
-                toast(result.getSuccess() ? t("插件执行完成", "Module finished") : t("执行失败", "Failed"));
+                consoleStop.setText(t("Collapse Console", "Hide console"));
+                toast(result.getSuccess() ? t("插件Execution complete", "Module finished") : t("Execution failed", "Failed"));
             });
         }, "dna-module-run").start();
     }
 
     // ============ 导入 ============
 
-    /** 导入插件（对齐原版 dna.xml：dna unzip $file $module目录；仅识别 .zip2；
+    /** Import Plugin（对齐原版 dna.xml：dna unzip $file $module目录；仅识别 .zip2；
      *  v3.30.15：真实绝对路径 root 直接解压，无需复制缓存） */
     private void importModule(String path) {
         String name = new File(path).getName();
         if (name == null || !name.toLowerCase(Locale.US).endsWith(".zip2")) {
-            toast(t("仅支持 .zip2 结尾的插件包", "Only .zip2 plugin packs are supported")
+            toast(t("Only .zip2 plugin packages are supported", "Only .zip2 plugin packs are supported")
                     + (name == null ? "" : ": " + name));
             return;
         }
-        toast(t("正在导入插件 ...", "Importing module..."));
+        toast(t("正在Import Plugin ...", "Importing module..."));
         new Thread(() -> {
             DnaTools.Result r = DnaTools.run(this,
                     "dna unzip " + DnaTools.quote(path) + " "
                             + DnaTools.quote(moduleRoot().getAbsolutePath()));
             mainHandler.post(() -> {
-                toast(r.getSuccess() ? t("插件已导入", "Module imported")
-                        : t("导入失败", "Import failed") + ": " + r.getMessage());
+                toast(r.getSuccess() ? t("Plugin imported", "Module imported")
+                        : t("Import failed", "Import failed") + ": " + r.getMessage());
                 refreshModules();
             });
         }, "dna-module-import").start();
