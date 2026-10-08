@@ -152,7 +152,7 @@ object AppUpdater {
         onLog: ((String) -> Unit)?,
     ): List<String> {
         if (urls.size <= 1 || isCancelled()) return urls
-        onLog?.invoke("正在测速 ${urls.size} 条更新线路")
+        onLog?.invoke("Testing ${urls.size} update routes")
         val executor = Executors.newFixedThreadPool(urls.size)
         val probes = urls.map { url -> url to executor.submit(Callable { probeRoute(url, expectedSize, isCancelled) }) }
         val speeds = LinkedHashMap<String, Long>()
@@ -167,7 +167,7 @@ object AppUpdater {
         }
         if (isCancelled() || speeds.values.all { it <= 0L }) return urls
         val ordered = urls.sortedByDescending { speeds[it] ?: 0L }
-        onLog?.invoke("线路测速结果：" + ordered.joinToString(" ") {
+        onLog?.invoke("Route speed test results:" + ordered.joinToString(" ") {
             "${routeName(it)} ${(speeds[it] ?: 0L) / 1024}KB/s"
         })
         return ordered
@@ -215,7 +215,7 @@ object AppUpdater {
         url.startsWith(GH_PROXY_PREFIX) -> "gh-proxy.com"
         url.startsWith("https://ghfast.top/") -> "ghfast.top"
         url.startsWith("https://ghproxy.net/") -> "ghproxy.net"
-        else -> "直连"
+        else -> "Direct"
     }
 
     // 下载 apk：逐线路尝试 aria2c（多线程提速）→ HttpURLConnection 兜底；校验文件大小和 API digest。
@@ -237,7 +237,7 @@ object AppUpdater {
         for ((index, url) in orderedCandidates.withIndex()) {
             if (isCancelled()) return null
             if (index > 0) {
-                onLog?.invoke("当前线路失败，切换备用线路 $index/${orderedCandidates.size - 1}")
+                onLog?.invoke("Current route failed, switching to backup route $index/${orderedCandidates.size - 1}")
                 // 跨线路不复用断点文件，避免续传错位导致文件损坏
                 runCatching { target.delete() }
                 runCatching { File(targetDir, "${target.name}.aria2").delete() }
@@ -247,8 +247,8 @@ object AppUpdater {
             val ariaResult = downloadWithAria2(ctx, url, target, expectedSize, onProgress, onLog, isCancelled)
             if (isCancelled()) return null
             var file = ariaResult.file?.takeIf { ariaResult.success }
-            val routeStalled = ariaResult.message.startsWith("网络无进展") || ariaResult.message.startsWith("下载超时")
-            if (file == null && ariaResult.message != "已取消" && !routeStalled) {
+            val routeStalled = ariaResult.message.startsWith("No network progress") || ariaResult.message.startsWith("Download timed out")
+            if (file == null && ariaResult.message != "Cancelled" && !routeStalled) {
                 file = downloadWithHttp(url, target, expectedSize, onProgress, isCancelled)
             }
             if (isCancelled()) return null
@@ -261,9 +261,9 @@ object AppUpdater {
                     return file
                 }
                 if (!sizeMatches) {
-                    onLog?.invoke("文件大小校验不通过（${file.length()} / $expectedSize），切换备用线路")
+                    onLog?.invoke("File size check failed（${file.length()} / $expectedSize），切换备用线路")
                 } else {
-                    onLog?.invoke("SHA-256 校验失败，文件可能不完整，切换备用线路")
+                    onLog?.invoke("SHA-256 verification failed; file may be incomplete, switching to backup route")
                 }
             }
             runCatching { target.delete() }
@@ -327,7 +327,7 @@ object AppUpdater {
             expectedSize = expectedSize,
             stallTimeoutMs = 12000L,
         )
-        if (!result.success) onLog?.invoke("aria2c 失败：${result.message}")
+        if (!result.success) onLog?.invoke("aria2c failed: ${result.message}")
         return result
     }
 
@@ -385,20 +385,20 @@ object AppUpdater {
     // root 静默安装（应用商店式后台安装）：su -c pm install -r；无 root 或失败返回 false + 原因
     // pm 以 root 身份读取 app 私有目录中的 apk 并流式写入安装会话，绕开私目录权限限制
     fun silentInstall(apk: File, timeoutMs: Long = 180000): InstallResult {
-        if (!apk.isFile) return InstallResult(false, "安装包不存在")
+        if (!apk.isFile) return InstallResult(false, "Installation package not found")
         val result = runCatching {
             RootShell.exec("pm install -r '${apk.absolutePath}'", timeoutMs = timeoutMs)
-        }.getOrNull() ?: return InstallResult(false, "无法执行 su（未获得 root 权限）")
+        }.getOrNull() ?: return InstallResult(false, "Unable to execute su (root permission not granted)")
         val output = (result.stdout + "\n" + result.stderr).trim()
         val ok = result.success && output.contains("Success", ignoreCase = true)
-        if (ok) return InstallResult(true, "安装成功")
+        if (ok) return InstallResult(true, "Installation successful")
         // 常见失败给出人话提示，便于定位（签名不一致是本项目自构建包覆盖官方包时的典型问题）
         val friendly = when {
             output.contains("INSTALL_FAILED_UPDATE_INCOMPATIBLE") || output.contains("signatures do not match") ->
-                "签名与已安装版本不一致，无法覆盖安装。需先卸载旧版再安装，或使用同一签名打包。"
+                "Signature differs from installed version; uninstall the old version or use the same signing key."
             output.contains("INSTALL_FAILED_VERSION_DOWNGRADE") ->
-                "线上包版本号不高于当前版本，系统拒绝降级安装。"
-            output.contains("INSTALL_PARSE_FAILED") -> "安装包损坏或不完整，请重新下载。"
+                "Online package version is not newer; the system rejected the downgrade."
+            output.contains("INSTALL_PARSE_FAILED") -> "Package is damaged or incomplete; please download it again."
             else -> output.ifBlank { "安装失败（退出码 ${result.code}）" }
         }
         return InstallResult(false, friendly.take(300))
