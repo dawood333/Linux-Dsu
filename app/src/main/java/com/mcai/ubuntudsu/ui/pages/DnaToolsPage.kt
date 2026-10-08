@@ -26,9 +26,9 @@ import com.mcai.ubuntudsu.ui.Ui
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * DNA 工具箱首页（对齐参考 Dsu-Manager 首页 DNA 工具布局，UbuntuDSU 拟态玻璃本地化）：
- *  - Toolchain Status卡（Check / Download & Extract tools.zip）
- *  - 工程管理卡（Current Project / Switch Project / New / Delete / Extract ROM / Plugins）
+ * DNA 工具箱首页 (对齐参考 Dsu-Manager 首页 DNA 工具布局，UbuntuDSU 拟态玻璃本地化)：
+ *  - Toolchain Status卡 (Check / Download & Extract tools.zip)
+ *  - 工程管理卡 (Current Project / Switch Project / New / Delete / Extract ROM / Plugins)
  *  - Extract & Unpack / Build & Pack / Format Conversion / Other Tools 四组功能入口
  */
 class DnaToolsPage(private val activity: Activity) {
@@ -47,9 +47,9 @@ class DnaToolsPage(private val activity: Activity) {
 
     private fun dp(v: Int) = Ui.dp(v, d)
 
-    /** 就绪绿（夜间用亮绿保证可读） */
+    /** 就绪绿 (夜间用亮绿保证可读) */
     private fun readyGreen() = if (Ui.isDark(activity)) Color.parseColor("#5AD4A0") else Color.parseColor("#1D7A4F")
-    /** 未就绪红（夜间用亮红保证可读） */
+    /** 未就绪红 (夜间用亮红保证可读) */
     private fun notReadyRed() = if (Ui.isDark(activity)) Color.parseColor("#FF8A80") else Color.parseColor("#A33B3B")
 
     fun build(): View {
@@ -305,7 +305,7 @@ class DnaToolsPage(private val activity: Activity) {
         return card
     }
 
-    // ==================== 四组功能入口（横排两列按钮卡片） ====================
+    // ==================== 四组功能入口 (横排两列按钮卡片) ====================
 
     private fun buildFunctionSections(body: LinearLayout) {
         sectionTitle(body, "Extract & Unpack", Color.parseColor("#35A8C4"))
@@ -537,7 +537,7 @@ class DnaToolsPage(private val activity: Activity) {
         android.widget.Toast.makeText(activity, msg, android.widget.Toast.LENGTH_SHORT).show()
     }
 
-    // ==================== 状态刷新 / 下载 ====================
+    // ==================== 状态刷新 / under载 ====================
 
     private fun refreshStatus() {
         val text = statusText ?: return
@@ -593,7 +593,7 @@ class DnaToolsPage(private val activity: Activity) {
                     downloadBtn?.alpha = 1f
                     progressBar?.visibility = View.GONE
                     if (ok) {
-                        // 下载成功：直接同步刷新为就绪状态，避免再走 refreshStatus 的异步线程导致卡在“Downloading”
+                        // under载成功：直接同步刷新为就绪状态，避免再走 refreshStatus 的异步线程导致卡在“Downloading”
                         val ready = DnaTools.isReady(activity)
                         val root = RootShell.available()
                         val okReady = ready && root
@@ -656,7 +656,7 @@ class DnaToolsPage(private val activity: Activity) {
         ))
         AlertDialog.Builder(activity)
             .setTitle("New project")
-            .setMessage("Project name will use the PDNA_ prefix and be created under /sdcard/PDNA/ 与 /data/PDNA/")
+            .setMessage("Project name will use the PDNA_ prefix and be created under /sdcard/PDNA/ and /data/PDNA/")
             .setView(wrap)
             .setPositiveButton("Create & Use") { _, _ ->
                 val name = input.text?.toString()?.trim() ?: ""
@@ -680,7 +680,7 @@ class DnaToolsPage(private val activity: Activity) {
 
     private fun showDeleteProject() {
         val projects = DnaTools.listProjects()
-        if (projects.isEmpty()) { toast("暂无工程可Delete"); return }
+        if (projects.isEmpty()) { toast("No projects to delete"); return }
         val items = projects.toTypedArray()
         AlertDialog.Builder(activity)
             .setTitle("Delete Project")
@@ -688,7 +688,7 @@ class DnaToolsPage(private val activity: Activity) {
                 val name = items[which]
                 AlertDialog.Builder(activity)
                     .setTitle("Confirm Delete")
-                    .setMessage("Delete project $name（/sdcard/PDNA 与 /data/PDNA directories under），This cannot be undone。")
+                    .setMessage("Delete project $name (/sdcard/PDNA and /data/PDNA directories under)，This cannot be undone.")
                     .setPositiveButton("Delete") { _, _ ->
                         Thread {
                             val ok = DnaTools.deleteProject(name)
@@ -697,7 +697,7 @@ class DnaToolsPage(private val activity: Activity) {
                                     // Current Project被删，清空显示
                                 }
                                 refreshProject()
-                                toast(if (ok) "已Delete：$name" else "Delete failed")
+                                toast(if (ok) "Deleted：$name" else "Delete failed")
                             }
                         }.start()
                     }
