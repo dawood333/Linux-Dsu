@@ -29,9 +29,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * DNA · 分解 SUPER 独立二级页。
- * - 直接读取当前工程下的 super.img（无文件选择、无多余选项，对齐原版 DNA）；
- *   顶栏可切换工程（v3.30.32），选择后直接解析新工程的 super.img
+ * DNA · Extract SUPER 独立二级页。
+ * - 直接读取CurrentProject下的 super.img（无文件选择、无多余选项，对齐原版 DNA）；
+ *   顶栏可切换Project（v3.30.32），选择后直接解析新Project的 super.img
  * - 解析：dna lpunpack --list（root 链路，实测快且稳）。原始输出行静默解析，
  *   日志只留 开始/汇总 两行（v3.30.30 的「整行当分区名」bug 已修：value = | 前基名）
  * - 提取：dna lpunpack --partition 'a,b' --delete 0 --auto 0（stderr 已并入，实时日志）；
@@ -101,7 +101,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 3406);
         ensureNoteChannel();
         project = DnaTools.currentProject(this);
-        // v3.30.30：直接读工程 super.img（入口已检测），不再提供文件选择
+        // v3.30.30：直接读Project super.img（入口已检测），不再提供文件选择
         String extra = getIntent().getStringExtra(EXTRA_SUPER);
         if (extra != null && new File(extra).isFile()) superPath = extra;
         else if (project != null) {
@@ -113,10 +113,10 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         else {
             String expect = project != null
                     ? DnaTools.WORK_ROOT + "/" + project + "/super.img"
-                    : DnaTools.WORK_ROOT + "/<工程>/super.img";
-            status.setText("✗ " + t("当前工程未找到 super.img", "No super.img in project"));
+                    : DnaTools.WORK_ROOT + "/<project>/super.img";
+            status.setText("✗ " + t("super.img not found in current project", "No super.img in project"));
             status.setTextColor(pal.danger);
-            log("✗ " + t("未找到", "Not found") + ": " + expect);
+            log("✗ " + t("Not found", "Not found") + ": " + expect);
         }
     }
 
@@ -228,19 +228,19 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         titleBox.setOrientation(LinearLayout.VERTICAL);
         titleBox.setPadding(dp(10), 0, 0, 0);
         TextView title = new TextView(this);
-        title.setText("🧩 " + t("分解 SUPER", "Unpack SUPER"));
+        title.setText("🧩 " + t("Extract SUPER", "Unpack SUPER"));
         title.setTextSize(19);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
         titleBox.addView(title, new LinearLayout.LayoutParams(-1, -2));
         TextView sub = new TextView(this);
-        sub.setText(t("工程 super.img → 分区镜像 · lpunpack", "project super.img → partitions"));
+        sub.setText(t("Project super.img → partition images · lpunpack", "project super.img → partitions"));
         sub.setTextSize(11f);
         sub.setTextColor(pal.subtitle);
         titleBox.addView(sub, new LinearLayout.LayoutParams(-1, -2));
         top.addView(titleBox, new LinearLayout.LayoutParams(0, -2, 1f));
-        // v3.30.32：顶部切换工程按钮（root 列 /sdcard/PDNA 下工程，选择后直接解析其 super.img）
-        projectBtn = pillButton("📁 " + (project != null ? project.replaceFirst("^PDNA_", "") : t("工程", "Proj")),
+        // v3.30.32：顶部切换Project按钮（root 列 /sdcard/PDNA 下Project，选择后直接解析其 super.img）
+        projectBtn = pillButton("📁 " + (project != null ? project.replaceFirst("^PDNA_", "") : t("Project", "Proj")),
                 11f, pal.accent, dp(96), dp(32));
         projectBtn.setSingleLine(true);
         projectBtn.setEllipsize(android.text.TextUtils.TruncateAt.END);
@@ -251,7 +251,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         top.addView(projectBtn, new LinearLayout.LayoutParams(dp(96), dp(32)));
         content.addView(top, new LinearLayout.LayoutParams(-1, -2));
 
-        // ---- super.img 信息卡（无文件选择，只读展示 + 重新解析） ----
+        // ---- super.img 信息卡（无文件选择，只读展示 + Reparse） ----
         LinearLayout infoCard = glassCard();
         LinearLayout.LayoutParams icLp = new LinearLayout.LayoutParams(-1, -2);
         icLp.topMargin = dp(12);
@@ -261,12 +261,12 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         infoHead.setOrientation(LinearLayout.HORIZONTAL);
         infoHead.setGravity(Gravity.CENTER_VERTICAL);
         TextView lbl = new TextView(this);
-        lbl.setText(t("SUPER 镜像（当前工程）", "SUPER image (current project)"));
+        lbl.setText(t("SUPER 镜像（CurrentProject）", "SUPER image (current project)"));
         lbl.setTextSize(11f);
         lbl.setTypeface(null, 1);
         lbl.setTextColor(pal.subtitle);
         infoHead.addView(lbl, new LinearLayout.LayoutParams(0, -2, 1f));
-        reparseBtn = pillButton("🔄 " + t("重新解析", "Re-parse"), 11f, pal.success, dp(88), dp(30));
+        reparseBtn = pillButton("🔄 " + t("Reparse", "Re-parse"), 11f, pal.success, dp(88), dp(30));
         reparseBtn.setOnClickListener(v -> {
             Haptics.perform(v);
             if (!running.get()) parseSuper();
@@ -306,13 +306,13 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         imLp.topMargin = dp(6);
         infoCard.addView(infoMeta, imLp);
 
-        // ---- 主按钮（解析完成前禁用 → 修复此前两按钮同时可点） ----
+        // ---- 主按钮（Parsing complete前禁用 → 修复此前两按钮同时可点） ----
         runBtn = gradientButton("▶  " + t("选择分区并提取", "Select & Extract"), 0xFF2f9c8f, 0xFF1d6b46);
         runBtn.setEnabled(false);
         runBtn.setAlpha(0.5f);
         runBtn.setOnClickListener(v -> {
             Haptics.perform(v);
-            if (running.get()) { cancelFlag.set(true); log(t("正在取消 ...", "Cancelling...")); return; }
+            if (running.get()) { cancelFlag.set(true); log(t("正在Cancel ...", "Cancelling...")); return; }
             if (partitions.isEmpty()) { parseSuper(); return; }
             showPartitionDialog();
         });
@@ -323,7 +323,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
 
         // ---- 状态 + 进度 ----
         status = new TextView(this);
-        status.setText(t("正在解析 ...", "Parsing..."));
+        status.setText(t("Parsing...", "Parsing..."));
         status.setTextSize(12.5f);
         status.setTextColor(pal.subtitle);
         content.addView(status, new LinearLayout.LayoutParams(-1, -2));
@@ -339,7 +339,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         pf.setColors(new int[]{0xFF2f9c8f, 0xFF35A8C4});
         pf.setCornerRadius(dp(6));
         progressFill.setBackground(pf);
-        // 不确定进度：lpunpack 无百分比回调，用 30% 宽度往返跑马灯
+        // 不OK进度：lpunpack 无百分比回调，用 30% 宽度往返跑马灯
         progressTrack.addView(progressFill, new FrameLayout.LayoutParams(0, dp(12), Gravity.START | Gravity.CENTER_VERTICAL));
         LinearLayout.LayoutParams ptLp = new LinearLayout.LayoutParams(-1, dp(12));
         ptLp.topMargin = dp(6);
@@ -349,7 +349,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         // 不再 addView 到页面 content；由 expandConsole() 弹出 Dialog 承载
     }
 
-    /** 浅色磨砂控制台卡（可滚动 / 复制 / 清除 / 关闭窗；弹出小窗口承载） */
+    /** 浅色磨砂控制台卡（可滚动 / 复制 / 清除 / Close窗；弹出小窗口承载） */
     private LinearLayout buildConsole() {
         consoleCard = new LinearLayout(this);
         LinearLayout card = consoleCard;
@@ -368,7 +368,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setPadding(0, 0, 0, dp(8));
         TextView title = new TextView(this);
-        title.setText(t("执行任务", "Run Task"));
+        title.setText(t("Run Task", "Run Task"));
         title.setTextSize(14f);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -377,14 +377,14 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
-        Button copy = pillButton(t("复制日志", "Copy Log"), 11f, pal.success, dp(64), dp(28));
+        Button copy = pillButton(t("Copy Log", "Copy Log"), 11f, pal.success, dp(64), dp(28));
         copy.setOnClickListener(v -> {
             android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             cm.setPrimaryClip(android.content.ClipData.newPlainText("log", consoleText.getText()));
-            toast(t("日志已复制", "Log copied"));
+            toast(t("Log copied", "Log copied"));
         });
         actions.addView(copy);
-        Button clear = pillButton(t("清除日志", "Clear Log"), 11f, pal.danger, dp(64), dp(28));
+        Button clear = pillButton(t("Clear Log", "Clear Log"), 11f, pal.danger, dp(64), dp(28));
         clear.setOnClickListener(v -> consoleText.setText(""));
         LinearLayout.LayoutParams clLp = new LinearLayout.LayoutParams(dp(64), dp(28));
         clLp.leftMargin = dp(6);
@@ -418,7 +418,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         return card;
     }
 
-    /** 任务开始时弹出日志小窗口（标题执行任务；右侧复制/清除/关闭窗），已弹出则复用 */
+    /** 任务开始时弹出日志小窗口（标题Run Task；右侧复制/清除/Close窗），已弹出则复用 */
     private void expandConsole() {
         if (consoleCard == null) return;
         if (consoleDialog == null) {
@@ -496,7 +496,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         try {
             android.app.Notification.Builder b = new android.app.Notification.Builder(this, NOTE_CHANNEL)
                     .setSmallIcon(android.R.drawable.stat_sys_download)
-                    .setContentTitle(t("分解 SUPER", "Unpack SUPER"))
+                    .setContentTitle(t("Extract SUPER", "Unpack SUPER"))
                     .setContentText(text)
                     .setOngoing(ongoing)
                     .setOnlyAlertOnce(true)
@@ -535,11 +535,11 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         runBtn.setEnabled(false);
         runBtn.setAlpha(0.5f);
         reparseBtn.setEnabled(false);
-        status.setText("🔍 " + t("正在读取 super 分区 ...", "Reading super partitions..."));
+        status.setText("🔍 " + t("Reading super partition...", "Reading super partitions..."));
         status.setTextColor(pal.subtitle);
         showMarquee(true);
-        notify(t("正在解析 super.img ...", "Parsing super.img..."), true, true, 0, 0);
-        log("🔍 " + t("开始解析", "Parse") + ": " + superPath);
+        notify(t("Parsing super.img...", "Parsing super.img..."), true, true, 0, 0);
+        log("🔍 " + t("Start Parsing", "Parse") + ": " + superPath);
         final String img = superPath;
         io.execute(() -> {
             // v3.30.32：直接用 dna lpunpack --list（root 链路，实测快且稳）。
@@ -562,23 +562,23 @@ public final class DnaSuperActivity extends DnaBaseActivity {
                 if (fParts == null || fParts.isEmpty()) {
                     runBtn.setEnabled(false);
                     runBtn.setAlpha(0.5f);
-                    status.setText("✗ " + t("解析失败，请确认 super.img 有效", "Parse failed, invalid super.img?"));
+                    status.setText("✗ " + t("Parsing failed，请确认 super.img 有效", "Parse failed, invalid super.img?"));
                     status.setTextColor(pal.danger);
-                    log("✗ " + t("解析失败", "Parse failed") + (fErr != null ? ": " + fErr : ""));
-                    notifyDone(false, t("解析失败", "Parse failed"));
+                    log("✗ " + t("Parsing failed", "Parse failed") + (fErr != null ? ": " + fErr : ""));
+                    notifyDone(false, t("Parsing failed", "Parse failed"));
                     return;
                 }
                 partitions.addAll(fParts);
-                for (Part p : fParts) checked.add(p.name);   // 默认全选（对齐原版常用流程）
+                for (Part p : fParts) checked.add(p.name);   // 默认Select All（对齐原版常用流程）
                 runBtn.setEnabled(true);
                 runBtn.setAlpha(1f);
                 infoMeta.setText("✓ " + fParts.size() + t(" 个分区 · 共 ", " partitions · ")
                         + fmtSizeShort(totalSize(fParts)));
                 status.setText("✓ " + fParts.size() + t(" 个分区，点下方按钮勾选提取", " partitions, tap button below"));
                 status.setTextColor(pal.success);
-                log("✓ " + t("解析完成", "Parsed") + " · " + fParts.size() + t(" 个分区", " partitions")
+                log("✓ " + t("Parsing complete", "Parsed") + " · " + fParts.size() + t(" 个分区", " partitions")
                         + " · " + fmtSizeShort(totalSize(fParts)));
-                notifyDone(true, t("解析完成", "Parsed") + " · " + fParts.size() + t(" 个分区", " partitions"));
+                notifyDone(true, t("Parsing complete", "Parsed") + " · " + fParts.size() + t(" 个分区", " partitions"));
                 showPartitionDialog();
             });
         });
@@ -626,7 +626,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
     private void showPartitionDialog() {
         if (isFinishing() || isDestroyed()) return;
         if (partitions.isEmpty()) {
-            toast(t("分区列表为空，请先解析", "Parse first"));
+            toast(t("Partition list is empty; parse first", "Parse first"));
             return;
         }
         final android.app.Dialog dialog = new android.app.Dialog(this);
@@ -660,7 +660,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         count.setTypeface(null, 1);
         count.setTextColor(pal.success);
         head.addView(count, new LinearLayout.LayoutParams(0, -2, 1f));
-        Button allBtn = pillButton(t("全选", "All"), 12f, pal.success, dp(52), dp(30));
+        Button allBtn = pillButton(t("Select All", "All"), 12f, pal.success, dp(52), dp(30));
         allBtn.setOnClickListener(v -> {
             Haptics.perform(v);
             checked.clear();
@@ -668,7 +668,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             render[0].run();
         });
         head.addView(allBtn, new LinearLayout.LayoutParams(dp(52), dp(30)));
-        Button noneBtn = pillButton(t("清空", "None"), 12f, pal.danger, dp(52), dp(30));
+        Button noneBtn = pillButton(t("Clear", "None"), 12f, pal.danger, dp(52), dp(30));
         noneBtn.setOnClickListener(v -> {
             Haptics.perform(v);
             checked.clear();
@@ -729,17 +729,17 @@ public final class DnaSuperActivity extends DnaBaseActivity {
                 rLp.topMargin = dp(5);
                 list.addView(row, rLp);
             }
-            count.setText(t("已选", "Selected") + " " + checked.size() + "/" + partitions.size());
+            count.setText(t("Selected", "Selected") + " " + checked.size() + "/" + partitions.size());
         };
         render[0].run();
 
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER_VERTICAL);
-        Button cancel = pillButton(t("取消", "Cancel"), 13f, pal.subtitle, dp(72), dp(44));
+        Button cancel = pillButton(t("Cancel", "Cancel"), 13f, pal.subtitle, dp(72), dp(44));
         cancel.setOnClickListener(v -> { Haptics.perform(v); dialog.dismiss(); });
         btnRow.addView(cancel, new LinearLayout.LayoutParams(dp(72), dp(44)));
-        Button ok = gradientButton("✓  " + t("确定", "Extract"), 0xFF2f9c8f, 0xFF1d6b46);
+        Button ok = gradientButton("✓  " + t("OK", "Extract"), 0xFF2f9c8f, 0xFF1d6b46);
         ok.setOnClickListener(v -> {
             Haptics.perform(v);
             if (checked.isEmpty()) {
@@ -766,9 +766,9 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         }
     }
 
-    // ================= 切换工程（v3.30.32：顶栏按钮） =================
+    // ================= 切换Project（v3.30.32：顶栏按钮） =================
 
-    /** root 列 /sdcard/PDNA 下所有工程（PDNA_ 前缀），弹窗单选；选择后直接解析其 super.img */
+    /** root 列 /sdcard/PDNA 下所有Project（PDNA_ 前缀），弹窗单选；选择后直接解析其 super.img */
     private void showProjectDialog() {
         if (isFinishing() || isDestroyed()) return;
         List<String> projects = new ArrayList<>();
@@ -782,7 +782,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         } catch (Exception ignored) {}
         java.util.Collections.sort(projects);
         if (projects.isEmpty()) {
-            toast(t("未找到工程（/sdcard/PDNA/PDNA_*）", "No projects found"));
+            toast(t("Not foundProject（/sdcard/PDNA/PDNA_*）", "No projects found"));
             return;
         }
 
@@ -798,7 +798,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         panel.setBackground(bg);
 
         TextView title = new TextView(this);
-        title.setText("📁 " + t("切换工程", "Switch Project"));
+        title.setText("📁 " + t("切换Project", "Switch Project"));
         title.setTextSize(16);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -830,7 +830,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             dot.setBackground(db);
             row.addView(dot, new LinearLayout.LayoutParams(dp(14), dp(14)));
             TextView nameView = new TextView(this);
-            nameView.setText(p.replaceFirst("^PDNA_", "") + (current ? " · " + t("当前", "current") : ""));
+            nameView.setText(p.replaceFirst("^PDNA_", "") + (current ? " · " + t("Current", "current") : ""));
             nameView.setTextSize(13.5f);
             nameView.setTypeface(null, current ? 1 : 0);
             nameView.setTextColor(current ? pal.success : pal.title);
@@ -848,7 +848,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             list.addView(row, rLp);
         }
 
-        Button cancel = pillButton(t("取消", "Cancel"), 13f, pal.subtitle, dp(72), dp(42));
+        Button cancel = pillButton(t("Cancel", "Cancel"), 13f, pal.subtitle, dp(72), dp(42));
         cancel.setOnClickListener(v -> { Haptics.perform(v); dialog.dismiss(); });
         LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(dp(72), dp(42));
         cLp.topMargin = dp(10);
@@ -883,9 +883,9 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             refreshInfoCard();
             runBtn.setEnabled(false);
             runBtn.setAlpha(0.5f);
-            infoMeta.setText("✗ " + t("该工程无 super.img", "No super.img in this project"));
+            infoMeta.setText("✗ " + t("该Project无 super.img", "No super.img in this project"));
             infoMeta.setTextColor(pal.danger);
-            status.setText("✗ " + t("该工程未找到 super.img", "No super.img in this project"));
+            status.setText("✗ " + t("该ProjectNot found super.img", "No super.img in this project"));
             status.setTextColor(pal.danger);
             log("✗ " + path);
         }
@@ -903,7 +903,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
 
     // ================= 提取 =================
 
-    /** root 列目录 .img：name → {size, mtimeSec}（工程目录为 root 属主时 Java listFiles 拿不到） */
+    /** root 列目录 .img：name → {size, mtimeSec}（Project目录为 root 属主时 Java listFiles 拿不到） */
     private java.util.Map<String, long[]> listImgRoot(File dir) {
         java.util.Map<String, long[]> map = new java.util.HashMap<>();
         if (dir == null) return map;
@@ -933,18 +933,18 @@ public final class DnaSuperActivity extends DnaBaseActivity {
 
     private void extractSuper() {
         if (superPath == null || superPath.isEmpty()) {
-            toast(t("未找到 super.img", "No super.img"));
+            toast(t("Not found super.img", "No super.img"));
             return;
         }
         running.set(true);
         cancelFlag.set(false);
-        runBtn.setText("■  " + t("取消", "Cancel"));
+        runBtn.setText("■  " + t("Cancel", "Cancel"));
         reparseBtn.setEnabled(false);
-        status.setText(t("正在提取 ...", "Extracting..."));
+        status.setText(t("Extracting...", "Extracting..."));
         status.setTextColor(pal.subtitle);
         showMarquee(true);
         final int totalParts = checked.size();
-        notify(t("开始提取", "Extracting") + " " + totalParts + t(" 个分区", " partitions"),
+        notify(t("Start Extraction", "Extracting") + " " + totalParts + t(" 个分区", " partitions"),
                 true, false, 0, totalParts);
 
         StringBuilder parts = new StringBuilder();
@@ -960,19 +960,19 @@ public final class DnaSuperActivity extends DnaBaseActivity {
                 + " --delete 0 --auto 0 "
                 + DnaTools.quote(superPath);
         final File outDir = new File(superPath).getParentFile();
-        // v3.30.31：root 列目录做前后快照（工程目录 root 属主，Java listFiles 为空 → 此前误报「未检测到新镜像」）
+        // v3.30.31：root 列目录做前后快照（Project目录 root 属主，Java listFiles 为空 → 此前误报「No new images detected」）
         final long startSec = System.currentTimeMillis() / 1000 - 2;
         final java.util.Map<String, long[]> before = listImgRoot(outDir);
         log("$ " + command);
-        log("▶ " + t("开始提取", "Extracting") + " " + checked.size() + t(" 个分区", " partitions") + " → " + outDir.getAbsolutePath());
+        log("▶ " + t("Start Extraction", "Extracting") + " " + checked.size() + t(" 个分区", " partitions") + " → " + outDir.getAbsolutePath());
         io.execute(() -> {
-            // v3.30.31：每行日志即时同步状态栏与通知栏（不节流），按「开始提取：」推进进度
+            // v3.30.31：每行日志即时同步状态栏与通知栏（不节流），按「Start Extraction：」推进进度
             final int[] started = {0};
             DnaTools.Result result = DnaTools.run(this, command,
                     line -> {
                         log(line);
                         String s = line.trim();
-                        if (s.contains("开始提取") || s.toLowerCase(Locale.ROOT).contains("extracting")) {
+                        if (s.contains("Start Extraction") || s.toLowerCase(Locale.ROOT).contains("extracting")) {
                             started[0]++;
                             String pn = s.contains("：") ? s.substring(s.indexOf("：") + 1).trim()
                                     : (s.contains(":") ? s.substring(s.indexOf(":") + 1).trim() : s);
@@ -998,7 +998,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             java.util.Collections.sort(fresh);
             // root 也列不到（极端权限）但 dna 明确报告完成 → 按所选分区列出（解析时已知大小）
             if (fresh.isEmpty() && result.getSuccess() && result.getOutput() != null
-                    && (result.getOutput().contains("提取完成") || result.getOutput().contains("文件位于"))) {
+                    && (result.getOutput().contains("Extraction complete") || result.getOutput().contains("文件位于"))) {
                 for (Part p : partitions)
                     if (checked.contains(p.name)) fresh.add(p.name + ".img (" + fmtSizeShort(p.size) + ")");
             }
@@ -1010,32 +1010,32 @@ public final class DnaSuperActivity extends DnaBaseActivity {
                 reparseBtn.setEnabled(true);
                 showMarquee(false);
                 if (cancelled) {
-                    status.setText("■ " + t("已取消", "Cancelled"));
+                    status.setText("■ " + t("已Cancel", "Cancelled"));
                     status.setTextColor(pal.danger);
-                    log("■ " + t("已取消", "Cancelled"));
-                    notifyDone(false, t("已取消", "Cancelled"));
+                    log("■ " + t("已Cancel", "Cancelled"));
+                    notifyDone(false, t("已Cancel", "Cancelled"));
                 } else if (result.getSuccess() && !fFresh.isEmpty()) {
-                    status.setText("✓ " + t("提取完成", "Done") + " · " + fFresh.size() + t(" 个镜像", " image(s)"));
+                    status.setText("✓ " + t("Extraction complete", "Done") + " · " + fFresh.size() + t(" 个镜像", " image(s)"));
                     status.setTextColor(pal.success);
-                    log("✓ " + t("提取完成，文件位于", "Done, files at") + ": " + outDir.getAbsolutePath());
+                    log("✓ " + t("Extraction complete，文件位于", "Done, files at") + ": " + outDir.getAbsolutePath());
                     for (String f : fFresh) log("  ✓ " + f);
-                    log("ℹ " + t("如需提取其他分区，点「🔄 重新解析」重新勾选即可", "Tap Re-parse to extract other partitions"));
-                    notifyDone(true, t("提取完成", "Done") + " · " + fFresh.size() + t(" 个镜像", " image(s)"));
-                    toast(t("提取完成", "Done"));
+                    log("ℹ " + t("如需提取其他分区，点「🔄 Reparse」重新勾选即可", "Tap Re-parse to extract other partitions"));
+                    notifyDone(true, t("Extraction complete", "Done") + " · " + fFresh.size() + t(" 个镜像", " image(s)"));
+                    toast(t("Extraction complete", "Done"));
                 } else if (result.getSuccess()) {
                     // dna 退出码 0 但没有新镜像 → 明确告警，不再假成功
-                    status.setText("⚠ " + t("结束但未检测到新镜像", "Finished but no new images"));
+                    status.setText("⚠ " + t("Finished but no new images detected", "Finished but no new images"));
                     status.setTextColor(pal.warning);
-                    log("⚠ " + t("命令返回成功，但输出目录没有新增/更新的 .img", "exit 0 but no new .img in output dir"));
-                    log("⚠ " + t("请截图日志反馈", "Please report the log above"));
-                    notifyDone(false, t("未检测到新镜像", "No new images"));
-                    toast(t("未检测到新镜像，请查看日志", "No new images, check log"));
+                    log("⚠ " + t("Command succeeded, but no new or updated .img files were found", "exit 0 but no new .img in output dir"));
+                    log("⚠ " + t("Send a screenshot of the log for troubleshooting", "Please report the log above"));
+                    notifyDone(false, t("No new images detected", "No new images"));
+                    toast(t("No new images detected，请查看日志", "No new images, check log"));
                 } else {
-                    status.setText("✗ " + t("提取失败", "Failed"));
+                    status.setText("✗ " + t("Extraction failed", "Failed"));
                     status.setTextColor(pal.danger);
                     log("✗ " + result.getMessage());
-                    notifyDone(false, t("提取失败", "Failed"));
-                    toast(t("提取失败", "Failed"));
+                    notifyDone(false, t("Extraction failed", "Failed"));
+                    toast(t("Extraction failed", "Failed"));
                 }
             });
         });
