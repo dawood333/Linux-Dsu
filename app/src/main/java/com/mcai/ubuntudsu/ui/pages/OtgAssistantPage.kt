@@ -50,7 +50,7 @@ class OtgAssistantPage(
     private var parsedPartitions = emptyList<OtgAssistantCore.PartitionInfo>()
     private var selectedPartition: String? = null
     private var fullImages = mutableListOf<OtgAssistantCore.ImageInfo>()
-    private val confirmationPhrase = "我确认固件包匹配当前Device，并允许清除全部用户数据"
+    private val confirmationPhrase = "I confirm that the firmware package matches the current device and allow all user data to be erased"
 
     private data class RebootMode(
         val title: String,
@@ -60,12 +60,12 @@ class OtgAssistantPage(
         val accent: Int,
     )
 
-    // ===== 文件选择（调用 APP 内置文件选择器 RootfsFilesActivity）=====
+    // ===== 文件Select（调用 APP 内置文件Select器 RootfsFilesActivity）=====
     private val singleImageRequest = 402
     private val otaRequest = 403
     private val adbPushRequest = 404
 
-    /** 启动内置文件选择器（RootfsFilesActivity，根目录 /sdcard），按扩展名过滤 */
+    /** 启动内置文件Select器（RootfsFilesActivity，根目录 /sdcard），按扩展名过滤 */
     private fun launchBuiltInPicker(requestCode: Int, title: String, ext: String = "", extAll: Boolean = true) {
         activity.startActivityForResult(
             Intent(activity, com.mcai.ubuntudsu.RootfsFilesActivity::class.java).apply {
@@ -79,18 +79,18 @@ class OtgAssistantPage(
     }
 
     private fun singleImageLauncher() {
-        launchBuiltInPicker(singleImageRequest, "选择单分区镜像", extAll = false, ext = ".img,.bin,.dat")
+        launchBuiltInPicker(singleImageRequest, "Select single-partition image", extAll = false, ext = ".img,.bin,.dat")
     }
 
     private fun otaLauncher() {
-        launchBuiltInPicker(otaRequest, "选择 OTA 全量包（payload.bin / zip）")
+        launchBuiltInPicker(otaRequest, "Select OTA full package (payload.bin / zip)")
     }
 
     private fun adbPushLauncher() {
-        launchBuiltInPicker(adbPushRequest, "选择要推送的文件")
+        launchBuiltInPicker(adbPushRequest, "Select file to push")
     }
 
-    /** 宿主 Activity.onActivityResulT 派发到本类，取内置选择器返回的本地文件路径 */
+    /** 宿主 Activity.onActivityResulT 派发到本类，取内置Select器返回的本地文件路径 */
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (resultCode != android.app.Activity.RESULT_OK) return
         val path = data?.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH) ?: return
@@ -109,7 +109,7 @@ class OtgAssistantPage(
     private lateinit var logScroll: ScrollView
     private lateinit var progressBar: View
     private lateinit var progressStatus: TextView
-    private lateinit var btnRefreshDevice: TextView
+    private lateinit var btnRefreshdevice: TextView
     private lateinit var btnExecute: TextView
     private lateinit var btnPartitions: TextView
     private lateinit var btnSingleFlash: TextView
@@ -123,9 +123,9 @@ class OtgAssistantPage(
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED ->
-                    postUi { appendLog("\n[自动] Detect到Device接入\n"); refreshDevices() }
+                    postUi { appendLog("\n[自动] Detected device connection\n"); refreshdevices() }
                 android.hardware.usb.UsbManager.ACTION_USB_DEVICE_DETACHED ->
-                    postUi { appendLog("\n[自动] Detect到Device断开\n"); refreshDevices() }
+                    postUi { appendLog("\n[自动] Detected device disconnection\n"); refreshdevices() }
             }
         }
     }
@@ -137,15 +137,15 @@ class OtgAssistantPage(
         }
 
         page.addView(buildTitleRow())
-        page.addView(buildDeviceCard())
+        page.addView(builddeviceCard())
         page.addView(buildCommandCard())
         page.addView(buildActionGrid())
         page.addView(buildLogCard())
 
         // 初始化：清理旧 OTA + 加载工具
         OtgAssistantCore.deleteOtaDirectory(activity.applicationContext)
-        logView.text = "正在初始化...\n"
-        refreshDevices()
+        logView.text = "Initializing...\n"
+        refreshdevices()
 
         return page
     }
@@ -175,7 +175,7 @@ class OtgAssistantPage(
                 Gravity.CENTER,
             )
         })
-        btnRefreshDevice = TextView(activity).apply {
+        btnRefreshdevice = TextView(activity).apply {
             text = "Refresh"
             textSize = 12f
             setTextColor(Ui.buttonText(activity))
@@ -184,7 +184,7 @@ class OtgAssistantPage(
             setPadding(Ui.dp(10, d), Ui.dp(6, d), Ui.dp(10, d), Ui.dp(6, d))
             setOnClickListener {
                 Haptics.perform(this)
-                refreshDevices()
+                refreshdevices()
             }
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -192,13 +192,13 @@ class OtgAssistantPage(
                 Gravity.END or Gravity.CENTER_VERTICAL,
             )
         }
-        row.addView(btnRefreshDevice)
+        row.addView(btnRefreshdevice)
         return row
     }
 
-    // ==================== Device状态卡片 ====================
+    // ==================== device status卡片 ====================
 
-    private fun buildDeviceCard(): View {
+    private fun builddeviceCard(): View {
         val card = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(14, d), Ui.dp(12, d), Ui.dp(14, d), Ui.dp(12, d))
@@ -210,13 +210,13 @@ class OtgAssistantPage(
             ).apply { bottomMargin = Ui.dp(10, d) }
         }
         card.addView(TextView(activity).apply {
-            text = "Device状态"
+            text = "device status"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
         })
         deviceListText = Ui.logTextView(activity).apply {
-            text = "等待 USB DeviceConnected..."
+            text = "Waiting for USB device connection..."
             setPadding(0, Ui.dp(6, d), 0, 0)
         }
         card.addView(deviceListText)
@@ -245,13 +245,13 @@ class OtgAssistantPage(
             ).apply { bottomMargin = Ui.dp(10, d) }
         }
         card.addView(TextView(activity).apply {
-            text = "输入命令"
+            text = "Enter command"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
         })
         commandInput = EditText(activity).apply {
-            hint = "例如：adb devices / fastboot getvar all"
+            hint = "Example：adb devices / fastboot getvar all"
             textSize = 12f
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             background = Ui.neuInset(activity, 12f)
@@ -263,7 +263,7 @@ class OtgAssistantPage(
         }
         card.addView(commandInput)
         btnExecute = TextView(activity).apply {
-            text = "执行命令"
+            text = "Execute command"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(solidButtonText())
@@ -294,12 +294,12 @@ class OtgAssistantPage(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = Ui.dp(10, d) }
         }
-        btnPartitions = actionBtn("读取分区表", Ui.buttonSecondary(activity)) { readPartitions() }
-        btnSingleFlash = actionBtn("单分区刷写", Ui.buttonWarning(activity)) { chooseSinglePartition() }
-        btnFullFlash = actionBtn("全量包刷写", Ui.buttonDanger(activity)) { chooseFirmwareDirectory() }
-        btnReboot = actionBtn("高级重启", Ui.buttonSuccess(activity)) { showRebootMenu() }
-        btnAdbPush = actionBtn("ADB 推送", Ui.buttonSecondary(activity)) { chooseAdbPushFile() }
-        btnAdbInfo = actionBtn("ADB Device信息", Ui.buttonPrimary(activity)) { showAdbDeviceInfo() }
+        btnPartitions = actionBtn("Read partition table", Ui.buttonSecondary(activity)) { readPartitions() }
+        btnSingleFlash = actionBtn("Flash single partition", Ui.buttonWarning(activity)) { chooseSinglePartition() }
+        btnFullFlash = actionBtn("Flash full package", Ui.buttonDanger(activity)) { chooseFirmwareDirectory() }
+        btnReboot = actionBtn("Advanced reboot", Ui.buttonSuccess(activity)) { showRebootMenu() }
+        btnAdbPush = actionBtn("ADB push", Ui.buttonSecondary(activity)) { chooseAdbPushFile() }
+        btnAdbInfo = actionBtn("ADB device information", Ui.buttonPrimary(activity)) { showAdbdeviceInfo() }
 
         grid.addView(gridRow(btnPartitions, btnSingleFlash))
         grid.addView(gridRow(btnFullFlash, btnReboot))
@@ -347,7 +347,7 @@ class OtgAssistantPage(
             )
         }
         card.addView(TextView(activity).apply {
-            text = "输出Log"
+            text = "Output log"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -361,7 +361,7 @@ class OtgAssistantPage(
             isNestedScrollingEnabled = false
         }
         logView = Ui.logTextView(activity).apply {
-            text = "Log将显示在这里...\n"
+            text = "Logs will appear here...\n"
             setPadding(0, 0, 0, 0)
         }
         logScroll.addView(logView)
@@ -386,34 +386,34 @@ class OtgAssistantPage(
         return card
     }
 
-    // ==================== Device扫描 ====================
+    // ==================== device扫描 ====================
 
-    private fun refreshDevices() {
+    private fun refreshdevices() {
         if (refreshing) return
         refreshing = true
-        appendLog("\n正在扫描Device...\n")
+        appendLog("\nScanning device...\n")
         Thread {
             if (!alive) return@Thread
-            val devices = OtgAssistantCore.listUsbDevices(ctx)
-            val protocol = OtgAssistantCore.detectProtocolDevices(ctx)
+            val devices = OtgAssistantCore.listUsbdevices(ctx)
+            val protocol = OtgAssistantCore.detectProtocoldevices(ctx)
             postUi {
                 if (devices.isEmpty()) {
-                    deviceListText.text = "未找到 USB Device"
-                    appendLog("未发现Device\n")
+                    deviceListText.text = "No USB device found"
+                    appendLog("No device found\n")
                 } else {
                     val shown = devices.take(8)
                     val text = shown.joinToString("\n") { deviceInfoString(it) }
-                    deviceListText.text = if (devices.size > 8) "$text\n...共 ${devices.size} 个Device" else text
-                    appendLog("发现 ${devices.size} 个Device\n")
+                    deviceListText.text = if (devices.size > 8) "$text\n...共 ${devices.size}  devices" else text
+                    appendLog("Found ${devices.size}  devices\n")
                 }
                 protocolText.text = "ADB: ${protocol.adb}\nFastboot: ${protocol.fastboot}"
-                appendLog("协议Detect：ADB=${protocol.adb != "未发现Device"}，Fastboot=${protocol.fastboot != "未发现Device"}\n")
+                appendLog("Protocol detection：ADB=${protocol.adb != "No device found"}，Fastboot=${protocol.fastboot != "No device found"}\n")
                 refreshing = false
             }
         }.start()
     }
 
-    private fun deviceInfoString(dv: OtgAssistantCore.DeviceInfo): String {
+    private fun deviceInfoString(dv: OtgAssistantCore.deviceInfo): String {
         val vid = String.format("%04x", dv.vendorId)
         val pid = String.format("%04x", dv.productId)
         return "VID:$vid  PID:$pid  ${dv.deviceName}"
@@ -424,7 +424,7 @@ class OtgAssistantPage(
     private fun executeCommand() {
         val command = commandInput.text.toString().trim()
         if (command.isEmpty()) {
-            toast("请输入命令")
+            toast("请Enter command")
             return
         }
         appendLog("\n>$command\n")
@@ -452,22 +452,22 @@ class OtgAssistantPage(
             val partitions = OtgAssistantCore.parseFastbootPartitions(output.toString())
             postUi {
                 parsedPartitions = partitions
-                appendLog("解析到 ${partitions.size} 个分区\n")
+                appendLog("Parsed ${partitions.size}  partitions\n")
             }
         }.start()
     }
 
-    // ==================== 单分区刷写 ====================
+    // ==================== Flash single partition ====================
 
     private fun chooseSinglePartition() {
         if (operationActive) return
         if (parsedPartitions.isEmpty()) {
-            toast("请先读取分区表")
+            toast("请先Read partition table")
             return
         }
         val names = parsedPartitions.map { it.name }.toTypedArray()
         AlertDialog.Builder(activity)
-            .setTitle("选择目标分区")
+            .setTitle("Select target partition")
             .setItems(names) { _, which ->
                 selectedPartition = names[which]
                 singleImageLauncher()
@@ -484,14 +484,14 @@ class OtgAssistantPage(
                 val size = file.length()
                 postUi {
                     AlertDialog.Builder(activity)
-                        .setTitle("确认单分区刷写")
-                        .setMessage("分区: $partition\n文件: $name\n大小: ${formatBytes(size)}\nSHA-256: $digest")
-                        .setNegativeButton("取消", null)
-                        .setPositiveButton("刷写") { _, _ -> Haptics.perform(activity.window.decorView); flashSingle(file, partition, name) }
+                        .setTitle("确认Flash single partition")
+                        .setMessage("Partition: $partition\nFile: $name\nSize: ${formatBytes(size)}\nSHA-256: $digest")
+                        .setNegativeButton("Cancel", null)
+                        .setPositiveButton("Flash") { _, _ -> Haptics.perform(activity.window.decorView); flashSingle(file, partition, name) }
                         .show()
                 }
             } catch (e: Exception) {
-                postUi { appendLog("读取镜像Failed: ${e.message}\n") }
+                postUi { appendLog("Failed to read image: ${e.message}\n") }
             }
         }.start()
     }
@@ -503,7 +503,7 @@ class OtgAssistantPage(
                 val image = OtgAssistantCore.copyLocalFileToCache(ctx, file, name)
                 runFastbootBlocking("fastboot flash $partition ${image.absolutePath}")
             } catch (e: Exception) {
-                postUi { appendLog("准备镜像Failed: ${e.message}\n") }
+                postUi { appendLog("Failed to prepare image: ${e.message}\n") }
             } finally {
                 postUi { setOperationActive(false) }
             }
@@ -519,13 +519,13 @@ class OtgAssistantPage(
 
     private fun extractAndScanOta(file: java.io.File) {
         val progressAnimal = TextView(activity).apply {
-            text = "已完成 0%\n准备读取 BIN/ZIP..."
+            text = "Completed 0%\nPreparing to read BIN/ZIP..."
             textSize = 13f
             setTextColor(Ui.primaryText(activity))
             gravity = Gravity.CENTER
         }
         val hint = TextView(activity).apply {
-            text = "解包速度取决于Device性能与存储速度，通常需要 2-5 分钟。"
+            text = "Extraction speed depends on device and storage performance and usually takes 2–5 minutes."
             textSize = 12f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(10, d), 0, 0)
@@ -538,7 +538,7 @@ class OtgAssistantPage(
             addView(hint)
         }
         val progressDialog = AlertDialog.Builder(activity)
-            .setTitle("正在解包 OTA")
+            .setTitle("Extracting OTA")
             .setView(content)
             .setCancelable(false)
             .create()
@@ -550,7 +550,7 @@ class OtgAssistantPage(
                     file,
                 ) { percent, line ->
                     postUi {
-                        if (percent >= 0) progressAnimal.text = "已完成 $percent%\n$line"
+                        if (percent >= 0) progressAnimal.text = "Completed $percent%\n$line"
                         else progressAnimal.text = line
                     }
                 }
@@ -559,7 +559,7 @@ class OtgAssistantPage(
                     progressDialog.dismiss()
                     fullImages = images.toMutableList()
                     if (images.isEmpty()) {
-                        appendLog("OTA 包中没有可用的 .img 镜像\n")
+                        appendLog("No usable .img images found in the OTA package\n")
                         OtgAssistantCore.deleteOtaDirectory(ctx)
                     } else {
                         showImageSelection()
@@ -569,7 +569,7 @@ class OtgAssistantPage(
                 OtgAssistantCore.deleteOtaDirectory(ctx)
                 postUi {
                     progressDialog.dismiss()
-                    appendLog("解压或扫描 OTA 包Failed: ${e.message}\n")
+                    appendLog("Failed to extract or scan OTA package: ${e.message}\n")
                 }
             }
         }.start()
@@ -594,7 +594,7 @@ class OtgAssistantPage(
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(300, d).toInt())
         }
         val nextBtn = TextView(activity).apply {
-            text = "下一步：进入 FastbootD"
+            text = "Next: enter FastbootD"
             textSize = 14f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(solidButtonText())
@@ -611,7 +611,7 @@ class OtgAssistantPage(
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(20, d), 0, Ui.dp(20, d), Ui.dp(16, d))
             addView(TextView(activity).apply {
-                text = "共发现 ${fullImages.size} 个 .img 文件（已解压到 APP 私有 files/ota 目录）"
+                text = "共Found ${fullImages.size} .img files (extracted to the app-private files/ota directory)"
                 textSize = 12f
                 setTextColor(Ui.secondaryText(activity))
                 setPadding(0, 0, 0, Ui.dp(8, d))
@@ -620,21 +620,21 @@ class OtgAssistantPage(
             addView(nextBtn)
         }
         val dialog = AlertDialog.Builder(activity)
-            .setTitle("选择 OTA 全量包分区（默认全选）")
+            .setTitle("Select OTA full-package partitions (all selected by default)")
             .setView(content)
-            .setNegativeButton("取消") { _, _ ->
+            .setNegativeButton("Cancel") { _, _ ->
                 OtgAssistantCore.deleteOtaDirectory(ctx)
-                appendLog("已取消选择并清理 files/ota 目录\n")
+                appendLog("已CancelSelect并清理 files/ota 目录\n")
             }
             .create()
         dialog.setOnCancelListener {
             OtgAssistantCore.deleteOtaDirectory(ctx)
-            appendLog("已取消选择并清理 files/ota 目录\n")
+            appendLog("已CancelSelect并清理 files/ota 目录\n")
         }
         nextBtn.setOnClickListener {
             val selected = fullImages.filter { it.selected }
             if (selected.isEmpty()) {
-                toast("至少选择一个分区")
+                toast("至少Select一 partitions")
                 return@setOnClickListener
             }
             dialog.dismiss()
@@ -645,7 +645,7 @@ class OtgAssistantPage(
 
     private fun showFullFlashConfirmation(selected: List<OtgAssistantCore.ImageInfo>) {
         if (selected.isEmpty()) {
-            toast("至少选择一个分区")
+            toast("至少Select一 partitions")
             return
         }
         val summary = selected.joinToString("\n") { "${it.partition}: ${it.name}" }
@@ -659,8 +659,8 @@ class OtgAssistantPage(
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(24, d), Ui.dp(8, d), Ui.dp(24, d), Ui.dp(8, d))
             addView(TextView(activity).apply {
-                text = "重要警告：必须确认固件包匹配当前Device型号、地区、版本与存储规格。" +
-                    "刷写Success后将执行 fastboot -w，全部用户数据会被清除。\n\n待刷分区:\n$summary\n\n请输入确认短语："
+                text = "Important warning: confirm that the firmware package matches the current device model, region, version, and storage configuration." +
+                    "FlashSuccess后将执行 fastboot -w，all user data will be erased。\n\n待刷Partition:\n$summary\n\nEnter the confirmation phrase："
                 textSize = 12f
                 setTextColor(Ui.primaryText(activity))
                 setLineSpacing(Ui.dp(3, d).toFloat(), 1f)
@@ -668,17 +668,17 @@ class OtgAssistantPage(
             addView(input)
         }
         val dialog = AlertDialog.Builder(activity)
-            .setTitle("确认全量包刷写")
+            .setTitle("确认Flash full package")
             .setView(box)
-            .setNegativeButton("取消") { _, _ ->
+            .setNegativeButton("Cancel") { _, _ ->
                 OtgAssistantCore.deleteOtaDirectory(ctx)
-                appendLog("已取消刷写并清理 files/ota 目录\n")
+                appendLog("已CancelFlash并清理 files/ota 目录\n")
             }
-            .setPositiveButton("Start刷写", null)
+            .setPositiveButton("StartFlash", null)
             .create()
         dialog.setOnCancelListener {
             OtgAssistantCore.deleteOtaDirectory(ctx)
-            appendLog("已取消刷写并清理 files/ota 目录\n")
+            appendLog("已CancelFlash并清理 files/ota 目录\n")
         }
         dialog.setOnShowListener {
             dialog.getAlertDialogPositive()?.setOnClickListener {
@@ -687,7 +687,7 @@ class OtgAssistantPage(
                     Haptics.perform(activity.window.decorView)
                     flashFullPackage(selected)
                 } else {
-                    toast("确认短语不匹配")
+                    toast("Confirmation phrase does not match")
                 }
             }
         }
@@ -700,22 +700,22 @@ class OtgAssistantPage(
             var success = true
             try {
                 for (image in images) {
-                    postUi { appendLog("\nStart刷写 ${image.partition}: ${image.name}\n") }
-                    val file = image.file ?: throw IllegalStateException("镜像文件不存在")
+                    postUi { appendLog("\nStartFlash ${image.partition}: ${image.name}\n") }
+                    val file = image.file ?: throw IllegalStateException("Image file does not exist")
                     val result = runFastbootBlocking("fastboot flash ${image.partition} ${file.absolutePath}")
                     if (result.exitCode != 0) {
                         success = false
-                        postUi { appendLog("分区 ${image.partition} 刷写Failed，已Stop后续操作\n") }
+                        postUi { appendLog("分区 ${image.partition} FlashFailed，已Stop后续操作\n") }
                         break
                     }
                 }
                 if (success) {
-                    postUi { appendLog("全部分区刷写Success，Start执行 fastboot -w\n") }
+                    postUi { appendLog("全部分区FlashSuccess，Start执行 fastboot -w\n") }
                     val wipe = runFastbootBlocking("fastboot -w")
-                    postUi { appendLog(if (wipe.exitCode == 0) "数据清除Success\n" else "数据清除Failed，退出码 ${wipe.exitCode}\n") }
+                    postUi { appendLog(if (wipe.exitCode == 0) "Data wipe succeeded\n" else "Data wipe failed, exit code ${wipe.exitCode}\n") }
                 }
             } catch (e: Exception) {
-                postUi { appendLog("全量刷写Failed: ${e.message}\n") }
+                postUi { appendLog("全量FlashFailed: ${e.message}\n") }
             } finally {
                 OtgAssistantCore.deleteOtaDirectory(ctx)
                 postUi {
@@ -734,18 +734,18 @@ class OtgAssistantPage(
             postUi {
                 setOperationActive(false)
                 if (result.exitCode == 0) {
-                    appendLog("Device正在进入 FastbootD，请等待Device重新枚举\n")
+                    appendLog("device is entering FastbootD; wait for the device to re-enumerate\n")
                     handler.postDelayed({
                         if (alive) showFullFlashConfirmation(images)
                     }, 1500)
                 } else {
-                    appendLog("进入 FastbootD Failed，请检查DeviceConnected和当前模式\n")
+                    appendLog("Failed to enter FastbootD; check device connection and current mode\n")
                 }
             }
         }.start()
     }
 
-    // ==================== ADB 推送 / Device信息 ====================
+    // ==================== ADB push / device信息 ====================
 
     private fun chooseAdbPushFile() {
         if (operationActive) return
@@ -761,10 +761,10 @@ class OtgAssistantPage(
             setPadding(Ui.dp(10, d), Ui.dp(8, d), Ui.dp(10, d), Ui.dp(8, d))
         }
         AlertDialog.Builder(activity)
-            .setTitle("ADB 推送文件")
-            .setMessage("文件: $name\n请输入Device上的目标路径")
+            .setTitle("ADB push文件")
+            .setMessage("File: $name\nEnter the target path on the device")
             .setView(destination)
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .setPositiveButton("推送") { _, _ -> adbPush(file, destination.text.toString().trim()) }
             .show()
     }
@@ -785,16 +785,16 @@ class OtgAssistantPage(
                     "adb push ${file.absolutePath} $destination",
                 ) { line -> postUi { appendLog("$line\n") } }
                 file.delete()
-                postUi { appendLog("ADB 推送${if (result.exitCode == 0) "Success" else "Failed，退出码 ${result.exitCode}"}\n") }
+                postUi { appendLog("ADB push${if (result.exitCode == 0) "Success" else "Failed，Exit code ${result.exitCode}"}\n") }
             } catch (e: Exception) {
-                postUi { appendLog("ADB 推送Failed: ${e.message}\n") }
+                postUi { appendLog("ADB pushFailed: ${e.message}\n") }
             } finally {
                 postUi { setOperationActive(false) }
             }
         }.start()
     }
 
-    private fun showAdbDeviceInfo() {
+    private fun showAdbdeviceInfo() {
         if (operationActive) return
         setOperationActive(true)
         Thread {
@@ -810,24 +810,24 @@ class OtgAssistantPage(
                 synchronized(output) { output.append(command).append(": ").append(result.output.trim()).append('\n') }
             }
             postUi {
-                appendLog("\nADB Device信息:\n${output.toString().ifBlank { "未Detect到 ADB Device\n" }}")
+                appendLog("\nADB device information:\n${output.toString().ifBlank { "未Detect到 ADB device\n" }}")
                 setOperationActive(false)
             }
         }.start()
     }
 
-    // ==================== 高级重启 ====================
+    // ==================== Advanced reboot ====================
 
     private fun showRebootMenu() {
         val topItems = listOf(
-            RebootMode("正常重启", "返回 Android 系统", "reboot", com.mcai.ubuntudsu.R.drawable.ic_reboot_normal, Ui.buttonSuccess(activity)),
-            RebootMode("正常关机", "通过 ADB 关闭电源", "reboot poweroff", com.mcai.ubuntudsu.R.drawable.ic_reboot_power_off, Ui.buttonWarning(activity)),
+            RebootMode("Normal reboot", "Return to Android", "reboot", com.mcai.ubuntudsu.R.drawable.ic_reboot_normal, Ui.buttonSuccess(activity)),
+            RebootMode("Power off", "Power off via ADB", "reboot poweroff", com.mcai.ubuntudsu.R.drawable.ic_reboot_power_off, Ui.buttonWarning(activity)),
         )
         val fullItems = listOf(
-            RebootMode("热重启", "重启系统界面而不重新引导系统", "reboot", com.mcai.ubuntudsu.R.drawable.ic_reboot_hot, Ui.buttonSuccess(activity)),
-            RebootMode("Recovery", "重启到 Recovery 模式（卡刷模式）", "reboot recovery", com.mcai.ubuntudsu.R.drawable.ic_reboot_recovery, Ui.buttonSecondary(activity)),
-            RebootMode("Fastboot", "重启到 Fastboot 模式（USB 线刷模式）", "reboot bootloader", com.mcai.ubuntudsu.R.drawable.ic_reboot_fastboot, Ui.buttonSecondary(activity)),
-            RebootMode("9008 (EDL)", "重启到 9008 模式（仅限骁龙Device）", "reboot edl", com.mcai.ubuntudsu.R.drawable.ic_reboot_9008, Ui.buttonSecondary(activity)),
+            RebootMode("Hot reboot", "Restart the system UI without rebooting the OS", "reboot", com.mcai.ubuntudsu.R.drawable.ic_reboot_hot, Ui.buttonSuccess(activity)),
+            RebootMode("Recovery", "Reboot to Recovery mode (recovery flashing)", "reboot recovery", com.mcai.ubuntudsu.R.drawable.ic_reboot_recovery, Ui.buttonSecondary(activity)),
+            RebootMode("Fastboot", "Reboot to Fastboot mode (USB flashing)", "reboot bootloader", com.mcai.ubuntudsu.R.drawable.ic_reboot_fastboot, Ui.buttonSecondary(activity)),
+            RebootMode("9008 (EDL)", "Reboot to 9008 mode (Snapdragon devices only)", "reboot edl", com.mcai.ubuntudsu.R.drawable.ic_reboot_9008, Ui.buttonSecondary(activity)),
         )
 
         val grid = LinearLayout(activity).apply {
@@ -837,9 +837,9 @@ class OtgAssistantPage(
         }
         Ui.applyNeuShadow(grid, 3f, 20f)
 
-        // "选择操作" 标题套进玻璃边框内
+        // "Select action" 标题套进玻璃边框内
         grid.addView(TextView(activity).apply {
-            text = "选择操作"
+            text = "Select action"
             textSize = 18f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -936,7 +936,7 @@ class OtgAssistantPage(
         }
 
         val cancelBtn = TextView(activity).apply {
-            text = "取消"
+            text = "Cancel"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.secondaryText(activity))
@@ -965,31 +965,31 @@ class OtgAssistantPage(
     private fun executeRebootMode(mode: RebootMode) {
         setOperationActive(true)
         Thread {
-            val status = OtgAssistantCore.detectProtocolDevices(ctx)
-            val adbConnected = status.adb != "未发现Device" && !status.adb.contains("等待USB授权")
-            val fastbootConnected = status.fastboot != "未发现Device"
+            val status = OtgAssistantCore.detectProtocoldevices(ctx)
+            val adbconnected = status.adb != "No device found" && !status.adb.contains("Waiting for USB authorization")
+            val fastbootconnected = status.fastboot != "No device found"
             when {
-                adbConnected -> {
+                adbconnected -> {
                     val tool = OtgAssistantCore.getAdbPath(ctx)
                     val target = mode.command.removePrefix("reboot ")
                     val full = if (target.isEmpty()) "adb reboot" else "adb $target"
                     val result = runToolBlocking(tool, full)
                     postUi {
-                        appendLog("退出码: ${result.exitCode}\n")
+                        appendLog("Exit code: ${result.exitCode}\n")
                         if (result.exitCode == 0 && target.isNotEmpty()) {
-                            appendLog("Device正在切换启动模式，等待重新枚举\n")
+                            appendLog("device切换启动模式，等待重新枚举\n")
                             waitForUsbReenumeration()
                         }
                     }
                 }
-                fastbootConnected -> {
+                fastbootconnected -> {
                     val tool = OtgAssistantCore.getFastbootPath(ctx)
                     val target = mode.command.removePrefix("reboot ")
                     val full = if (target.isEmpty()) "fastboot reboot" else "fastboot $target"
                     val result = runToolBlocking(tool, full)
-                    postUi { appendLog("退出码: ${result.exitCode}\n") }
+                    postUi { appendLog("Exit code: ${result.exitCode}\n") }
                 }
-                else -> postUi { appendLog("高级重启Failed：未Detect到可用的 ADB/Fastboot Device\n") }
+                else -> postUi { appendLog("Advanced rebootFailed：未Detect到可用的 ADB/Fastboot device\n") }
             }
             postUi { setOperationActive(false) }
         }.start()
@@ -999,15 +999,15 @@ class OtgAssistantPage(
         repeat(8) {
             Thread.sleep(750)
             if (!alive) return
-            val status = OtgAssistantCore.detectProtocolDevices(ctx)
-            if (status.fastboot != "未发现Device") {
-                postUi { appendLog("Fastboot 状态：${status.fastboot}\n") }
+            val status = OtgAssistantCore.detectProtocoldevices(ctx)
+            if (status.fastboot != "No device found") {
+                postUi { appendLog("Fastboot status：${status.fastboot}\n") }
                 return
             }
         }
         postUi {
-            appendLog("切换模式后 Fastboot 未发现Device，请检查Connected与 fastboot 输出\n")
-            refreshDevices()
+            appendLog("切换模式后 Fastboot No device found，请检查connected与 fastboot 输出\n")
+            refreshdevices()
         }
     }
 
@@ -1018,7 +1018,7 @@ class OtgAssistantPage(
         return OtgAssistantCore.executeCommandDetailed(OtgAssistantCore.getFastbootPath(ctx), command) { line ->
             postUi { appendLog("$line\n") }
         }.also { result ->
-            postUi { appendLog("退出码: ${result.exitCode}\n") }
+            postUi { appendLog("Exit code: ${result.exitCode}\n") }
         }
     }
 
@@ -1027,7 +1027,7 @@ class OtgAssistantPage(
         return OtgAssistantCore.executeCommandDetailed(toolPath, command) { line ->
             postUi { appendLog("$line\n") }
         }.also { result ->
-            postUi { appendLog("退出码: ${result.exitCode}\n") }
+            postUi { appendLog("Exit code: ${result.exitCode}\n") }
         }
     }
 
@@ -1036,7 +1036,7 @@ class OtgAssistantPage(
     private fun setOperationActive(active: Boolean) {
         operationActive = active
         val enabled = !active
-        listOf(btnExecute, btnPartitions, btnSingleFlash, btnFullFlash, btnReboot, btnAdbPush, btnAdbInfo, btnRefreshDevice).forEach {
+        listOf(btnExecute, btnPartitions, btnSingleFlash, btnFullFlash, btnReboot, btnAdbPush, btnAdbInfo, btnRefreshdevice).forEach {
             it.isEnabled = enabled
             it.alpha = if (enabled) 1f else 0.5f
         }
