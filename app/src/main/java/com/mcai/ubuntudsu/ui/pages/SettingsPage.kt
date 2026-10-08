@@ -394,7 +394,7 @@ class SettingsPage(
                     runCatching { checking.dismiss() }
                     AlertDialog.Builder(activity)
                         .setTitle("Check for Updates")
-                        .setMessage("检测过程出现异常，请稍后重试。")
+                        .setMessage("An error occurred while checking. Please try again.")
                         .setPositiveButton("Close", null)
                         .show()
                 }
@@ -426,7 +426,7 @@ class SettingsPage(
             .setCancelable(false)
             .setNegativeButton("Cancel") { _, _ -> cancelled.set(true) }
             .show()
-        percentText.text = "连接中…"
+        percentText.text = "Connecting…"
         Thread {
             try {
                 var shownPercent = 0
@@ -436,7 +436,7 @@ class SettingsPage(
                     activity.runOnUiThread {
                         if (!activity.isFinishing) {
                             progress.progress = shownPercent
-                            percentText.text = if (shownPercent <= 0) "连接中…$statusSuffix" else "$shownPercent %$statusSuffix"
+                            percentText.text = if (shownPercent <= 0) "Connecting…$statusSuffix" else "$shownPercent %$statusSuffix"
                         }
                     }
                 }
@@ -489,8 +489,8 @@ class SettingsPage(
                         AlertDialog.Builder(activity)
                             .setTitle("Download Failed")
                             .setMessage(
-                                if (lastReason.isNotBlank()) "所有线路均Download Failed：\n$lastReason"
-                                else "所有线路均Download Failed，请稍后重试。"
+                                if (lastReason.isNotBlank()) "All download routes failed:\n$lastReason"
+                                else "All download routes failed. Please try again later."
                             )
                             .setPositiveButton("Close", null)
                             .show()
@@ -501,7 +501,7 @@ class SettingsPage(
                     if (activity.isFinishing) return@runOnUiThread
                     dialog.setTitle("正在安装 v${info.version}")
                     runCatching { progress.isIndeterminate = true }
-                    percentText.text = "后台Installing，请稍候…"
+                    percentText.text = "Installing in background, please wait…"
                 }
                 val install = com.mcai.ubuntudsu.core.AppUpdater.silentInstall(target)
                 activity.runOnUiThread {

@@ -114,7 +114,7 @@ class ProcessManagerPage(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { bottomMargin = Ui.dp(10, d) }
         }
-        // 标题 + 数据源徽标（ROOT 实测 / /proc 直读）
+        // 标题 + 数据源徽标（ROOT measured / /proc direct read）
         val overviewTitleRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -164,7 +164,7 @@ class ProcessManagerPage(
         }
         overview.addView(summaryInfoText)
         overview.addView(TextView(activity).apply {
-            text = "提示：EndProcesses需 ROOT 权限，点击apps可查看Details并Force Stop"
+            text = "Tip: Ending processes requires ROOT permission. Tap an app to view details and force-stop it."
             textSize = 10f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(4, d), 0, 0)
@@ -449,14 +449,14 @@ class ProcessManagerPage(
                     permissionBanner?.visibility =
                         if (scan.usageAccessGranted) View.GONE else View.VISIBLE
                     statusText.text = buildString {
-                        append("共 ${filtered.size}  itemsapps · ${if (scan.usedRoot) "ROOT" else "/proc"}双点采样")
+                        append("${filtered.size} apps · ${if (scan.usedRoot) "ROOT" else "/proc"} sampling")
                         // Background页标注数据来源
                         if (currentTab == 0) {
                             when {
                                 scan.recentPackages.isNotEmpty() -> append(" · Recent tasks")
                                 scan.usageAccessGranted ->
                                     append(" · Recent-task data pending refresh")
-                                else -> append(" · 降级为运行Processes")
+                                else -> append(" · Falling back to running processes")
                             }
                         }
                     }
@@ -505,7 +505,7 @@ class ProcessManagerPage(
             (chip.getChildAt(1) as? TextView)?.text = "Processes · $runningApps apps"
         }
 
-        sourceBadge.text = if (usedRoot) "ROOT 实测" else "/proc 直读"
+        sourceBadge.text = if (usedRoot) "ROOT measured" else "/proc direct read"
 
         // 各cores实时占用条
         coreBarsRow.removeAllViews()
@@ -716,7 +716,7 @@ class ProcessManagerPage(
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         }
         if (app.isOwnApp) {
-            tagContainer.addView(buildTag("本apps", Ui.buttonPrimary(activity), d))
+            tagContainer.addView(buildTag("This app", Ui.buttonPrimary(activity), d))
         } else if (app.isSystemApp) {
             tagContainer.addView(buildTag("System", Ui.secondaryText(activity), d, true))
         }
@@ -771,7 +771,7 @@ class ProcessManagerPage(
             setOnClickListener { showAppDetail(app) }
         })
 
-        // Force Stop按钮（非本apps才显示）
+        // Force Stop按钮（非This app才显示）
         if (!app.isOwnApp) {
             row2.addView(TextView(activity).apply {
                 text = "End"
@@ -840,15 +840,15 @@ class ProcessManagerPage(
 
         // 详细数据（均为 /proc 实时采样）
         val details = listOf(
-            "Running State" to if (app.isRunning) "Running" else if (app.hasRunningService) "服务Running" else "Not Running",
-            "Processes数" to "${app.processCount}  items",
-            "实时 CPU Usage" to ProcessScanner.formatCpu(app.cpuPercent),
+            "Running State" to if (app.isRunning) "Running" else if (app.hasRunningService) "Service running" else "Not Running",
+            "Processes" to "${app.processCount}  items",
+            "Real-time CPU usage" to ProcessScanner.formatCpu(app.cpuPercent),
             "Cumulative CPU Time" to ProcessScanner.formatCpuTime(app.cpuTimeJiffies),
             "Power Share" to ProcessScanner.formatPower(app.powerSharePercent),
             "Memory Usage" to ProcessScanner.formatMemory(app.memoryKb),
-            "Foreground运行" to ProcessScanner.formatForegroundTime(app.foregroundTimeMs),
+            "Foreground time" to ProcessScanner.formatForegroundTime(app.foregroundTimeMs),
             "Last Used" to ProcessScanner.formatLastUsed(app.lastUsedTime),
-            "apps类型" to if (app.isSystemApp) "System Apps" else "用户apps",
+            "App type" to if (app.isSystemApp) "System Apps" else "User apps",
         )
 
         for ((label, value) in details) {
@@ -881,7 +881,7 @@ class ProcessManagerPage(
             }
         }
 
-        builder.setNeutralButton("apps信息") { _, _ ->
+        builder.setNeutralButton("App info") { _, _ ->
             // 打开System AppsDetails页
             runCatching {
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -898,13 +898,13 @@ class ProcessManagerPage(
         AlertDialog.Builder(activity)
             .setTitle("Force Stopapps")
             .setMessage(
-                "OK要Force Stop「${app.appLabel}」吗？\n\n" +
-                    "包名: ${app.packageName}\n" +
-                    "Processes数: ${app.processCount}\n" +
+                "Force-stop「${app.appLabel}」吗？\n\n" +
+                    "Package: ${app.packageName}\n" +
+                    "Processes: ${app.processCount}\n" +
                     "实时 CPU: ${ProcessScanner.formatCpu(app.cpuPercent)}\n" +
                     "累计 CPU: ${ProcessScanner.formatCpuTime(app.cpuTimeJiffies)}\n" +
                     "Memory: ${ProcessScanner.formatMemory(app.memoryKb)}\n\n" +
-                    "Force Stop后，该apps的所有服务和BackgroundProcesses将被终止。"
+                    "Force-stopping this app will terminate all of its services and background processes."
             )
             .setPositiveButton("Force Stop") { _, _ -> killApp(app) }
             .setNegativeButton("Cancel", null)
@@ -928,15 +928,15 @@ class ProcessManagerPage(
                 if (success) {
                     AlertDialog.Builder(activity)
                         .setTitle("Operation Successful")
-                        .setMessage("「${app.appLabel}」已Force Stop。")
+                        .setMessage(""${app.appLabel}" was force-stopped.")
                         .setPositiveButton("OK") { _, _ -> loadData() }
                         .show()
                 } else {
                     val hasRoot = runCatching { RootShell.available() }.getOrDefault(false)
                     val msg = if (!hasRoot) {
-                        "Operation Failed，需要 ROOT 权限才能Force Stopapps。"
+                        "Operation failed. ROOT permission is required to force-stop this app."
                     } else {
-                        "Operation Failed，该apps可能无法被终止或已自动重启。"
+                        "Operation failed. The app may not be terminable or may have restarted automatically."
                     }
                     AlertDialog.Builder(activity)
                         .setTitle("Operation Failed")

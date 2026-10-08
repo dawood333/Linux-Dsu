@@ -376,7 +376,7 @@ class WorkTimePage(private val activity: Activity) {
         val firstOfMonth = (cal.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, 1) }
         val lastDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
         val firstWeek = firstOfMonth.get(Calendar.DAY_OF_WEEK) // 1=Sun,2=Mon,...7=Sat
-        val leading = if (firstWeek == 1) 6 else firstWeek - 2 // 周Mon基
+        val leading = if (firstWeek == 1) 6 else firstWeek - 2 // week start
 
         var cell = 0
         var row = newDayRow()
@@ -484,7 +484,7 @@ class WorkTimePage(private val activity: Activity) {
 
     private fun refresh() {
         val ym = monthFmt.format(cal.time)
-        monthTitle?.text = String.format(Locale.getDefault(), "%d年%d月",
+        monthTitle?.text = String.format(Locale.getDefault(), "%d-%02d",
             cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
 
         // 重建Sun历
@@ -613,7 +613,7 @@ class WorkTimePage(private val activity: Activity) {
             setPadding(0, Ui.dp(8, d), 0, 0)
         })
         val dialog = AlertDialog.Builder(activity)
-            .setTitle("修改 $dateStr Work Time")
+            .setTitle("Edit Work Time for $dateStr")
             .setView(form)
             .setPositiveButton("Save", null)
             .setNegativeButton("Cancel", null)
@@ -1174,7 +1174,7 @@ class WorkTimePage(private val activity: Activity) {
 
     private fun copyMonthRecords() {
         val ym = monthFmt.format(cal.time)
-        val label = String.format(Locale.getDefault(), "%d年%d月",
+        val label = String.format(Locale.getDefault(), "%d-%02d",
             cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
         val csv = store.exportMonthCsv(ym, label)
         val cb = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE)

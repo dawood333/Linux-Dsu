@@ -402,8 +402,8 @@ class UsbBootPage(
             setTextColor(Ui.primaryText(activity))
         })
         card.addView(makeHelpLine("① Connect the phone to the computer and enable USB debugging / MTP mode"))
-        card.addView(makeHelpLine("② Create USB Drive IMG Image（本地 truncate + 格式化）"))
-        card.addView(makeHelpLine("③ Boot Virtual USB（root 下 USB Gadget 框架）"))
+        card.addView(makeHelpLine("② Create USB Drive IMG Image (local truncate + format)"))
+        card.addView(makeHelpLine("③ Boot Virtual USB (USB Gadget framework with root)"))
         card.addView(makeHelpLine("④ Select the USB drive / optical disc in the computer BIOS and follow the installation prompts"))
         card.addView(makeHelpLine("You can also select an existing ISO/IMG as the boot source"))
 
@@ -505,7 +505,7 @@ class UsbBootPage(
         if (source == null) {
             AlertDialog.Builder(activity)
                 .setTitle("No usable ISO/IMG found")
-                .setMessage("请先Create USB Drive IMG Image，或手动浏览Select ISO/IMG 文件。")
+                .setMessage("Create a USB-drive IMG image first, or browse for an ISO/IMG file.")
                 .setPositiveButton("Close", null)
                 .show()
             return
@@ -542,10 +542,10 @@ class UsbBootPage(
             val err = if (errFile.exists()) runCatching { errFile.readText() }.getOrNull()?.trim().orEmpty() else ""
             activity.runOnUiThread {
                 if (r.code == 0 && !err.equals("vud fail", true) && !err.equals("unsupported", true)) {
-                    vudStatusText?.text = "Running（$selectedVudType 模式）"
+                    vudStatusText?.text = "Running ($selectedVudType mode)"
                     vudTypeText?.text = "ISO：$iso"
                 } else {
-                    vudStatusText?.text = "Boot failed: ${err.ifBlank { "检查 USB Gadget 是否支持 mass_storage（需 root）" }}"
+                    vudStatusText?.text = "Boot failed: ${err.ifBlank { "Check whether USB Gadget supports mass_storage (root required)" }}"
                 }
             }
         }.start()
@@ -568,7 +568,7 @@ class UsbBootPage(
             }
             RootShell.exec(script, 15000)
             activity.runOnUiThread {
-                vudStatusText?.text = "已Stop"
+                vudStatusText?.text = "Stopped"
                 vudTypeText?.text = ""
             }
         }.start()
