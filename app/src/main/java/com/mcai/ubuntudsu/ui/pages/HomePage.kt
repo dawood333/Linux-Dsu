@@ -35,7 +35,7 @@ class HomePage(
     private lateinit var memoryValue: TextView
     private lateinit var memoryDetail: TextView
     private var cpuSample: Any? = null
-    // 合并后的整张拼接卡（含实时状态 + 检测信息两个分区）
+    // 合并后的整张拼接卡（含Live status + 检测信息两个分区）
     private var unifiedCard: LinearLayout? = null
     // 顶部头图卡片：自定义背景图（Env.background），自动居中裁切适配
     private var heroImage: ImageView? = null
@@ -43,7 +43,7 @@ class HomePage(
     private var heroTitle: TextView? = null
     private var heroSubtitle: TextView? = null
     // Home不能和 Linux/DSU 的耗时任务共用 MainActivity 单线程队列：
-    // 否则 GPU/ROOT 探测超时后会把“ROOT/GSI/Linux/桌面”永久堵在“检测中”。
+    // 否则 GPU/ROOT 探测超时后会把“ROOT/GSI/Linux/Desktop”永久堵在“Detecting”。
     private val metricsExecutor = Executors.newSingleThreadExecutor()
     private val statusExecutor = Executors.newSingleThreadExecutor()
     private val imageExecutor = Executors.newSingleThreadExecutor()
@@ -84,7 +84,7 @@ class HomePage(
         // 上次崩溃信息（若有）
         showCrashIfAny(page)
 
-        // 单张拼接卡：上分区实时状态，下分区检测信息，中间水晶玻璃分隔条
+        // 单张拼接卡：上分区Live status，下分区检测信息，中间水晶玻璃分隔条
         val unified = buildUnifiedCard(d)
         unifiedCard = unified
         page.addView(unified)
@@ -121,7 +121,7 @@ class HomePage(
         }
         val head = content.lineSequence().take(6).joinToString("\n")
         card.addView(TextView(activity).apply {
-            text = "上次异常退出"
+            text = "Last abnormal exit"
             textSize = 14f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(android.graphics.Color.parseColor("#EF454A"))
@@ -134,7 +134,7 @@ class HomePage(
         })
         val buttons = LinearLayout(activity)
         buttons.addView(TextView(activity).apply {
-            text = "复制完整日志"
+            text = "Copy full log"
             textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
@@ -144,11 +144,11 @@ class HomePage(
             setOnClickListener {
                 val clipboard = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("crash", content))
-                android.widget.Toast.makeText(activity, "已复制崩溃日志", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(activity, "Crash log copied", android.widget.Toast.LENGTH_SHORT).show()
             }
         })
         buttons.addView(TextView(activity).apply {
-            text = "清除"
+            text = "Clear"
             textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
@@ -164,7 +164,7 @@ class HomePage(
         page.addView(card)
     }
 
-    // 拼接一体卡：实时状态分区 + 水晶分隔条 + 检测信息分区
+    // 拼接一体卡：Live status分区 + 水晶分隔条 + 检测信息分区
     private fun buildUnifiedCard(d: Float): LinearLayout {
         val card = com.mcai.ubuntudsu.ui.glass.TrueGlassPanel(activity, 26f, Ui.isDark(activity)).apply {
             setPadding(Ui.dp(18, d), Ui.dp(14, d), Ui.dp(18, d), Ui.dp(14, d))
@@ -174,9 +174,9 @@ class HomePage(
             )
         }
 
-        // 实时状态
+        // Live status
         card.addView(TextView(activity).apply {
-            text = "实时状态"
+            text = "Live status"
             textSize = 14f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -223,8 +223,8 @@ class HomePage(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        val storageCard = detailMetric("存储", Ui.buttonPrimary(activity))
-        val memoryCard = detailMetric("内存", Ui.buttonSecondary(activity))
+        val storageCard = detailMetric("Storage", Ui.buttonPrimary(activity))
+        val memoryCard = detailMetric("Memory", Ui.buttonSecondary(activity))
         storageValue = storageCard.first
         storageDetail = storageCard.second
         memoryValue = memoryCard.first
@@ -275,7 +275,7 @@ class HomePage(
             layoutParams = LinearLayout.LayoutParams(size, size)
         }
         rootLabel = TextView(activity).apply {
-            text = "ROOT：检测中…"
+            text = "ROOT：Detecting…"
             textSize = 14f
             setTextColor(Ui.primaryText(activity))
             layoutParams = Ui.layoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
@@ -291,13 +291,13 @@ class HomePage(
             orientation = LinearLayout.VERTICAL
             setPadding(0, Ui.dp(4, d), 0, 0)
         }
-        val gsiPill = statusRow("GSI 系统", "检测中...")
+        val gsiPill = statusRow("GSI system", "Detecting...")
         gsiText = gsiPill.text
         gsiDot = gsiPill.dot
-        val ubuntuPill = statusRow("Linux", "检测中...")
+        val ubuntuPill = statusRow("Linux", "Detecting...")
         ubuntuText = ubuntuPill.text
         ubuntuDot = ubuntuPill.dot
-        val desktopPill = statusRow("桌面", "检测中...")
+        val desktopPill = statusRow("Desktop", "Detecting...")
         desktopText = desktopPill.text
         desktopDot = desktopPill.dot
         statusColumn.addView(gsiPill.row)
@@ -306,7 +306,7 @@ class HomePage(
         card.addView(statusColumn)
         card.addView(
             TextView(activity).apply {
-                text = "刷新状态"
+                text = "Refresh status"
                 textSize = 12f
                 gravity = Gravity.CENTER
                 setTextColor(Ui.buttonText(activity))
@@ -354,7 +354,7 @@ class HomePage(
     }
 
     private fun updateMetrics(onResult: (Int?, Int?) -> Unit) {
-        // GPU 节点在未授权 ROOT 设备上可能需要数秒超时；跳过重入，避免 2 秒轮询无限堆积。
+        // GPU 节点在Unauthorized ROOT 设备上可能需要数秒超时；跳过重入，避免 2 秒轮询无限堆积。
         if (!metricsRunning.compareAndSet(false, true)) return
         metricsExecutor.execute {
             try {
@@ -378,7 +378,7 @@ class HomePage(
     private fun detailMetric(title: String, color: Int): Triple<TextView, TextView, View> {
         val d = activity.resources.displayMetrics.density
         val valueView = TextView(activity).apply {
-            text = "读取中..."
+            text = "Reading..."
             textSize = 15f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -513,10 +513,10 @@ class HomePage(
     fun refreshStatus() {
         val ctx = activity
         statusGeneration.incrementAndGet()
-        gsiText.text = "GSI 系统：检测中..."
-        ubuntuText.text = "Linux：检测中..."
-        desktopText.text = "桌面：检测中..."
-        rootLabel.text = "ROOT：检测中…"
+        gsiText.text = "GSI system：Detecting..."
+        ubuntuText.text = "Linux：Detecting..."
+        desktopText.text = "Desktop：Detecting..."
+        rootLabel.text = "ROOT：Detecting…"
         fun grayDot(view: View) {
             view.background = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.OVAL
@@ -546,12 +546,12 @@ class HomePage(
                     val desktopLabel = Env.desktopState(ctx)
                     if (generation == statusGeneration.get()) {
                         val gsiLabel = when (gsiState) {
-                            com.mcai.ubuntudsu.core.GsiState.RUNNING -> "运行中"
+                            com.mcai.ubuntudsu.core.GsiState.RUNNING -> "Running"
                             com.mcai.ubuntudsu.core.GsiState.INSTALLED -> "Installed"
-                            com.mcai.ubuntudsu.core.GsiState.ENABLED -> "已启用"
-                            com.mcai.ubuntudsu.core.GsiState.DISABLED -> "已停用"
+                            com.mcai.ubuntudsu.core.GsiState.ENABLED -> "Enabled"
+                            com.mcai.ubuntudsu.core.GsiState.DISABLED -> "Disabled"
                             com.mcai.ubuntudsu.core.GsiState.NORMAL -> "Not installed"
-                            com.mcai.ubuntudsu.core.GsiState.UNKNOWN -> "未检测到"
+                            com.mcai.ubuntudsu.core.GsiState.UNKNOWN -> "Not detected"
                         }
                         activity.runOnUiThread {
                             if (activity.isFinishing || activity.isDestroyed || generation != statusGeneration.get()) return@runOnUiThread
@@ -560,10 +560,10 @@ class HomePage(
                                 setColor(android.graphics.Color.parseColor(colorHex))
                             }
                             deviceText.text = device
-                            gsiText.text = "GSI 系统：$gsiLabel"
+                            gsiText.text = "GSI system：$gsiLabel"
                             ubuntuText.text = if (linuxInstalled) "Linux：Installed" else "Linux：Not installed"
-                            desktopText.text = "桌面：$desktopLabel"
-                            rootLabel.text = if (rootOk) "ROOT：已授权" else "ROOT：未授权"
+                            desktopText.text = "Desktop：$desktopLabel"
+                            rootLabel.text = if (rootOk) "ROOT：Authorized" else "ROOT：Unauthorized"
                             rootDot.background = dotColor(if (rootOk) "#5CE1A5" else "#FF756F")
                             // GSI 点：运行/安装/启用=绿，停用=琥珀，Not installed/未知=灰
                             gsiDot.background = dotColor(
@@ -586,7 +586,7 @@ class HomePage(
                 }
             } finally {
                 statusRunning.set(false)
-                // 检测完成后正好有新请求到达时，再启动一轮，保证不遗留“检测中”。
+                // 检测完成后正好有新请求到达时，再启动一轮，保证不遗留“Detecting”。
                 if (renderedGeneration != statusGeneration.get() && !activity.isFinishing && !activity.isDestroyed) {
                     scheduleStatusRefresh(ctx)
                 }
@@ -649,7 +649,7 @@ class HomePage(
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         }
         heroSubtitle = TextView(activity).apply {
-            text = "口袋里的 Linux 工作站 · 天明研发版"
+            text = "Linux workstation in your pocket · TMUI development build"
             textSize = 11f
             setPadding(0, Ui.dp(2, d), 0, 0)
         }
@@ -657,9 +657,9 @@ class HomePage(
         textBlock.addView(heroSubtitle)
         hero.addView(textBlock)
 
-        // 右下「更换背景」玻璃胶囊：唤起系统图片选择器
+        // 右下「Change background」玻璃胶囊：唤起系统图片选择器
         val chip = TextView(activity).apply {
-            text = "更换背景"
+            text = "Change background"
             textSize = 11f
             gravity = Gravity.CENTER
             setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
@@ -681,9 +681,9 @@ class HomePage(
             if (file.exists() && file.delete()) {
                 heroImage?.setImageResource(R.drawable.hero_default)
                 applyHeroTextColors(true)
-                Toast.makeText(activity, "已恢复默认壁纸", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "Default wallpaper restored", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(activity, "当前已是默认壁纸", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "Already using the default wallpaper", Toast.LENGTH_SHORT).show()
             }
             true
         }
@@ -700,7 +700,7 @@ class HomePage(
         )
     }
 
-    // 解码头图：按卡片尺寸降采样，避免大图内存压力
+    // 解码头图：按卡片尺寸降采样，避免大图Memory压力
     private fun loadHeroBitmap(): android.graphics.Bitmap? {
         return runCatching {
             val file = Env.background(activity)
@@ -734,7 +734,7 @@ class HomePage(
                     heroScrim?.visibility = View.VISIBLE
                     applyHeroTextColors(true)
                 } else {
-                    Toast.makeText(activity, "图片读取失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "Failed to load image", Toast.LENGTH_SHORT).show()
                 }
             }
         }
