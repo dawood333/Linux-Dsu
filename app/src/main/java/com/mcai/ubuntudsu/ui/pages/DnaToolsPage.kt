@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 /**
  * DNA 工具箱首页（对齐参考 Dsu-Manager 首页 DNA 工具布局，UbuntuDSU 拟态玻璃本地化）：
  *  - Toolchain Status卡（Check / Download & Extract tools.zip）
- *  - 工程管理卡（Current Project / Switch Project / New / 删除 / Extract ROM / Plugins）
+ *  - 工程管理卡（Current Project / Switch Project / New / Delete / Extract ROM / Plugins）
  *  - Extract & Unpack / Build & Pack / Format Conversion / Other Tools 四组功能入口
  */
 class DnaToolsPage(private val activity: Activity) {
@@ -269,7 +269,7 @@ class DnaToolsPage(private val activity: Activity) {
             ).apply { topMargin = dp(10) }
         }
         val icons = arrayOf("＋", "🗑", "📦", "🧩")
-        val labels = arrayOf("New", "删除", "Extract ROM", "Plugins")
+        val labels = arrayOf("New", "Delete", "Extract ROM", "Plugins")
         for (i in icons.indices) {
             val op = LinearLayout(activity).apply {
                 orientation = LinearLayout.VERTICAL
@@ -514,7 +514,7 @@ class DnaToolsPage(private val activity: Activity) {
             showProjectManager()
             return
         }
-        toast("正在Check super.img ...")
+        toast("Checking super.img ...")
         Thread {
             val path = "${DnaTools.WORK_ROOT}/$cur/super.img"
             val has = RootShell.exec(
@@ -527,7 +527,7 @@ class DnaToolsPage(private val activity: Activity) {
                     si.putExtra(com.mcai.ubuntudsu.core.dna.DnaSuperActivity.EXTRA_SUPER, path)
                     activity.startActivity(si)
                 } else {
-                    toast("Current Project未Check到 super.img，请先解压 ROM 或导入 super.img")
+                    toast("Current Projectdid not find super.img，Please extract the ROM or import super.img")
                 }
             }
         }.start()
@@ -541,7 +541,7 @@ class DnaToolsPage(private val activity: Activity) {
 
     private fun refreshStatus() {
         val text = statusText ?: return
-        text.text = "Check中 …"
+        text.text = "Checking …"
         text.setTextColor(Ui.secondaryText(activity))
         downloadBtn?.text = "Download Toolchain"
         downloadBtn?.visibility = View.VISIBLE
@@ -551,7 +551,7 @@ class DnaToolsPage(private val activity: Activity) {
             handler.post {
                 if (activity.isFinishing) return@post
                 val ok = ready && root
-                text.text = if (ok) "✓ 就绪（ROOT 可用）" else if (ready) "Toolchain ready (ROOT required)" else "Not ready (download and ROOT authorization required)"
+                text.text = if (ok) "✓ Ready (ROOT available)" else if (ready) "Toolchain ready (ROOT required)" else "Not ready (download and ROOT authorization required)"
                 text.setTextColor(if (ok) readyGreen() else notReadyRed())
                 downloadBtn?.text = if (ready) "Download Again" else "Download & Extract"
             }
@@ -574,7 +574,7 @@ class DnaToolsPage(private val activity: Activity) {
             it.isIndeterminate = false
         }
         logText?.visibility = View.VISIBLE
-        logText?.text = "开始下载…"
+        logText?.text = "Starting download…"
         downloadBtn?.isEnabled = false
         downloadBtn?.alpha = 0.6f
         val onProgress: (Int) -> Unit = { p -> handler.post { progressBar?.progress = p } }
@@ -582,7 +582,7 @@ class DnaToolsPage(private val activity: Activity) {
             handler.post {
                 val cur = logText?.text ?: ""
                 logText?.text = if (cur.isBlank()) line else "$cur\n$line"
-                statusText?.text = "下载中"
+                statusText?.text = "Downloading"
             }
         }
         Thread {
@@ -593,13 +593,13 @@ class DnaToolsPage(private val activity: Activity) {
                     downloadBtn?.alpha = 1f
                     progressBar?.visibility = View.GONE
                     if (ok) {
-                        // 下载成功：直接同步刷新为就绪状态，避免再走 refreshStatus 的异步线程导致卡在“下载中”
+                        // 下载成功：直接同步刷新为就绪状态，避免再走 refreshStatus 的异步线程导致卡在“Downloading”
                         val ready = DnaTools.isReady(activity)
                         val root = RootShell.available()
                         val okReady = ready && root
-                        statusText?.text = if (okReady) "✓ 就绪（ROOT 可用）"
+                        statusText?.text = if (okReady) "✓ Ready (ROOT available)"
                             else if (ready) "Toolchain ready (ROOT required)"
-                            else "未就绪（需授权 ROOT）"
+                            else "Not ready (ROOT authorization required)"
                         statusText?.setTextColor(
                             if (okReady) readyGreen() else notReadyRed()
                         )
@@ -625,7 +625,7 @@ class DnaToolsPage(private val activity: Activity) {
         if (items.isEmpty()) {
             AlertDialog.Builder(activity)
                 .setTitle("Select Project")
-                .setMessage("暂无工程，请先「New」。")
+                .setMessage("No projects. Create a new project first.")
                 .setPositiveButton("New") { _, _ -> showCreateProject() }
                 .setNegativeButton("Close", null)
                 .show()
@@ -637,7 +637,7 @@ class DnaToolsPage(private val activity: Activity) {
             .setItems(labels) { _, which ->
                 DnaTools.setCurrentProject(activity, items[which])
                 refreshProject()
-                toast("已Switch Project：${items[which]}")
+                toast("Switched project: ${items[which]}")
             }
             .setNegativeButton("Close", null)
             .show()
@@ -655,8 +655,8 @@ class DnaToolsPage(private val activity: Activity) {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
         ))
         AlertDialog.Builder(activity)
-            .setTitle("New工程")
-            .setMessage("工程名将添加 PDNA_ 前缀，创建于 /sdcard/PDNA/ 与 /data/PDNA/")
+            .setTitle("New project")
+            .setMessage("Project name will use the PDNA_ prefix and be created under /sdcard/PDNA/ 与 /data/PDNA/")
             .setView(wrap)
             .setPositiveButton("Create & Use") { _, _ ->
                 val name = input.text?.toString()?.trim() ?: ""
@@ -667,20 +667,20 @@ class DnaToolsPage(private val activity: Activity) {
                         if (error == null && created.isNotEmpty()) {
                             DnaTools.setCurrentProject(activity, created)
                             refreshProject()
-                            toast("已创建工程：$created")
+                            toast("Created project: $created")
                         } else {
                             toast("Creation failed: ${error ?: "Unknown error"}")
                         }
                     }
                 }.start()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun showDeleteProject() {
         val projects = DnaTools.listProjects()
-        if (projects.isEmpty()) { toast("暂无工程可删除"); return }
+        if (projects.isEmpty()) { toast("暂无工程可Delete"); return }
         val items = projects.toTypedArray()
         AlertDialog.Builder(activity)
             .setTitle("Delete Project")
@@ -688,8 +688,8 @@ class DnaToolsPage(private val activity: Activity) {
                 val name = items[which]
                 AlertDialog.Builder(activity)
                     .setTitle("Confirm Delete")
-                    .setMessage("将Delete Project $name（/sdcard/PDNA 与 /data/PDNA 下的目录），This cannot be undone。")
-                    .setPositiveButton("删除") { _, _ ->
+                    .setMessage("Delete project $name（/sdcard/PDNA 与 /data/PDNA directories under），This cannot be undone。")
+                    .setPositiveButton("Delete") { _, _ ->
                         Thread {
                             val ok = DnaTools.deleteProject(name)
                             handler.post {
@@ -697,11 +697,11 @@ class DnaToolsPage(private val activity: Activity) {
                                     // Current Project被删，清空显示
                                 }
                                 refreshProject()
-                                toast(if (ok) "已删除：$name" else "Delete failed")
+                                toast(if (ok) "已Delete：$name" else "Delete failed")
                             }
                         }.start()
                     }
-                    .setNegativeButton("取消", null)
+                    .setNegativeButton("Cancel", null)
                     .show()
             }
             .setNegativeButton("Close", null)
