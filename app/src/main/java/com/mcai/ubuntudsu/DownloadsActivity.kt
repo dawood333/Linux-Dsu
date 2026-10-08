@@ -536,7 +536,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
     private fun updateBottomBar() {
         val count = tasks.values.count { it.selected }
-        selectedCountText.text = "Selected $count 项"
+        selectedCountText.text = "Selected $count items"
         bottomBar.visibility = if (selectionMode) View.VISIBLE else View.GONE
     }
 
@@ -714,7 +714,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             setPadding(Ui.dp(20, d), Ui.dp(8, d), Ui.dp(20, d), Ui.dp(4, d))
             addView(input)
             addView(TextView(this@DownloadsActivity).apply {
-                text = "调用Built-in aria2c 多线程引擎 · Save到 /sdcard/Downloads\nSupports断点续传，可与 ROM Download并行"
+                text = "Built-in aria2c multi-thread engine · Save to /sdcard/Downloads\nSupports resume and parallel ROM downloads"
                 textSize = 10f
                 setTextColor(Ui.secondaryText(this@DownloadsActivity))
                 setPadding(0, Ui.dp(6, d), 0, 0)
@@ -740,7 +740,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         // [translated]Task[translated]Download/Pause[translated]
         tasks[filename]?.let {
             if (it.state == 0 || it.state == 1 || it.state == 5) {
-                Toast.makeText(this, "Task「$filename」已在Download列表中", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Task "$filename" is already in the Download list", Toast.LENGTH_SHORT).show()
                 return
             }
         }
@@ -1030,9 +1030,9 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         private fun progressColors(state: Int): Pair<Int, Int> {
             // Back (Progress[translated], [translated])
             return when (state) {
-                1 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // Downloading：绿
-                2 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // Completed：绿
-                5 -> Color.parseColor("#EF4444") to Color.parseColor("#FEE2E2") // Paused：红
+                1 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // Downloading: green
+                2 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // Completed: green
+                5 -> Color.parseColor("#EF4444") to Color.parseColor("#FEE2E2") // Paused: red
                 else -> Color.parseColor("#94A3B8") to Color.parseColor("#E2E8F0")
             }
         }

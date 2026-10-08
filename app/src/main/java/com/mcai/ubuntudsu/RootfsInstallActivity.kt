@@ -276,7 +276,7 @@ class RootfsInstallActivity : AppCompatActivity() {
                     showPercent(10000, "Installation complete")
                     Toast.makeText(this, "Installation complete", Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(this, "下载/Installation failed", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Download/Installation failed", Toast.LENGTH_SHORT).show()
                 }
                 setBusy(false)
             }
@@ -294,7 +294,7 @@ class RootfsInstallActivity : AppCompatActivity() {
                     Toast.makeText(this, "Backup complete", Toast.LENGTH_SHORT).show()
                 } else {
                     val error = result.exceptionOrNull()
-                    Toast.makeText(this, "Backup failed:  ${error?.message ?: "未知错误"}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Backup failed:  ${error?.message ?: "Unknown error"}", Toast.LENGTH_LONG).show()
                 }
                 backupButton.isEnabled = true
                 setBusy(false)

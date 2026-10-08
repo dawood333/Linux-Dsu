@@ -19,7 +19,7 @@ import com.mcai.ubuntudsu.ui.Ui
 
 /**
  * 全屏Settings页（参考 Dsu-Manager 的 SettingsActivity 布局）：
- * 返回条 + 「个性主题」分区 + 「About」分区，整体沿用主应用拟态玻璃架构。
+ * Back条 + 「Appearance」分区 + 「About」分区，整体沿用主应用拟态玻璃架构。
  *
  * 主题偏好与主界面共用 MainActivity 的私有 SharedPreferences 文件
  * （MainActivity 用 getPreferences() 读写，文件名即类名 "MainActivity"），
@@ -71,12 +71,12 @@ class SettingsActivity : AppCompatActivity() {
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(24, d))
         }
 
-        // ===== 返回条：‹ 返回 / Settings（标题真正居中） =====
+        // ===== Back条：‹ Back / Settings（标题真正居中） =====
         val titleRow = FrameLayout(this).apply {
             setPadding(0, 0, 0, Ui.dp(16, d))
         }
         titleRow.addView(TextView(this).apply {
-            text = "‹ 返回"
+            text = "‹ Back"
             textSize = 13f
             setTextColor(Ui.buttonText(this@SettingsActivity))
             background = Ui.glassButton(this@SettingsActivity, Ui.buttonPrimary(this@SettingsActivity))
@@ -134,20 +134,20 @@ class SettingsActivity : AppCompatActivity() {
             val ver = runCatching {
                 packageManager.getPackageInfo(packageName, 0).versionName
             }.getOrNull() ?: "--"
-            text = "版本 v$ver  ·  天明构建  ·  Copyright © 2026"
+            text = "Version v$ver  ·  TMUI build  ·  Copyright © 2026"
             textSize = 11f
             setTextColor(Ui.secondaryText(this@SettingsActivity))
             setPadding(0, 0, 0, Ui.dp(10, d))
         })
         aboutInfoCard.addView(TextView(this).apply {
-            text = "Ubuntu Chroot / DSU / ROM 移植一站式工具。首页右上角「About」可查看完整功能简介。"
+            text = "All-in-one Ubuntu Chroot / DSU / ROM porting toolkit. Open About from the top-right of the Home page for the full feature overview."
             textSize = 12f
             setTextColor(Ui.secondaryText(this@SettingsActivity))
             setLineSpacing(Ui.dp(3, d).toFloat(), 1f)
         })
         page.addView(aboutInfoCard)
 
-        // ===== 分区二：个性主题 =====
+        // ===== 分区二：Appearance =====
         val themeCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = Ui.neuCard(this@SettingsActivity, 18f)
@@ -167,7 +167,7 @@ class SettingsActivity : AppCompatActivity() {
         themeCard.addView(buildThemeModeRow())
         page.addView(themeCard)
 
-        // ===== 分区三：特别鸣谢入口 =====
+        // ===== 分区三：Credits =====
         val aboutCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             background = Ui.neuCard(this@SettingsActivity, 18f)

@@ -16,7 +16,7 @@ import java.util.zip.ZipInputStream
 
 /**
  * DNA 工具箱运行时（参考 Dsu-Manager DnaTools 移植，UbuntuDSU 本地化）：
- *  - 工具来源：运行期从 GsiManager 的 tools.zip（GitHub 直链 + ghproxy 国内加速Route）下载解压到
+ *  - 工具来源：运行期从 GsiManager 的 tools.zip（GitHub 直链 + ghproxy 国内加速Route）Download解压到
  *    app 私有目录 filesDir/dna-tools/，补可执行权限（不内置进 APK）。
  *  - 工程目录双架构（对齐原版）：WORK_ROOT=/sdcard/PDNA 工程根（源文件），TMP_ROOT=/data/PDNA 分解输出（root）。
  *  - 二进制为 Android ARM64 ELF（含 dna 内核），执行走 RootShell（su）；
@@ -56,7 +56,7 @@ object DnaTools {
         fun text(): String = output
     }
 
-    /** 工具清单：可执行二进制 + 中文名 + 一句话说明（tools.zip 实际 16 个） */
+    /** 工具清单：可执行二进制 + English name + 一句话说明（tools.zip 实际 16 个） */
     data class Tool(val bin: String, val name: String, val desc: String)
 
     val tools = listOf(
@@ -68,13 +68,13 @@ object DnaTools {
         Tool("extract.f2fs", "Extract F2FS", "Extract files from F2FS images"),
         Tool("mke2fs", "Create ext4", "Create ext4 image"),
         Tool("e2fsdroid", "ext4 customization", "Android ext4 filesystem customization tool"),
-        Tool("resize2fs", "Resize ext4", "在线Resize ext4 文件系统大小"),
+        Tool("resize2fs", "Resize ext4", "Resize ext4 filesystem online"),
         Tool("simg2img", "SIMG to IMG", "Convert sparse image to raw image"),
         Tool("img2simg", "IMG to SIMG", "Convert raw image to sparse image"),
         Tool("lpmake", "LP image", "Android LPDynamic partition image creation"),
         Tool("busybox", "BusyBox", "General Unix utilities (shell/files/network)"),
-        Tool("zstd", "zstd compression", "zstd compression/解压"),
-        Tool("brotli", "brotli compression", "brotli compression/解压"),
+        Tool("zstd", "zstd compression", "zstd compression/decompression"),
+        Tool("brotli", "brotli compression", "brotli compression/decompression"),
         Tool("sload_f2fs", "F2FS verification", "F2FS partition loading and verification"),
     )
 
@@ -83,7 +83,7 @@ object DnaTools {
     fun toolsDir(ctx: Context): File = File(ctx.filesDir, "dna-tools")
     private fun relayDir(ctx: Context): File = File(RELAY_PATH)
 
-    /** 工具是否已就绪（已下载解压 + 可执行） */
+    /** 工具是否已就绪（已Download解压 + 可执行） */
     fun isReady(ctx: Context): Boolean {
         val dir = File(ctx.filesDir, "dna-tools")
         return marker(ctx).exists() && File(dir, "dna").exists()
@@ -465,7 +465,7 @@ object DnaTools {
         return "/data/media/${m.groupValues[1]}/${m.groupValues[2]}"
     }
 
-    // ============ 工具部署（在线下载 tools.zip + 解压 + root 中转 + 伪装目录） ============
+    // ============ 工具部署（在线Download tools.zip + 解压 + root 中转 + 伪装目录） ============
 
     @Volatile
     private var activeDir: File? = null
@@ -482,7 +482,7 @@ object DnaTools {
     }
 
     /**
-     * 下载 tools.zip 并解压到 app 私有目录，chmod +x 全部二进制，写 READY 标记。
+     * Download tools.zip 并解压到 app 私有目录，chmod +x 全部二进制，写 READY 标记。
      * 直链优先，无进展时切 ghproxy Route；进度 0..100，onLog 回显Route/错误。失败返回 false。
      */
     fun ensureTools(
@@ -516,11 +516,11 @@ object DnaTools {
             val sorted = candidates.sortedByDescending { speeds[it] ?: 0L }
             onLog("Speed test results (bytes/sec):" + sorted.map { "${shortHost(it)}≈${(speeds[it] ?: 0L) / 1024}KB/s" }.joinToString(" "))
 
-            // 2) 按速率从高到低下载，每线监控Actual speed，慢则切下一线
+            // 2) 按速率从高到低Download，每线监控Actual speed，慢则切下一线
             var downloaded = false
             for ((i, url) in sorted.withIndex()) {
                 if (isCancelled()) {
-                    onLog("已取消")
+                    onLog("Cancelled")
                     return false
                 }
                 if (i > 0) {
@@ -574,7 +574,7 @@ object DnaTools {
                 zip.delete()
             }
             if (!downloaded) {
-                onLog("所有Route下载失败，请检查网络后重试")
+                onLog("All download routes failed. Check your network and try again.")
                 return false
             }
             onLog("Extracting tools.zip")
@@ -588,7 +588,7 @@ object DnaTools {
             chmodExec(workDir, onLog)
             marker(ctx).writeText(TOOL_ZIP_URL)
             onProgress(100)
-            onLog("工具就绪")
+            onLog("Tools ready")
             return true
         } catch (e: Exception) {
             onLog("Error: ${e.message}")
@@ -606,7 +606,7 @@ object DnaTools {
         return list
     }
 
-    /** 并发对每条Route探测 3s，返回各 URL 的实际下载速率（字节/秒） */
+    /** 并发对每条Route探测 3s，返回各 URL 的实际Download速率（字节/秒） */
     private fun probeAllSpeeds(urls: List<String>, isCancelled: () -> Boolean): Map<String, Long> {
         val results = HashMap<String, Long>()
         if (isCancelled()) return results
@@ -672,7 +672,7 @@ object DnaTools {
     }
 
     /**
-     * 确保工具可用：下载解压（如未就绪）+ root 同步到 /data/local/tmp 中转目录 + 预建伪装目录 + 自检。
+     * 确保工具可用：Download解压（如未就绪）+ root 同步到 /data/local/tmp 中转目录 + 预建伪装目录 + 自检。
      * 返回可执行工具目录；root 不可用或失败返回 null。
      */
     @JvmStatic
@@ -685,7 +685,7 @@ object DnaTools {
             return relay
         }
         activeDir?.let { dir -> if (selfTest(dir)) return dir }
-        // 工具未就绪则下载解压（非阻塞式：这里同步下载，供 root 中转用）
+        // 工具未就绪则Download解压（非阻塞式：这里同步Download，供 root 中转用）
         val appDir = File(ctx.filesDir, "dna-tools")
         if (!isReady(ctx)) {
             if (!ensureTools(ctx, {}, { onLog?.invoke(it) }, { false })) return null
@@ -801,7 +801,7 @@ object DnaTools {
                 if (isCancelled()) {
                     process.destroyForcibly()
                     reader.join(1500)
-                    return Result(false, output.toString(), "已取消", -1)
+                    return Result(false, output.toString(), "Cancelled", -1)
                 }
                 if (System.currentTimeMillis() - startedAt > timeoutMs) {
                     process.destroyForcibly()
@@ -819,7 +819,7 @@ object DnaTools {
     }
 
     /**
-     * 直接以 root 运行内置提取器，无需等待 DNA 工具链下载、解压和中转。
+     * 直接以 root 运行内置提取器，无需等待 DNA 工具链Download、解压和中转。
      * 保持 run() 的流式日志、取消和超时行为，但不注入 dna 专用环境变量。
      */
     private fun runPayloadCommand(
@@ -905,7 +905,7 @@ object DnaTools {
                 if (isCancelled()) {
                     process.destroyForcibly()
                     reader.join(1500)
-                    return Result(false, output.toString(), "已取消", -1)
+                    return Result(false, output.toString(), "Cancelled", -1)
                 }
                 if (System.currentTimeMillis() - startedAt > timeoutMs) {
                     process.destroyForcibly()
@@ -945,7 +945,7 @@ object DnaTools {
     }
 
     /**
-     * 分解 bin / OTA zip：优先使用 APK 内置 payload-dumper-rust（零下载/零中转），
+     * 分解 bin / OTA zip：优先使用 APK 内置 payload-dumper-rust（零Download/零中转），
      * 按 CPU 核心数自适应并发；旧安装包缺少内置二进制时才回退 DNA 工具链。
      * 输入输出使用 /data/media 底层真实路径，避免 /sdcard FUSE 成为大包吞吐瓶颈。
      */
@@ -1039,7 +1039,7 @@ object DnaTools {
     @JvmStatic
     fun quote(value: String): String = "'" + value.replace("'", "'\\''") + "'"
 
-    // ============ 下载 / 解压 / 权限 私有实现 ============
+    // ============ Download / 解压 / 权限 私有实现 ============
 
     private fun downloadHttp(
         url: String,

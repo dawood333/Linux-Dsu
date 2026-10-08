@@ -18,7 +18,7 @@ import com.mcai.ubuntudsu.ui.Ui
 import java.io.File
 
 /**
- * U盘Boot页：把手机当 U 盘 / 安装盘使用。
+ * USB Boot页：把手机当 U 盘 / 安装盘使用。
  *
  * 核心能力（面向电脑安装 Windows 场景）：
  *  1. 在线获取 Windows 11 ISO（官方 ARM64 下载页 + 自定义直链走内置 aria2c 多线程下载）
@@ -92,7 +92,7 @@ class UsbBootPage(
             setPadding(0, Ui.dp(4, d), 0, Ui.dp(10, d))
         }
         TextView(activity).apply {
-            text = "U盘Boot"
+            text = "USB Boot"
             textSize = 18f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -118,14 +118,14 @@ class UsbBootPage(
             }
         }
         card.addView(TextView(activity).apply {
-            text = "环境检测"
+            text = "Environment Check"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
         })
 
         selinuxText = TextView(activity).apply {
-            text = "In progress检测..."
+            text = "Checking..."
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(4, d), 0, 0)
@@ -135,7 +135,7 @@ class UsbBootPage(
         return card
     }
 
-    // ==================== Create U 盘 IMG Image（truncate + 格式化） ====================
+    // ==================== Create USB Drive IMG Image（truncate + 格式化） ====================
     private fun buildImgCard(): View {
         val card = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -148,21 +148,21 @@ class UsbBootPage(
         }
 
         card.addView(TextView(activity).apply {
-            text = "Create U 盘 IMG Image"
+            text = "Create USB Drive IMG Image"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
         })
         card.addView(TextView(activity).apply {
-            text = "本地生成 U 盘格式 IMG，再经虚拟 U 盘暴露给电脑"
+            text = "Create a USB-format IMG locally and expose it to the computer as a virtual USB drive"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(2, d), 0, Ui.dp(6, d))
         })
 
-        // Image大小
+        // Image Size
         card.addView(TextView(activity).apply {
-            text = "Image大小"
+            text = "Image Size"
             textSize = 12f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -198,9 +198,9 @@ class UsbBootPage(
         }
         card.addView(sizeRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
-        // 文件系统
+        // Filesystem
         card.addView(TextView(activity).apply {
-            text = "文件系统"
+            text = "Filesystem"
             textSize = 12f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -237,7 +237,7 @@ class UsbBootPage(
 
         // 生成状态（单行，默认隐藏）
         imgStatusText = TextView(activity).apply {
-            text = "未生成"
+            text = "Not created"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(8, d), 0, 0)
@@ -252,7 +252,7 @@ class UsbBootPage(
         btnRow.addView(makePillButton("Create IMG", Ui.buttonPrimary(activity)) { createImg() },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         btnRow.addView(View(activity).apply { layoutParams = LinearLayout.LayoutParams(Ui.dp(8, d), 0) })
-        btnRow.addView(makePillButton("选已有 IMG", Ui.buttonSecondary(activity)) { pickIsoFile() },
+        btnRow.addView(makePillButton("Select Existing IMG", Ui.buttonSecondary(activity)) { pickIsoFile() },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         card.addView(btnRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
             topMargin = Ui.dp(6, d)
@@ -274,13 +274,13 @@ class UsbBootPage(
         }
 
         card.addView(TextView(activity).apply {
-            text = "虚拟 USB Boot"
+            text = "Virtual USB Boot"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
         })
         card.addView(TextView(activity).apply {
-            text = "把 ISO 通过 USB Gadget 暴露给电脑"
+            text = "Expose an ISO through USB Gadget to the computer"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(2, d), 0, 0)
@@ -294,9 +294,9 @@ class UsbBootPage(
         val typePills = mutableListOf<TextView>()
         vudTypes.forEachIndexed { i, t ->
             val label = when (t) {
-                "rw" -> "U盘读写"
-                "ro" -> "U盘只读"
-                else -> "CD只读"
+                "rw" -> "USB Read/Write"
+                "ro" -> "USB Read-only"
+                else -> "CD Read-only"
             }
             val isSelected = i == 0
             val pill = TextView(activity).apply {
@@ -328,7 +328,7 @@ class UsbBootPage(
 
         // 当前 ISO Select
         card.addView(TextView(activity).apply {
-            text = "ISO 源文件"
+            text = "ISO Source File"
             textSize = 12f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -340,18 +340,18 @@ class UsbBootPage(
             gravity = Gravity.CENTER_VERTICAL
         }
         isoPickRow.addView(TextView(activity).apply {
-            text = "自动Select已下载的 ISO"
+            text = "Automatically select a downloaded ISO"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
         })
-        isoPickRow.addView(makePillButton("浏览 ISO/IMG...", Ui.buttonPrimary(activity)) { pickIsoFile() },
+        isoPickRow.addView(makePillButton("Browse ISO/IMG...", Ui.buttonPrimary(activity)) { pickIsoFile() },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         card.addView(isoPickRow, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
 
         // VUD 状态
         vudStatusText = TextView(activity).apply {
-            text = "未Boot"
+            text = "Not Booted"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(6, d), 0, 0)
@@ -371,8 +371,8 @@ class UsbBootPage(
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        startVudBtn = makePillButton("Boot虚拟 U 盘", Ui.buttonSuccess(activity)) { startVud() }
-        stopVudBtn = makePillButton("停止", Ui.buttonDanger(activity)) { stopVud() }
+        startVudBtn = makePillButton("Boot Virtual USB", Ui.buttonSuccess(activity)) { startVud() }
+        stopVudBtn = makePillButton("Stop", Ui.buttonDanger(activity)) { stopVud() }
         vudBtnRow.addView(startVudBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         vudBtnRow.addView(View(activity).apply { layoutParams = LinearLayout.LayoutParams(Ui.dp(8, d), 0) })
         vudBtnRow.addView(stopVudBtn, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -383,7 +383,7 @@ class UsbBootPage(
         return card
     }
 
-    // ==================== 使用说明 ====================
+    // ==================== Instructions ====================
     private fun buildHelpCard(): View {
         val card = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -396,16 +396,16 @@ class UsbBootPage(
         }
 
         card.addView(TextView(activity).apply {
-            text = "使用说明"
+            text = "Instructions"
             textSize = 13f
             setTypeface(Ui.typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
         })
-        card.addView(makeHelpLine("① 连接手机到电脑，开启 USB 调试 / MTP 模式"))
-        card.addView(makeHelpLine("② Create U 盘 IMG Image（本地 truncate + 格式化）"))
-        card.addView(makeHelpLine("③ Boot虚拟 U 盘（root 下 USB Gadget 框架）"))
-        card.addView(makeHelpLine("④ 电脑 BIOS 里选 U 盘 / 光盘Boot，按提示安装"))
-        card.addView(makeHelpLine("也可浏览Select已有 ISO/IMG 作为Boot源"))
+        card.addView(makeHelpLine("① Connect the phone to the computer and enable USB debugging / MTP mode"))
+        card.addView(makeHelpLine("② Create USB Drive IMG Image（本地 truncate + 格式化）"))
+        card.addView(makeHelpLine("③ Boot Virtual USB（root 下 USB Gadget 框架）"))
+        card.addView(makeHelpLine("④ Select the USB drive / optical disc in the computer BIOS and follow the installation prompts"))
+        card.addView(makeHelpLine("You can also select an existing ISO/IMG as the boot source"))
 
         return card
     }
@@ -453,7 +453,7 @@ class UsbBootPage(
         lineHeight = ((fm.bottom - fm.top + fm.descent).toInt() + (6f * d).toInt()).coerceAtLeast((16f * d).toInt())
     }
 
-    // ==================== 环境检测（SELinux + USB Gadget 支持） ====================
+    // ==================== Environment Check（SELinux + USB Gadget 支持） ====================
     private fun refreshAll() {
         Thread {
             val se = detectSelinux()
@@ -462,9 +462,9 @@ class UsbBootPage(
             val img = findLatestImg()
             activity.runOnUiThread {
                 selinuxText?.text = se
-                vudStatusText?.text = if (vudRunning) "In progress运行" else "未Boot"
-                vudTypeText?.text = img?.let { "IMG 源文件：${it.name}" } ?: ""
-                imgStatusText?.text = img?.let { "已生成：${it.name}" } ?: "未生成"
+                vudStatusText?.text = if (vudRunning) "Running" else "Not Booted"
+                vudTypeText?.text = img?.let { "IMG Source: ${it.name}" } ?: ""
+                imgStatusText?.text = img?.let { "Created: ${it.name}" } ?: "Not created"
                 startVudBtn?.isEnabled = gadgetSupport
                 stopVudBtn?.isEnabled = gadgetSupport
             }
@@ -475,11 +475,11 @@ class UsbBootPage(
         val r = RootShell.exec("getenforce", 5000)
         val s = r.stdout.trim()
         return when {
-            s.equals("Enforcing", true) -> "SELinux 强制模式 · Root 可用"
-            s.equals("Permissive", true) -> "SELinux 宽容模式 · Root 可用"
-            s.equals("Disabled", true) -> "SELinux 已关闭 · Root 可用"
-            r.code != 0 -> "未检测到 Root（虚拟 U 盘不可用，可继续下载 ISO）"
-            else -> "SELinux 状态未知"
+            s.equals("Enforcing", true) -> "SELinux enforcing mode · Root available"
+            s.equals("Permissive", true) -> "SELinux permissive mode · Root available"
+            s.equals("Disabled", true) -> "SELinux disabled · Root available"
+            r.code != 0 -> "Root not detected (virtual USB is unavailable; you can still download an ISO)"
+            else -> "SELinux status unknown"
         }
     }
 
@@ -504,9 +504,9 @@ class UsbBootPage(
         val source = pickIsoForVud()
         if (source == null) {
             AlertDialog.Builder(activity)
-                .setTitle("未找到可用的 ISO/IMG")
-                .setMessage("请先Create U 盘 IMG Image，或手动浏览Select ISO/IMG 文件。")
-                .setPositiveButton("关闭", null)
+                .setTitle("No usable ISO/IMG found")
+                .setMessage("请先Create USB Drive IMG Image，或手动浏览Select ISO/IMG 文件。")
+                .setPositiveButton("Close", null)
                 .show()
             return
         }
@@ -542,10 +542,10 @@ class UsbBootPage(
             val err = if (errFile.exists()) runCatching { errFile.readText() }.getOrNull()?.trim().orEmpty() else ""
             activity.runOnUiThread {
                 if (r.code == 0 && !err.equals("vud fail", true) && !err.equals("unsupported", true)) {
-                    vudStatusText?.text = "In progress运行（$selectedVudType 模式）"
+                    vudStatusText?.text = "Running（$selectedVudType 模式）"
                     vudTypeText?.text = "ISO：$iso"
                 } else {
-                    vudStatusText?.text = "BootFailed：${err.ifBlank { "检查 USB Gadget 是否支持 mass_storage（需 root）" }}"
+                    vudStatusText?.text = "Boot failed: ${err.ifBlank { "检查 USB Gadget 是否支持 mass_storage（需 root）" }}"
                 }
             }
         }.start()
@@ -568,7 +568,7 @@ class UsbBootPage(
             }
             RootShell.exec(script, 15000)
             activity.runOnUiThread {
-                vudStatusText?.text = "已停止"
+                vudStatusText?.text = "已Stop"
                 vudTypeText?.text = ""
             }
         }.start()
@@ -585,7 +585,7 @@ class UsbBootPage(
         activity.startActivityForResult(
             android.content.Intent(activity, com.mcai.ubuntudsu.RootfsFilesActivity::class.java).apply {
                 putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_PICK, true)
-                putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_TITLE, "Select ISO / IMG Boot源")
+                putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_TITLE, "Select ISO / IMG boot source")
                 putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_EXT, ".iso,.img")
             },
             isoPickerRequest,
@@ -598,7 +598,7 @@ class UsbBootPage(
         val path = data?.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH) ?: return
         val file = java.io.File(path)
         pickedSourceFile = file
-        vudTypeText?.text = "IMG 源文件：${file.name}"
+        vudTypeText?.text = "IMG Source: ${file.name}"
     }
 
     /** 最近生成的 IMG Image：优先 /sdcard/UsbImg，其次 TimeVUD 目录 */
@@ -609,7 +609,7 @@ class UsbBootPage(
         return vudDir.listFiles { f -> f.name.endsWith(".img", true) }?.lastOrNull()
     }
 
-    // ==================== Create U 盘 IMG Image（truncate + 格式化） ====================
+    // ==================== Create USB Drive IMG Image（truncate + 格式化） ====================
     private fun createImg() {
         if (imgMaking.getAndSet(true)) return
         imgCancel.set(false)
@@ -622,9 +622,9 @@ class UsbBootPage(
         imgStatusText?.text = "In progressCreate ${selectedImgGb}GB ${selectedFs} IMG..."
 
         imgMakeThread = Thread {
-            var lastError = "未开始"
+            var lastError = "Not started"
             if (imgCancel.get()) {
-                lastError = "已Cancel"
+                lastError = "Cancelled"
             } else {
                 val bytes = selectedImgGb * 1024L * 1024L * 1024L
                 val script = buildString {
@@ -642,14 +642,14 @@ class UsbBootPage(
                 }
                 val result = RootShell.exec(script, 120000)
                 val done = result.stdout.contains("__IMG_DONE__")
-                lastError = if (done) "Success" else result.stdout.takeLast(120).ifBlank { "CreateFailed（退出码 ${result.code}）" }
+                lastError = if (done) "Success" else result.stdout.takeLast(120).ifBlank { "Creation failed (exit code ${result.code}）" }
             }
             imgMaking.set(false)
             activity.runOnUiThread {
-                if (imgCancel.get() && lastError == "已Cancel") {
-                    imgStatusText?.text = "已Cancel"
+                if (imgCancel.get() && lastError == "Cancelled") {
+                    imgStatusText?.text = "Cancelled"
                 } else if (lastError == "Success") {
-                    imgStatusText?.text = "已生成：${target.name}（$saveDir）"
+                    imgStatusText?.text = "Created: ${target.name}（$saveDir）"
                 } else {
                     imgStatusText?.text = "CreateFailed：${lastError.take(80)}"
                 }

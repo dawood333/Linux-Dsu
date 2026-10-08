@@ -216,7 +216,7 @@ class RootfsFilesActivity : AppCompatActivity() {
             toolBar.addView(smallAction("New File", Ui.buttonPrimary(this)) { promptCreate(newFile = true) }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginStart = Ui.dp(5, d); marginEnd = Ui.dp(5, d) }
             })
-            toolBar.addView(smallAction("New File夹", Ui.buttonSuccess(this)) { promptCreate(newFile = false) }.apply {
+            toolBar.addView(smallAction("New Folder", Ui.buttonSuccess(this)) { promptCreate(newFile = false) }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginStart = Ui.dp(5, d) }
             })
         }
@@ -357,7 +357,7 @@ class RootfsFilesActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
                 refresh()
             } else {
-                Toast.makeText(this, "未Grant Storage Permission，无法浏览 /sdcard", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Storage permission not granted; cannot browse /sdcard", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -474,8 +474,8 @@ class RootfsFilesActivity : AppCompatActivity() {
             .setView(editor)
             .setPositiveButton("Save") { _, _ ->
                 runCatching { file.writeText(editor.text.toString()) }
-                    .onSuccess { Toast.makeText(this, "已Save", Toast.LENGTH_SHORT).show() }
-                    .onFailure { Toast.makeText(this, "Save失败: ${it.message}", Toast.LENGTH_LONG).show() }
+                    .onSuccess { Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show() }
+                    .onFailure { Toast.makeText(this, "Save failed: ${it.message}", Toast.LENGTH_LONG).show() }
             }
             .setNeutralButton("Cancel", null)
             .setNegativeButton("Close", null)
@@ -497,7 +497,7 @@ class RootfsFilesActivity : AppCompatActivity() {
                 } else {
                     runCatching { file.renameTo(File(file.parentFile, name)) }
                         .onSuccess { refresh() }
-                        .onFailure { Toast.makeText(this, "Rename失败: ${it.message}", Toast.LENGTH_SHORT).show() }
+                        .onFailure { Toast.makeText(this, "Rename failed: ${it.message}", Toast.LENGTH_SHORT).show() }
                 }
             }
             .setNegativeButton("Cancel", null)
@@ -507,11 +507,11 @@ class RootfsFilesActivity : AppCompatActivity() {
     private fun confirmDelete(file: File) {
         AlertDialog.Builder(this)
             .setTitle("Delete ${file.name}")
-            .setMessage("将Delete ${if (file.isDirectory) "该Directory及全部内容" else "该文件"}; this cannot be undone.")
+            .setMessage("Delete ${if (file.isDirectory) "this directory and all its contents" else "this file"}; this cannot be undone.")
             .setPositiveButton("Delete") { _, _ ->
                 runCatching { if (file.isDirectory) file.deleteRecursively() else file.delete() }
                     .onSuccess { refresh() }
-                    .onFailure { Toast.makeText(this, "Delete失败: ${it.message}", Toast.LENGTH_SHORT).show() }
+                    .onFailure { Toast.makeText(this, "Delete failed: ${it.message}", Toast.LENGTH_SHORT).show() }
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -523,7 +523,7 @@ class RootfsFilesActivity : AppCompatActivity() {
             setSingleLine(true)
         }
         AlertDialog.Builder(this)
-            .setTitle(if (newFile) "New File" else "New File夹")
+            .setTitle(if (newFile) "New File" else "New Folder")
             .setView(input)
             .setPositiveButton("Create") { _, _ ->
                 val name = input.text.toString().trim()
@@ -533,7 +533,7 @@ class RootfsFilesActivity : AppCompatActivity() {
                 }
                 val target = File(currentDir, name)
                 val ok = if (newFile) target.createNewFile() else target.mkdirs()
-                if (ok) refresh() else Toast.makeText(this, "Create失败（可能已存在）", Toast.LENGTH_SHORT).show()
+                if (ok) refresh() else Toast.makeText(this, "Creation failed (it may already exist)", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Cancel", null)
             .show()

@@ -25,7 +25,7 @@ class DsuInstallService : Service() {
             )
         }
         return Notification.Builder(this, "dsu_install")
-            .setContentTitle("DSU Installation进行中")
+            .setContentTitle("DSU installation in progress")
             .setContentText("The system is reading the GSI package through a local service; keep the app running in the background")
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setOngoing(true)

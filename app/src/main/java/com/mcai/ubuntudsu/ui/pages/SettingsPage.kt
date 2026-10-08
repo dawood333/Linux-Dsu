@@ -84,7 +84,7 @@ class SettingsPage(
         // 标题（壁纸同步时隐藏，图标上移替代）
         if (!wallpaperSync) {
             page.addView(TextView(activity).apply {
-                text = "阿明®有趣小程序"
+                text = "Amin® Utilities"
                 textSize = 22f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(Ui.primaryText(activity))
@@ -98,13 +98,13 @@ class SettingsPage(
         val savedOrder = gridPrefs.getString("icon_order", null)
         val keyToItem = mapOf(
             "theme" to GridItem("Settings", R.drawable.icon_settings, "#5B6CFF") { view -> openSettings(view) },
-            "process" to GridItem("进程管理", R.drawable.icon_process_manager, "#E53935") { view -> openProcessManager(view) },
-            "rom" to GridItem("ROM固件", R.drawable.icon_rom_firmware, "#FF6B35") { view -> openRomFirmware(view) },
-            "otg" to GridItem("OTG助手", R.drawable.icon_otg, "#00897B") { view -> openOtgAssistant(view) },
-            "update" to GridItem("软件更新", R.drawable.icon_update_color, "#2D64AA") { _ -> checkUpdate() },
-            "usbboot" to GridItem("U盘启动", R.drawable.icon_usb_boot, "#E65100") { view -> openUsbBoot(view) },
-            "worktime" to GridItem("日历工时记", R.drawable.icon_worktime, "#00A98F") { view -> openWorkTime(view) },
-            "dnatools" to GridItem("ROM移植", R.drawable.icon_rom_port, "#7C4DFF") { view -> openDnaTools(view) },
+            "process" to GridItem("Process Manager", R.drawable.icon_process_manager, "#E53935") { view -> openProcessManager(view) },
+            "rom" to GridItem("ROM Firmware", R.drawable.icon_rom_firmware, "#FF6B35") { view -> openRomFirmware(view) },
+            "otg" to GridItem("OTG Assistant", R.drawable.icon_otg, "#00897B") { view -> openOtgAssistant(view) },
+            "update" to GridItem("App Updates", R.drawable.icon_update_color, "#2D64AA") { _ -> checkUpdate() },
+            "usbboot" to GridItem("USB Boot", R.drawable.icon_usb_boot, "#E65100") { view -> openUsbBoot(view) },
+            "worktime" to GridItem("Work Time", R.drawable.icon_worktime, "#00A98F") { view -> openWorkTime(view) },
+            "dnatools" to GridItem("ROM Porting", R.drawable.icon_rom_port, "#7C4DFF") { view -> openDnaTools(view) },
         )
         val defaultKeys = keyToItem.keys.toList()
         val orderedKeys: List<String> = if (savedOrder != null) {
@@ -350,12 +350,12 @@ class SettingsPage(
     }
 
 
-    // 在线检查更新：GitHub Releases 最新版比对本地Version，提示 / 下载 / 安装
+    // 在线Check for Updates：GitHub Releases 最新版比对本地Version，提示 / 下载 / 安装
     private fun checkUpdate() {
         val d = activity.resources.displayMetrics.density
         val checking = android.app.AlertDialog.Builder(activity)
-            .setTitle("检查更新")
-            .setMessage("正在检测新Version...")
+            .setTitle("Check for Updates")
+            .setMessage("Checking for updates...")
             .setCancelable(false)
             .show()
         Thread {
@@ -367,23 +367,23 @@ class SettingsPage(
                     runCatching { checking.dismiss() }
                     when {
                         info == null -> AlertDialog.Builder(activity)
-                            .setTitle("检查更新")
-                            .setMessage("未能获取更新信息（无 Release 或网络异常），请稍后重试。")
-                            .setPositiveButton("关闭", null)
+                            .setTitle("Check for Updates")
+                            .setMessage("Unable to get update information (no release or network error). Please try again later.")
+                            .setPositiveButton("Close", null)
                             .show()
                         !com.mcai.ubuntudsu.core.AppUpdater.isNewer(local, info.version) ->
                             AlertDialog.Builder(activity)
-                                .setTitle("检查更新")
-                                .setMessage("当前已是最新Version（v$local）。")
-                                .setPositiveButton("关闭", null)
+                                .setTitle("Check for Updates")
+                                .setMessage("Already up to date (v$local）。")
+                                .setPositiveButton("Close", null)
                                 .show()
                         else -> AlertDialog.Builder(activity)
-                            .setTitle("发现新Version v${info.version}")
+                            .setTitle("New version v${info.version}")
                             .setMessage(
                                 (if (info.notes.isBlank()) "" else "${info.notes}\n\n") +
-                                    "下载并安装新Version？",
+                                    "Download and install the new version?",
                             )
-                            .setPositiveButton("下载并安装") { _, _ -> downloadAndInstall(info) }
+                            .setPositiveButton("Download and Install") { _, _ -> downloadAndInstall(info) }
                             .setNegativeButton("Cancel", null)
                             .show()
                     }
@@ -393,9 +393,9 @@ class SettingsPage(
                     if (activity.isFinishing) return@runOnUiThread
                     runCatching { checking.dismiss() }
                     AlertDialog.Builder(activity)
-                        .setTitle("检查更新")
+                        .setTitle("Check for Updates")
                         .setMessage("检测过程出现异常，请稍后重试。")
-                        .setPositiveButton("关闭", null)
+                        .setPositiveButton("Close", null)
                         .show()
                 }
             }
@@ -412,7 +412,7 @@ class SettingsPage(
         val percentText = Ui.percentTextView(activity)
         val cancelled = java.util.concurrent.atomic.AtomicBoolean(false)
         val dialog = android.app.AlertDialog.Builder(activity)
-            .setTitle("正在下载 v${info.version}")
+            .setTitle("Downloading v${info.version}")
             .setView(
                 LinearLayout(activity).apply {
                     orientation = LinearLayout.VERTICAL
@@ -487,12 +487,12 @@ class SettingsPage(
                         runCatching { dialog.dismiss() }
                         if (cancelled.get()) return@runOnUiThread
                         AlertDialog.Builder(activity)
-                            .setTitle("下载失败")
+                            .setTitle("Download Failed")
                             .setMessage(
-                                if (lastReason.isNotBlank()) "所有线路均下载失败：\n$lastReason"
-                                else "所有线路均下载失败，请稍后重试。"
+                                if (lastReason.isNotBlank()) "所有线路均Download Failed：\n$lastReason"
+                                else "所有线路均Download Failed，请稍后重试。"
                             )
-                            .setPositiveButton("关闭", null)
+                            .setPositiveButton("Close", null)
                             .show()
                     }
                     return@Thread
@@ -501,7 +501,7 @@ class SettingsPage(
                     if (activity.isFinishing) return@runOnUiThread
                     dialog.setTitle("正在安装 v${info.version}")
                     runCatching { progress.isIndeterminate = true }
-                    percentText.text = "后台安装中，请稍候…"
+                    percentText.text = "后台Installing，请稍候…"
                 }
                 val install = com.mcai.ubuntudsu.core.AppUpdater.silentInstall(target)
                 activity.runOnUiThread {
@@ -509,10 +509,10 @@ class SettingsPage(
                     runCatching { dialog.dismiss() }
                     if (install.success) {
                         AlertDialog.Builder(activity)
-                            .setTitle("安装完成")
-                            .setMessage("v${info.version} 已安装成功，重启应用后生效。")
+                            .setTitle("Installation Complete")
+                            .setMessage("v${info.version} installed successfully. Restart the app to apply the update.")
                             .setCancelable(false)
-                            .setPositiveButton("重启应用") { _, _ ->
+                            .setPositiveButton("Restart App") { _, _ ->
                                 runCatching {
                                     val relaunch = activity.packageManager.getLaunchIntentForPackage(activity.packageName)
                                     relaunch?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
@@ -523,9 +523,9 @@ class SettingsPage(
                             .show()
                     } else {
                         AlertDialog.Builder(activity)
-                            .setTitle("需手动安装")
-                            .setMessage("已下载 v${info.version}。\n\n自动安装未成功：${install.message}")
-                            .setPositiveButton("调用系统安装") { _, _ ->
+                            .setTitle("Manual Installation Required")
+                            .setMessage("已下载 v${info.version}。\n\nAutomatic installation failed:${install.message}")
+                            .setPositiveButton("Use System Installer") { _, _ ->
                                 runCatching { com.mcai.ubuntudsu.core.AppUpdater.install(activity, target) }
                             }
                             .setNegativeButton("Cancel", null)
@@ -537,9 +537,9 @@ class SettingsPage(
                     if (activity.isFinishing) return@runOnUiThread
                     runCatching { dialog.dismiss() }
                     AlertDialog.Builder(activity)
-                        .setTitle("下载失败")
-                        .setMessage("新Version下载出现异常，请稍后重试。")
-                        .setPositiveButton("关闭", null)
+                        .setTitle("Download Failed")
+                        .setMessage("An error occurred while downloading the new version. Please try again later.")
+                        .setPositiveButton("Close", null)
                         .show()
                 }
             }

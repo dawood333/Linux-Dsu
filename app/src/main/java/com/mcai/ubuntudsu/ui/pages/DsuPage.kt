@@ -432,7 +432,7 @@ class DsuPage(
             Toast.makeText(activity, "ROOT DSU installer is not connected. Grant ROOT access and try again.", Toast.LENGTH_SHORT).show()
             return
         }
-        confirmAction("Start DSU Installation", "将通过 ROOT DSU ROOT DSU installer will create the partitions directly and write the GSI image.") {
+        confirmAction("Start DSU Installation", "将通过 ROOT The ROOT DSU installer will create the partitions directly and write the GSI image.") {
             executor.execute {
                 if (clearUserdata) {
                     log("Clearing old cache: /metadata/gsi/dsu/dsu/lp_metadata")

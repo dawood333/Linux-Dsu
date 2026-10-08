@@ -315,7 +315,7 @@ class OnboardingActivity : AppCompatActivity() {
             subtitle = "No unlocking or changes to the stock system; temporarily boot new system images",
             items = listOf(
                 Triple(R.drawable.icon_dsu_modern, "DSU Dynamic System Update", "Install GSI images directly with ROOT, customize userdata size, clear old cache, and reboot with one tap"),
-                Triple(R.drawable.icon_linux_modern, "Linux ARM® Architecture", "Chroot Install运行 Ubuntu rootfs（Local / CloudImage），可Uninstall还原"),
+                Triple(R.drawable.icon_linux_modern, "Linux ARM® Architecture", "Install Ubuntu rootfs in Chroot (local / cloud image), with uninstall support"),
                 Triple(R.drawable.icon_terminal_runner, "Container Terminal", "Termux-style Chroot terminal with apt package installation"),
                 Triple(R.drawable.ic_desktop_start, "Remote Desktop", "XFCE / KDE Desktop + VNC 远程Connection，音频桥接、分辨率自选"),
             ),
@@ -324,10 +324,10 @@ class OnboardingActivity : AppCompatActivity() {
             title = "ROM Firmware & Porting",
             subtitle = "Dual-source firmware downloads and all-in-one DNA porting tools",
             items = listOf(
-                Triple(R.drawable.icon_rom_firmware, "ROM Firmware Download", "HyperOS 与 ColorOS / FlymeOS / realme UI 双源，品牌机型筛选，aria2c 加速"),
-                Triple(R.drawable.icon_rom_port, "ROM Porting", "DNA Tool箱分解 / 合成 SUPER、payload 提取、Image格式互转"),
-                Triple(R.drawable.icon_otg, "OTG Flashing Assistant", "Detect USB Device ADB / Fastboot Status，刷机Log实时Output"),
-                Triple(R.drawable.icon_usb_boot, "USB Boot", "Local制作 U 盘 IMG Image并虚拟 U 盘暴露给电脑"),
+                Triple(R.drawable.icon_rom_firmware, "ROM Firmware Download", "HyperOS and ColorOS / FlymeOS / realme UI sources, brand/device filtering, aria2c acceleration"),
+                Triple(R.drawable.icon_rom_port, "ROM Porting", "DNA Toolbox for SUPER unpacking/repacking, payload extraction, and image format conversion"),
+                Triple(R.drawable.icon_otg, "OTG Flashing Assistant", "Detect USB device ADB / Fastboot status with real-time flashing logs"),
+                Triple(R.drawable.icon_usb_boot, "USB Boot", "Create a USB-drive IMG image locally and expose it to the computer"),
             ),
         )
         4 -> createPermissionsPage()
@@ -723,7 +723,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Agreement text
         card.addView(TextView(this).apply {
-            text = "Welcome TMUI OS。本App为 Android Device提供 Linux Desktop Environment运行能力，包括 DSU GSI Install、Chroot Linux 容器、Terminal模拟及 VNC Remote Desktop等功能。\n\nUse本AppRequiredDevice已获取 ROOT Access，并可能涉及System级操作。Please read the following terms carefully before continuing。"
+            text = "Welcome to TMUI OS. This app provides Android devices with Linux desktop capabilities, including DSU GSI installation, Chroot Linux containers, terminal emulation, and VNC remote desktop.\n\nThis app requires ROOT access and may perform system-level operations. Please read the following terms carefully before continuing."
             textSize = 14f
             setTextColor(Ui.secondaryText(this@OnboardingActivity))
             setPadding(0, Ui.dp(16, d), 0, 0)
@@ -1216,9 +1216,9 @@ class OnboardingActivity : AppCompatActivity() {
             Ui.applyNeuShadow(this, 5f, 20f)
         }
         listOf(
-            Triple(R.drawable.icon_terminal_runner, "Container Terminal", "Chroot 容器 · Termux 风格 · apt 装包"),
+            Triple(R.drawable.icon_terminal_runner, "Container Terminal", "Chroot container · Termux-style · apt package management"),
             Triple(R.drawable.icon_linux_modern, "Desktop Environment", "XFCE / KDE / GNOME + VNC Remote Desktop"),
-            Triple(R.drawable.icon_dsu_modern, "DSU Manager", "ROOT 直装 GSI Image · 一键Reboot切换"),
+            Triple(R.drawable.icon_dsu_modern, "DSU Manager", "Install GSI images directly with ROOT · Reboot to switch"),
             Triple(R.drawable.ic_download, "Download Manager", "Parallel downloads · Resume support · Direct image downloads"),
         ).forEachIndexed { index, (iconRes, title, desc) ->
             if (index > 0) {
