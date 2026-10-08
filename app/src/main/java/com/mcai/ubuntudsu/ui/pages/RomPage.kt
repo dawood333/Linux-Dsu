@@ -58,7 +58,7 @@ class RomPage(
     private lateinit var deviceSelectBtn: TextView
     private lateinit var deviceLabel: TextView
 
-    private var activeTab = 0 // 0=小米固件 1=欧加固件
+    private var activeTab = 0 // 0=小米Firmware 1=欧加Firmware
 
     private var allDevices = emptyList<RomDevice>()
     private var filteredDevices = emptyList<RomDevice>()
@@ -93,7 +93,7 @@ class RomPage(
             setPadding(0, 0, 0, Ui.dp(12, d))
         }
         titleRow.addView(TextView(activity).apply {
-            text = "ROM固件"
+            text = "ROMFirmware"
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -105,7 +105,7 @@ class RomPage(
             )
         })
         titleRow.addView(TextView(activity).apply {
-            text = "下载管理"
+            text = "Download管理"
             textSize = 12f
             setTextColor(Ui.buttonText(activity))
             gravity = Gravity.CENTER
@@ -151,7 +151,7 @@ class RomPage(
         currentCard.addView(currentDeviceText)
         page.addView(currentCard)
 
-        // ===== 搜索框 =====
+        // ===== Search框 =====
         val searchBox = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -168,7 +168,7 @@ class RomPage(
             layoutParams = LinearLayout.LayoutParams(Ui.dp(18, d), Ui.dp(18, d))
         })
         searchInput = EditText(activity).apply {
-            hint = "搜索设备名称或代号..."
+            hint = "Search设备名称或代号..."
             textSize = 13f
             setTextColor(Ui.primaryText(activity))
             setHintTextColor(Ui.secondaryText(activity))
@@ -183,14 +183,14 @@ class RomPage(
         searchBox.addView(searchInput)
         page.addView(searchBox)
 
-        // ===== Tab 切换：小米固件 / 欧加固件 =====
+        // ===== Tab 切换：小米Firmware / 欧加Firmware =====
         val tabBar = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, 0, 0, Ui.dp(8, d))
         }
-        tabXiaomi = buildTab("HyperOS固件", 0)
-        tabMultiBrand = buildTab("ColorOS FlymeOS realme UI 固件", 1)
+        tabXiaomi = buildTab("HyperOSFirmware", 0)
+        tabMultiBrand = buildTab("ColorOS FlymeOS realme UI Firmware", 1)
         tabBar.addView(tabXiaomi)
         tabBar.addView(tabMultiBrand, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -210,7 +210,7 @@ class RomPage(
         }
         page.addView(brandRow)
 
-        // 设备筛选行（仅多品牌 Tab）：选择设备按钮 + 当前所选设备标签，位于品牌行下方
+        // 设备筛选行（仅多品牌 Tab）：Select设备按钮 + 当前所选设备标签，位于品牌行下方
         deviceRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -218,7 +218,7 @@ class RomPage(
             setPadding(0, 0, 0, Ui.dp(6, d))
         }
         deviceSelectBtn = TextView(activity).apply {
-            text = "选择设备"
+            text = "Select设备"
             textSize = 11f
             setTextColor(Ui.buttonText(activity))
             setPadding(Ui.dp(10, d), Ui.dp(5, d), Ui.dp(10, d), Ui.dp(5, d))
@@ -242,14 +242,14 @@ class RomPage(
 
         // 状态文字
         statusText = TextView(activity).apply {
-            text = "加载中..."
+            text = "Loading..."
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, 0, 0, Ui.dp(6, d))
         }
         page.addView(statusText)
 
-        // ===== 小米固件列表 =====
+        // ===== 小米Firmware列表 =====
         xiaomiScroll = ScrollView(activity).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -267,7 +267,7 @@ class RomPage(
         xiaomiScroll.addView(deviceListContainer)
         page.addView(xiaomiScroll)
 
-        // ===== 欧加固件列表 =====
+        // ===== 欧加Firmware列表 =====
         multiBrandScroll = ScrollView(activity).apply {
             visibility = View.GONE
             layoutParams = LinearLayout.LayoutParams(
@@ -292,12 +292,12 @@ class RomPage(
             ViewGroup.LayoutParams.MATCH_PARENT,
         ))
 
-        // 默认 Tab：小米固件
+        // 默认 Tab：小米Firmware
         updateTabStyles()
 
         // 加载小米设备列表
         loadDevices()
-        // 预加载多品牌固件
+        // 预加载多品牌Firmware
         loadMultiBrandFirmware()
 
         return root
@@ -326,7 +326,7 @@ class RomPage(
         return tv
     }
 
-    /** Tab/品牌 chip 选中背景：实色填充 + 高亮描边；未选中：面底色 + 边框（与 DSU 容量选择一致） */
+    /** Tab/品牌 chip 选中背景：实色填充 + 高亮描边；未选中：面底色 + 边框（与 DSU 容量Select一致） */
     private fun tabBackground(active: Boolean, d: Float): android.graphics.drawable.GradientDrawable {
         val fill = if (active) Ui.buttonSuccess(activity) else Ui.surface(activity)
         val stroke = if (active) Ui.buttonSuccess(activity) else Ui.border(activity)
@@ -401,9 +401,9 @@ class RomPage(
         }
         updateTabStyles()
         statusText.text = if (isXiaomi) {
-            if (allDevices.isNotEmpty()) "共 ${allDevices.size} 个设备" else "加载中..."
+            if (allDevices.isNotEmpty()) "共 ${allDevices.size} 个设备" else "Loading..."
         } else {
-            if (allYuleEntries.isNotEmpty()) "共 ${allYuleEntries.size} 个固件" else "加载中..."
+            if (allYuleEntries.isNotEmpty()) "共 ${allYuleEntries.size} 个Firmware" else "Loading..."
         }
     }
 
@@ -418,7 +418,7 @@ class RomPage(
 
     private fun loadMultiBrandFirmware() {
         if (allYuleEntries.isNotEmpty()) return
-        statusText.text = if (activeTab == 1) "正在加载欧加固件..." else statusText.text
+        statusText.text = if (activeTab == 1) "正在加载欧加Firmware..." else statusText.text
         scope.launch {
             val result = RomApi.fetchYuleRomList()
             allYuleEntries = result.entries
@@ -428,9 +428,9 @@ class RomPage(
                 if (activeTab == 1) {
                     renderMultiBrandList(filteredYuleEntries, result.error)
                     statusText.text = when {
-                        result.entries.isNotEmpty() -> "共 ${result.entries.size} 个固件"
-                        result.error != null -> "加载失败：${result.error}"
-                        else -> "未获取到固件数据"
+                        result.entries.isNotEmpty() -> "共 ${result.entries.size} 个Firmware"
+                        result.error != null -> "加载Failed：${result.error}"
+                        else -> "未获取到Firmware数据"
                     }
                     updateBrandChipStyles()
                 }
@@ -453,14 +453,14 @@ class RomPage(
         }
         if (activeTab == 1) {
             renderMultiBrandList(filteredYuleEntries)
-            statusText.text = if (filteredYuleEntries.isEmpty()) "未找到匹配的固件" else "找到 ${filteredYuleEntries.size} 个固件"
+            statusText.text = if (filteredYuleEntries.isEmpty()) "未找到匹配的Firmware" else "找到 ${filteredYuleEntries.size} 个Firmware"
         }
     }
 
-    /** 设备单选弹窗：按当前品牌分组展示，点选后过滤固件列表 */
+    /** 设备单选弹窗：按当前品牌分组展示，点选后过滤Firmware列表 */
     private fun showDevicePicker() {
         if (allYuleEntries.isEmpty()) {
-            Toast.makeText(activity, "固件数据加载中，请稍候", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Firmware数据Loading，请稍候", Toast.LENGTH_SHORT).show()
             return
         }
         // 仅展示当前激活品牌下的设备
@@ -470,13 +470,13 @@ class RomPage(
             .distinct()
             .sortedWith(deviceOrderComparator())
         if (devices.isEmpty()) {
-            Toast.makeText(activity, "当前品牌暂无设备", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "当前品牌None设备", Toast.LENGTH_SHORT).show()
             return
         }
         val labels = devices.toTypedArray()
         val checked = selectedDevice?.let { sel -> labels.indexOfFirst { it == sel }.takeIf { it >= 0 } } ?: -1
         AlertDialog.Builder(activity)
-            .setTitle("选择设备 - ${activeBrand}")
+            .setTitle("Select设备 - ${activeBrand}")
             .setSingleChoiceItems(labels, checked) { dialog, which ->
                 Haptics.perform(activity.window.decorView)
                 selectedDevice = labels[which]
@@ -530,7 +530,7 @@ class RomPage(
         container.removeAllViews()
         if (entries.isEmpty()) {
             container.addView(TextView(activity).apply {
-                text = if (errorHint != null) "暂无固件数据\n\n失败原因：$errorHint\n\n提示：请确认网络可访问 rom.yule.ink" else "暂无固件数据"
+                text = if (errorHint != null) "NoneFirmware数据\n\nFailed原因：$errorHint\n\n提示：请确认网络可访问 rom.yule.ink" else "NoneFirmware数据"
                 textSize = 13f
                 gravity = Gravity.CENTER
                 setTextColor(Ui.secondaryText(activity))
@@ -644,7 +644,7 @@ class RomPage(
             gravity = Gravity.CENTER_VERTICAL
         }
         btnRow.addView(TextView(activity).apply {
-            text = "下载"
+            text = "Download"
             textSize = 12f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
@@ -684,7 +684,7 @@ class RomPage(
     /** resolve 临时链接并复制到系统剪贴板 */
     private fun copyLink(entry: YuleRomEntry) {
         val loading = AlertDialog.Builder(activity)
-            .setTitle("正在获取下载链接")
+            .setTitle("正在获取Download链接")
             .setMessage("正在获取 ${entry.device} 的临时 ROM 链接...")
             .setCancelable(false)
             .show()
@@ -695,7 +695,7 @@ class RomPage(
                 if (activity.isFinishing) return@withContext
                 val url = resolved?.url
                 if (url.isNullOrBlank()) {
-                    Toast.makeText(activity, "获取下载链接失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "获取Download链接Failed", Toast.LENGTH_SHORT).show()
                     return@withContext
                 }
                 val cm = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
@@ -704,7 +704,7 @@ class RomPage(
                     android.net.Uri.parse(url),
                 ))
                 val exp = resolved.expiresAt
-                val msg = if (exp.isNotBlank()) "下载链接已复制（有效期 $exp）" else "下载链接已复制"
+                val msg = if (exp.isNotBlank()) "Download链接已复制（有效期 $exp）" else "Download链接已复制"
                 Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
             }
         }
@@ -712,7 +712,7 @@ class RomPage(
 
     private fun resolveAndDownload(entry: YuleRomEntry) {
         val loading = AlertDialog.Builder(activity)
-            .setTitle("正在获取下载链接")
+            .setTitle("正在获取Download链接")
             .setMessage("正在获取 ${entry.device} 的临时 ROM 链接...")
             .setCancelable(false)
             .show()
@@ -724,13 +724,13 @@ class RomPage(
                 if (resolved != null && resolved.url.isNotBlank()) {
                     startYuleDownload(resolved.url, entry)
                 } else {
-                    Toast.makeText(activity, "获取下载链接失败", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "获取Download链接Failed", Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
-    /** 欧加固件走内置 aria2c 引擎下载，并登记到下载管理列表 */
+    /** 欧加Firmware走内置 aria2c 引擎Download，并登记到Download管理列表 */
     private fun startYuleDownload(url: String, entry: YuleRomEntry) {
         val filename = java.net.URL(url).path.split('/').last().takeIf { it.isNotBlank() }
             ?: "${entry.device}_${entry.version}.zip"
@@ -755,15 +755,15 @@ class RomPage(
             id = filename,
             fileName = filename,
             deviceName = "${entry.device} - ${entry.version}",
-            status = "准备下载",
+            status = "准备Download",
             state = 0,
             url = url,
             startTime = System.currentTimeMillis(),
         ))
-        Toast.makeText(activity, "已添加到下载管理，可继续下载或后台续传", Toast.LENGTH_SHORT).show()
+        Toast.makeText(activity, "已添加到Download管理，可继续Download或后台续传", Toast.LENGTH_SHORT).show()
     }
 
-    // ========== 下载广播接收 ==========
+    // ========== Download广播接收 ==========
 
     private fun registerDownloadReceiver() {
         downloadReceiver = object : BroadcastReceiver() {
@@ -796,13 +796,13 @@ class RomPage(
                                 // Downloading - updates shown in DownloadsActivity
                             }
                             2 -> { // DONE
-                                Toast.makeText(activity, "下载完成: $fileName", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(activity, "Download完成: $fileName", Toast.LENGTH_SHORT).show()
                             }
                             3 -> { // CANCELLED
-                                Toast.makeText(activity, "下载已取消", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(activity, "Download已取消", Toast.LENGTH_SHORT).show()
                             }
                             4 -> { // FAILED
-                                Toast.makeText(activity, "下载失败: $status", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(activity, "DownloadFailed: $status", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
@@ -829,7 +829,7 @@ class RomPage(
             setPadding(Ui.dp(20, d), Ui.dp(16, d), Ui.dp(20, d), Ui.dp(16, d))
         }
         view.addView(TextView(activity).apply {
-            text = "✓ 下载完成"
+            text = "✓ Download完成"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.buttonSuccess(activity))
@@ -843,7 +843,7 @@ class RomPage(
         })
 
         AlertDialog.Builder(activity)
-            .setTitle("下载完成")
+            .setTitle("Download完成")
             .setView(view)
             .setPositiveButton("确定", null)
             .setNeutralButton("打开目录") { _, _ ->
@@ -912,7 +912,7 @@ class RomPage(
                 filteredDevices = builtIn
                 activity.runOnUiThread {
                     if (activity.isFinishing) return@runOnUiThread
-                    statusText.text = "加载失败，使用内置列表"
+                    statusText.text = "加载Failed，使用内置列表"
                     renderDeviceList(builtIn)
                 }
             } finally {
@@ -1119,7 +1119,7 @@ class RomPage(
     private fun queryDeviceVersions(device: RomDevice) {
         val loading = AlertDialog.Builder(activity)
             .setTitle("查询中")
-            .setMessage("正在查询 ${device.name} 的固件版本...")
+            .setMessage("正在查询 ${device.name} 的Firmware版本...")
             .setCancelable(false)
             .show()
 
@@ -1136,8 +1136,8 @@ class RomPage(
 
                 if (versions.isEmpty()) {
                     AlertDialog.Builder(activity)
-                        .setTitle("暂无数据")
-                        .setMessage("未找到 ${device.name}（${device.codename}）的固件版本信息。\n\n数据源：HyperOS.fans")
+                        .setTitle("None数据")
+                        .setMessage("未找到 ${device.name}（${device.codename}）的Firmware版本信息。\n\n数据源：HyperOS.fans")
                         .setPositiveButton("确定", null)
                         .show()
                 } else {
@@ -1186,7 +1186,7 @@ class RomPage(
         view.addView(container)
 
         AlertDialog.Builder(activity)
-            .setTitle("固件版本列表")
+            .setTitle("Firmware版本列表")
             .setView(view)
             .setPositiveButton("关闭", null)
             .show()
@@ -1274,7 +1274,7 @@ class RomPage(
     private fun buildDownloadBtn(label: String, filename: String, version: String, deviceName: String): View {
         val d = activity.resources.displayMetrics.density
         return TextView(activity).apply {
-            text = "下载 $label"
+            text = "Download $label"
             textSize = 11f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
@@ -1288,7 +1288,7 @@ class RomPage(
         }
     }
 
-    // ========== 下载配置对话框 ==========
+    // ========== Download配置对话框 ==========
 
     private fun showDownloadConfigDialog(label: String, filename: String, version: String, deviceName: String) {
         val d = activity.resources.displayMetrics.density
@@ -1297,7 +1297,7 @@ class RomPage(
         if (!hasStoragePermission()) {
             AlertDialog.Builder(activity)
                 .setTitle("需要存储权限")
-                .setMessage("下载 ROM 固件需要存储权限以保存文件到 /sdcard/Downloads。\n\n请在接下来的设置中授予权限。")
+                .setMessage("Download ROM Firmware需要存储权限以保存文件到 /sdcard/Downloads。\n\n请在接下来的设置中授予权限。")
                 .setPositiveButton("去授权") { _, _ -> requestStoragePermission() }
                 .setNegativeButton("取消", null)
                 .show()
@@ -1340,9 +1340,9 @@ class RomPage(
             setPadding(0, Ui.dp(4, d), 0, 0)
         })
 
-        // 下载节点选择
+        // Download节点Select
         container.addView(TextView(activity).apply {
-            text = "下载节点"
+            text = "Download节点"
             textSize = 12f
             setTextColor(Ui.primaryText(activity))
             setPadding(0, Ui.dp(12, d), 0, Ui.dp(6, d))
@@ -1360,9 +1360,9 @@ class RomPage(
         }
         container.addView(nodeSpinner)
 
-        // 后台下载提示
+        // 后台Download提示
         container.addView(TextView(activity).apply {
-            text = "支持后台下载，关闭页面后下载将继续进行"
+            text = "支持后台Download，关闭页面后Download将继续进行"
             textSize = 10f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(12, d), 0, 0)
@@ -1373,7 +1373,7 @@ class RomPage(
             .setTitle("$deviceName - $label")
             .setView(container)
             .setNegativeButton("取消", null)
-            .setPositiveButton("开始下载") { _, _ ->
+            .setPositiveButton("开始Download") { _, _ ->
                 Haptics.perform(activity.window.decorView)
                 startDownloadService(displayName, version, nodeSpinner.selectedItemPosition, label, deviceName)
             }
@@ -1401,15 +1401,15 @@ class RomPage(
             activity.startService(intent)
         }
 
-        // 记录到下载管理器
+        // 记录到Download管理器
         DownloadsActivity.addTask(DownloadsActivity.Companion.DownloadTask(
             id = filename,
             fileName = filename,
             deviceName = "$deviceName - $label",
-            status = "准备下载",
+            status = "准备Download",
             state = 0,
         ))
 
-        Toast.makeText(activity, "已添加到下载队列", Toast.LENGTH_SHORT).show()
+        Toast.makeText(activity, "已添加到Download队列", Toast.LENGTH_SHORT).show()
     }
 }
