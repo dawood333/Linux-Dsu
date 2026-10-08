@@ -16,7 +16,7 @@ import java.util.zip.ZipInputStream
 
 /**
  * DNA 工具箱运行时（参考 Dsu-Manager DnaTools 移植，UbuntuDSU 本地化）：
- *  - 工具来源：运行期从 GsiManager 的 tools.zip（GitHub 直链 + ghproxy 国内加速线路）下载解压到
+ *  - 工具来源：运行期从 GsiManager 的 tools.zip（GitHub 直链 + ghproxy 国内加速Route）下载解压到
  *    app 私有目录 filesDir/dna-tools/，补可执行权限（不内置进 APK）。
  *  - 工程目录双架构（对齐原版）：WORK_ROOT=/sdcard/PDNA 工程根（源文件），TMP_ROOT=/data/PDNA 分解输出（root）。
  *  - 二进制为 Android ARM64 ELF（含 dna 内核），执行走 RootShell（su）；
@@ -29,7 +29,7 @@ object DnaTools {
     const val TOOL_ZIP_URL =
         "https://github.com/hetianming/GsiManager/releases/download/ROM/tools.zip"
 
-    // 国内加速线路（ghproxy 类公共镜像，与参考项目 DownloadService 同源）：直链无进展时依次切换
+    // 国内加速Route（ghproxy 类公共镜像，与参考项目 DownloadService 同源）：直链无进展时依次切换
     private val mirrors = listOf(
         "https://gh-proxy.com/",
         "https://ghfast.top/",
@@ -45,7 +45,7 @@ object DnaTools {
     private const val KEY_CURRENT = "current_project"
     private const val DNA_INI = "/data/local/tmp/DNA.ini"
 
-    /** 执行结果（Java 侧便捷访问：ok()/text()，并保留 code 供 UI 展示退出码） */
+    /** 执行结果（Java 侧便捷访问：ok()/text()，并保留 code 供 UI 展示Exit code） */
     class Result(
         val success: Boolean,
         val output: String,
@@ -60,22 +60,22 @@ object DnaTools {
     data class Tool(val bin: String, val name: String, val desc: String)
 
     val tools = listOf(
-        Tool("dna", "DNA 内核", "DNA 命令行内核，串联各工具完成 ROM 处理"),
-        Tool("magiskboot", "MagiskBoot", "boot 镜像解包/打包，注入/还原 Magisk"),
-        Tool("mkfs.erofs", "制作 EROFS", "生成 EROFS 镜像（system 常用）"),
-        Tool("extract.erofs", "解压 EROFS", "从 EROFS 镜像提取文件"),
-        Tool("mkfs.f2fs", "制作 F2FS", "生成 F2FS 镜像"),
-        Tool("extract.f2fs", "解压 F2FS", "从 F2FS 镜像提取文件"),
-        Tool("mke2fs", "制作 ext4", "生成 ext4 镜像"),
-        Tool("e2fsdroid", "ext4 定制", "ext4 文件系统 Android 定制工具"),
-        Tool("resize2fs", "调整 ext4", "在线调整 ext4 文件系统大小"),
-        Tool("simg2img", "SIMG 转 IMG", "稀疏镜像转普通镜像"),
-        Tool("img2simg", "IMG 转 SIMG", "普通镜像转稀疏镜像"),
-        Tool("lpmake", "LP 镜像", "Android LPDynamic 分区镜像制作"),
-        Tool("busybox", "BusyBox", "通用 Unix 工具集（shell/文件/网络）"),
-        Tool("zstd", "zstd 压缩", "zstd 压缩/解压"),
-        Tool("brotli", "brotli 压缩", "brotli 压缩/解压"),
-        Tool("sload_f2fs", "F2FS 校验", "F2FS 分区加载与校验"),
+        Tool("dna", "DNA Core", "DNA command-line core for ROM processing"),
+        Tool("magiskboot", "MagiskBoot", "Unpack/pack boot images; inject/restore Magisk"),
+        Tool("mkfs.erofs", "Create EROFS", "Create EROFS image (commonly used for system)"),
+        Tool("extract.erofs", "Extract EROFS", "Extract files from EROFS images"),
+        Tool("mkfs.f2fs", "Create F2FS", "Create F2FS image"),
+        Tool("extract.f2fs", "Extract F2FS", "Extract files from F2FS images"),
+        Tool("mke2fs", "Create ext4", "Create ext4 image"),
+        Tool("e2fsdroid", "ext4 customization", "Android ext4 filesystem customization tool"),
+        Tool("resize2fs", "Resize ext4", "在线Resize ext4 文件系统大小"),
+        Tool("simg2img", "SIMG to IMG", "Convert sparse image to raw image"),
+        Tool("img2simg", "IMG to SIMG", "Convert raw image to sparse image"),
+        Tool("lpmake", "LP image", "Android LPDynamic partition image creation"),
+        Tool("busybox", "BusyBox", "General Unix utilities (shell/files/network)"),
+        Tool("zstd", "zstd compression", "zstd compression/解压"),
+        Tool("brotli", "brotli compression", "brotli compression/解压"),
+        Tool("sload_f2fs", "F2FS verification", "F2FS partition loading and verification"),
     )
 
     private fun marker(ctx: Context): File = File(ctx.filesDir, "dna-tools/READY")
@@ -149,7 +149,7 @@ object DnaTools {
             .replace(Regex("_+"), "_")
             .trim('_', ' ')
             .take(40)
-        if (clean.isEmpty()) return "" to "工程名不能为空（仅支持中英文、数字、点、横杠）"
+        if (clean.isEmpty()) return "" to "Project name cannot be empty (letters, numbers, dots and hyphens only)"
         var final = "PDNA_$clean"
         val stamp = java.text.SimpleDateFormat("yyyyMMddHHmmss", java.util.Locale.US)
             .format(java.util.Date())
@@ -169,7 +169,7 @@ object DnaTools {
         val r = RootShell.exec(script, timeoutMs = 30000)
         val ok = (r.success && r.stdout.contains("__DNA_OK__")) || dirExists(pro)
         return if (ok) final to null
-        else "" to (r.stderr.trim().ifEmpty { "创建失败（需要 ROOT）" })
+        else "" to (r.stderr.trim().ifEmpty { "Creation failed (ROOT required)" })
     }
 
     @JvmStatic
@@ -473,7 +473,7 @@ object DnaTools {
     @Volatile
     private var downloading = false
 
-    /** root 预建伪装包目录（getcwd 校验目标；不存在则 dna 等二进制报"盗版"退出） */
+    /** root 预建伪装包目录（getcwd 校验目标；不存在则 dna 等二进制报"pirated"退出） */
     private fun ensureFakeHome(): Boolean {
         val r = RootShell.exec(
             "mkdir -p '$FAKE_HOME' && cd '$FAKE_HOME' && echo __DNA_OK__",
@@ -483,7 +483,7 @@ object DnaTools {
 
     /**
      * 下载 tools.zip 并解压到 app 私有目录，chmod +x 全部二进制，写 READY 标记。
-     * 直链优先，无进展时切 ghproxy 线路；进度 0..100，onLog 回显线路/错误。失败返回 false。
+     * 直链优先，无进展时切 ghproxy Route；进度 0..100，onLog 回显Route/错误。失败返回 false。
      */
     fun ensureTools(
         ctx: Context,
@@ -492,31 +492,31 @@ object DnaTools {
         isCancelled: () -> Boolean,
     ): Boolean {
         if (isReady(ctx)) {
-            onLog("工具已就绪")
+            onLog("Tools ready")
             onProgress(100)
             return true
         }
         if (downloading) {
-            onLog("已有下载任务进行中")
+            onLog("A download is already in progress")
             return false
         }
         downloading = true
         try {
             val workDir = File(ctx.filesDir, "dna-tools")
             if (!workDir.exists() && !workDir.mkdirs()) {
-                onLog("无法创建目录 ${workDir.absolutePath}")
+                onLog("Unable to create directory ${workDir.absolutePath}")
                 return false
             }
             val zip = File(ctx.cacheDir, "dna-tools.zip")
             val candidates = urlCandidates(TOOL_ZIP_URL)
 
-            // 1) 并发测速：对每条线路探测 3s，记录实际速率
-            onLog("正在测速 ${candidates.size} 条线路，挑选最快...")
+            // 1) 并发测速：对每条Route探测 3s，记录Actual speed
+            onLog("Testing ${candidates.size} 条Route，挑选最快...")
             val speeds = probeAllSpeeds(candidates, isCancelled)
             val sorted = candidates.sortedByDescending { speeds[it] ?: 0L }
-            onLog("测速结果(字节/秒)：" + sorted.map { "${shortHost(it)}≈${(speeds[it] ?: 0L) / 1024}KB/s" }.joinToString(" "))
+            onLog("Speed test results (bytes/sec):" + sorted.map { "${shortHost(it)}≈${(speeds[it] ?: 0L) / 1024}KB/s" }.joinToString(" "))
 
-            // 2) 按速率从高到低下载，每线监控实际速率，慢则切下一线
+            // 2) 按速率从高到低下载，每线监控Actual speed，慢则切下一线
             var downloaded = false
             for ((i, url) in sorted.withIndex()) {
                 if (isCancelled()) {
@@ -524,14 +524,14 @@ object DnaTools {
                     return false
                 }
                 if (i > 0) {
-                    onLog("线路 ${i + 1}/${sorted.size} 速率过低，切换至下一线路")
+                    onLog("Route ${i + 1}/${sorted.size} 速率过低，切换至下一Route")
                     zip.delete()
                 }
                 val shortName = shortHost(url)
-                onLog("线路 ${i + 1}/${sorted.size}（$shortName）：开始下载 tools.zip")
+                onLog("Route ${i + 1}/${sorted.size}（$shortName）：starting tools.zip download")
                 onProgress(0)
 
-                // 实际速率监控
+                // Actual speed监控
                 val bytes = AtomicLong(0)
                 val lastBytes = AtomicLong(0)
                 val lastStamp = AtomicLong(System.currentTimeMillis())
@@ -545,7 +545,7 @@ object DnaTools {
                             val delta = bytes.get() - lastBytes.get()
                             val secs = (now - lastStamp.get()) / 1000.0
                             if (secs > 0 && delta / secs < 50L * 1024) {
-                                onLog("$shortName 实际速率 ${(delta / secs) / 1024}KB/s 过低，切线")
+                                onLog("$shortName Actual speed ${(delta / secs) / 1024}KB/s 过低，切线")
                                 tooSlow.set(true)
                             }
                             lastBytes.set(bytes.get())
@@ -561,7 +561,7 @@ object DnaTools {
                 ) { deltaBytes ->
                     bytes.addAndGet(deltaBytes)
                     if (tooSlow.get()) {
-                        // 中断当前线路的读取循环，downloadHttp catch 会清理 target 并返回 false
+                        // 中断当前Route的读取循环，downloadHttp catch 会清理 target 并返回 false
                         throw RuntimeException("slow route switched")
                     }
                 }
@@ -574,14 +574,14 @@ object DnaTools {
                 zip.delete()
             }
             if (!downloaded) {
-                onLog("所有线路下载失败，请检查网络后重试")
+                onLog("所有Route下载失败，请检查网络后重试")
                 return false
             }
-            onLog("解压 tools.zip")
+            onLog("Extracting tools.zip")
             onProgress(95)
             val unzipped = unzip(zip, workDir, isCancelled)
             if (!unzipped) {
-                onLog("解压失败")
+                onLog("Extraction failed")
                 return false
             }
             zip.delete()
@@ -591,7 +591,7 @@ object DnaTools {
             onLog("工具就绪")
             return true
         } catch (e: Exception) {
-            onLog("异常：${e.message}")
+            onLog("Error: ${e.message}")
             return false
         } finally {
             downloading = false
@@ -606,7 +606,7 @@ object DnaTools {
         return list
     }
 
-    /** 并发对每条线路探测 3s，返回各 URL 的实际下载速率（字节/秒） */
+    /** 并发对每条Route探测 3s，返回各 URL 的实际下载速率（字节/秒） */
     private fun probeAllSpeeds(urls: List<String>, isCancelled: () -> Boolean): Map<String, Long> {
         val results = HashMap<String, Long>()
         if (isCancelled()) return results
@@ -632,7 +632,7 @@ object DnaTools {
         return results
     }
 
-    /** 单条线路探测：连到 HEAD/GET，3s 内能读多少字节返回速率（字节/秒），失败返回 0 */
+    /** 单条Route探测：连到 HEAD/GET，3s 内能读多少字节返回速率（字节/秒），失败返回 0 */
     private fun probeOne(url: String, timeoutMs: Int): Long {
         var conn: HttpURLConnection? = null
         return try {
@@ -690,7 +690,7 @@ object DnaTools {
         if (!isReady(ctx)) {
             if (!ensureTools(ctx, {}, { onLog?.invoke(it) }, { false })) return null
         }
-        onLog?.invoke("同步工具链到 $RELAY_PATH ...")
+        onLog?.invoke("Syncing toolchain to $RELAY_PATH ...")
         val synced = relayViaRoot(ctx, appDir, onLog)
         if (synced != null && selfTest(synced)) {
             activeDir = synced
@@ -746,8 +746,8 @@ object DnaTools {
         val dir = ensure(ctx, onLog) ?: run {
             val rootOk = runCatching { RootShell.available() }.getOrDefault(false)
             return Result(false, "", if (rootOk)
-                "DNA 工具链初始化失败（工具同步异常，请点「下载」重试）"
-            else "DNA 工具链初始化失败（需要 ROOT 授权）", -1)
+                "DNA toolchain initialization failed (tool sync error; tap Download to retry)"
+            else "DNA toolchain initialization failed (ROOT authorization required)", -1)
         }
         val project = currentProject(ctx)
         val pro = project?.let { "$WORK_ROOT/$it" } ?: WORK_ROOT
@@ -806,15 +806,15 @@ object DnaTools {
                 if (System.currentTimeMillis() - startedAt > timeoutMs) {
                     process.destroyForcibly()
                     reader.join(1500)
-                    return Result(false, output.toString(), "执行超时（${timeoutMs / 60000} 分钟）", -1)
+                    return Result(false, output.toString(), "Execution timed out（${timeoutMs / 60000} 分钟）", -1)
                 }
             }
             reader.join(2000)
             val out = synchronized(output) { output.toString() }
             val code = exitCode.get()
-            Result(code == 0, out, if (code == 0) "完成" else "退出码 $code", code)
+            Result(code == 0, out, if (code == 0) "Completed" else "Exit code $code", code)
         } catch (e: Exception) {
-            Result(false, "", e.message ?: "执行失败", -1)
+            Result(false, "", e.message ?: "Execution failed", -1)
         }
     }
 
@@ -847,7 +847,7 @@ object DnaTools {
                 append("__dna_pid=\$!\n")
                 append("while kill -0 \"\$__dna_pid\" 2>/dev/null; do\n")
                 // Android 的 mksh 可能在 wait 前保留已退出子进程的 zombie PID；kill -0 对 zombie 仍成功。
-                // 识别 Z 状态后跳出扫描并执行 wait，避免所有 img 都完成后最终总结一直不返回。
+                // 识别 Z 状态后跳出扫描并执行 wait，避免所有 img 都Completed后最终总结一直不返回。
                 append("  __dna_state=\$(awk '\$1 == \"State:\" { print \$2; exit }' /proc/\$__dna_pid/status 2>/dev/null)\n")
                 append("  [ \"\$__dna_state\" = Z ] && break\n")
                 append("  for __dna_file in ").append(quote(watchedOutputDir)).append("/*.img; do\n")
@@ -910,15 +910,15 @@ object DnaTools {
                 if (System.currentTimeMillis() - startedAt > timeoutMs) {
                     process.destroyForcibly()
                     reader.join(1500)
-                    return Result(false, output.toString(), "执行超时（${timeoutMs / 60000} 分钟）", -1)
+                    return Result(false, output.toString(), "Execution timed out（${timeoutMs / 60000} 分钟）", -1)
                 }
             }
             reader.join(2000)
             val out = synchronized(output) { output.toString() }
             val code = exitCode.get()
-            Result(code == 0, out, if (code == 0) "完成" else "退出码 $code", code)
+            Result(code == 0, out, if (code == 0) "Completed" else "Exit code $code", code)
         } catch (e: Exception) {
-            Result(false, "", e.message ?: "执行失败", -1)
+            Result(false, "", e.message ?: "Execution failed", -1)
         }
     }
 
@@ -934,7 +934,7 @@ object DnaTools {
     ): Result {
         val bundledTool = File(ctx.applicationInfo.nativeLibraryDir, "libpayload_extract.so")
         if (!bundledTool.isFile) {
-            return Result(false, "", "APK 内置 payload 提取器不存在: ${bundledTool.absolutePath}", -1)
+            return Result(false, "", "Built-in APK payload extractor not found:  ${bundledTool.absolutePath}", -1)
         }
         // dumper 在执行 --list 前仍会创建 --out；显式使用应用私有缓存路径，
         // 避免 su 的只读根目录把整次解析提前打断。
@@ -973,7 +973,7 @@ object DnaTools {
         val tail = " --threads $threads --no-verify"
         val inReal = realPath(input)
         val outReal = realPath(outputDir)
-        if (useBundledTool) onLog?.invoke("… 使用内置高速提取器（$threads 线程）…")
+        if (useBundledTool) onLog?.invoke("… Using built-in high-speed extractor（$threads 线程）…")
         fun execute(command: String, watchDir: String): Result = if (useBundledTool) {
             runPayloadCommand(command, onLog, isCancelled, timeoutMs, watchDir)
         } else {
@@ -992,7 +992,7 @@ object DnaTools {
             val names = partitions.split(",").map { it.trim() }.filter { it.isNotEmpty() }
             val anyOutput = names.any { File(outputDir, "$it.img").let { f -> f.isFile && f.length() > 0 } }
             if (!anyOutput) {
-                onLog?.invoke("… 真实路径无产物，回退 FUSE 路径重试 ...")
+                onLog?.invoke("… No output at real path; retrying with FUSE path ...")
                 val fallbackInvocation = quote(bin) + " " +
                     quote(input) + " --images " + quote(partitions) +
                     " --out " + quote(outputDir) + tail
@@ -1137,6 +1137,6 @@ object DnaTools {
         for (f in files) {
             if (f.isFile && f.setExecutable(true, false)) ok++
         }
-        onLog("已标记可执行 $ok/${files.size} 个工具")
+        onLog("Marked executable $ok/${files.size} 个工具")
     }
 }
