@@ -54,7 +54,7 @@ class WorkTimePage(private val activity: Activity) {
     private var timerRunnable: Runnable? = null
     private val handler = Handler(Looper.getMainLooper())
 
-    /** 设置面板各输入框的「校验并保存」动作；点「完成」时统一执行，任一校验失败则阻止关闭 */
+    /** 设置面板各输入框的「校验并Save」动作；点「完成」时统一执行，任一校验失败则阻止关闭 */
     private val settingsSaves = ArrayList<() -> Boolean>()
 
     // 工资参数随工资模式动态切换（时薪模式只留时薪；月薪模式只留月薪 + 标准工时）
@@ -315,7 +315,7 @@ class WorkTimePage(private val activity: Activity) {
             background = Ui.glassSurface(activity, 18f)
             setPadding(Ui.dp(16, d), Ui.dp(14, d), Ui.dp(16, d), Ui.dp(14, d))
         }
-        card.addView(sectionTitle("今日打卡"))
+        card.addView(sectionTitle("Today打卡"))
         val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
 
         clockInBtn = TextView(activity).apply {
@@ -615,7 +615,7 @@ class WorkTimePage(private val activity: Activity) {
         val dialog = AlertDialog.Builder(activity)
             .setTitle("修改 $dateStr 工时")
             .setView(form)
-            .setPositiveButton("保存", null)
+            .setPositiveButton("Save", null)
             .setNegativeButton("取消", null)
             .create()
         dialog.show()
@@ -649,7 +649,7 @@ class WorkTimePage(private val activity: Activity) {
             }
             dialog.dismiss()
             refresh()
-            toast("已保存当日工时")
+            toast("已Save当日工时")
         }
     }
 
@@ -756,7 +756,7 @@ class WorkTimePage(private val activity: Activity) {
     private fun doClockIn() {
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(System.currentTimeMillis())
         if (store.clockIn(todayStr, System.currentTimeMillis() / 1000L)) refresh()
-        else toast("今日已打卡")
+        else toast("Today已打卡")
     }
 
     private fun doClockOut() {
@@ -815,7 +815,7 @@ class WorkTimePage(private val activity: Activity) {
             .setPositiveButton("完成", null)
             .create()
         dialog.show()
-        // 覆盖默认的点击关闭：先校验并保存全部输入，全部通过才关闭
+        // 覆盖默认的点击关闭：先校验并Save全部输入，全部通过才关闭
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
             val ok = settingsSaves.all { it() } and validateSalary()
             if (ok) {
@@ -1092,7 +1092,7 @@ class WorkTimePage(private val activity: Activity) {
         container.addView(row)
     }
 
-    /** 校验并保存当前显示的工资参数（只保存与模式相关的字段） */
+    /** 校验并Save当前显示的工资参数（只Save与模式相关的字段） */
     private fun validateSalary(): Boolean {
         var ok = true
         fun check(et: EditText?, save: (Double) -> Unit) {
