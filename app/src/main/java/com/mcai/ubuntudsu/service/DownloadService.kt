@@ -17,12 +17,12 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * 多任务并发Download前台服务：
- * - 每个任务独立线程 / Pause / Cancel / 通知（互不干扰）
- * - ROM 走 JavaDownloader 多线程分块；自定义链接走内置 aria2c 引擎（libaria2c.so）
- * - aria2c Pause = 终止进程并保留 .aria2 断点文件，Resume = 断点续传
- * - 通知栏小窗口：每任务 [Pause/Resume] [Cancel]，Cancel立即撤下该任务通知
- * - 通过广播实时更新 UI，每条广播携带 task_id
+ * [translated]Task[translated]Download[translated]
+ * - [translated] tasks[translated] / Pause / Cancel / [translated]
+ * - ROM [translated] JavaDownloader [translated]Custom[translated]Built-in aria2c [translated]libaria2c.so[translated]
+ * - aria2c Pause = [translated] .aria2 [translated]File[translated]Resume = [translated]
+ * - [translated]Task [Pause/Resume] [Cancel][translated]Cancel[translated]Task[translated]
+ * - [translated] UI[translated] task_id
  */
 class DownloadService : Service() {
 
@@ -42,10 +42,10 @@ class DownloadService : Service() {
         const val EXTRA_LABEL = "label"
         const val EXTRA_DEVICE_NAME = "device_name"
         const val EXTRA_TASK_ID = "task_id"
-        /** 自定义直链：true 走内置 aria2c 引擎 */
+        /** Custom[translated]true [translated]Built-in aria2c [translated] */
         const val EXTRA_USE_ARIA2 = "use_aria2"
 
-        // 广播
+        // [translated]
         const val BROADCAST_UPDATE = "com.mcai.ubuntudsu.DOWNLOAD_UPDATE"
         const val EXTRA_PROGRESS = "progress"
         const val EXTRA_SPEED = "speed"
@@ -62,7 +62,7 @@ class DownloadService : Service() {
         const val EXTRA_DOWNLOADED_SIZE = "downloaded_size"
     }
 
-    /** 单个Download任务的全部独立状态 */
+    /** [translated] itemDownloadTask[translated]All[translated]Status */
     private inner class TaskCtx(
         val id: String,
         val url: String,
@@ -78,14 +78,14 @@ class DownloadService : Service() {
         @Volatile var progress = 0
         @Volatile var totalSize = 0L
         @Volatile var downloadedSize = 0L
-        /** 当前时速文本（如 "3.2 MB/s"），由引擎回调或字节差计算更新 */
+        /** Current[translated] "3.2 MB/s"[translated] */
         @Volatile var speed = ""
-        /** 时速采样：上次统计时间与字节，用于 JavaDownloader 字节差测速 */
+        /** [translated] JavaDownloader [translated] */
         @Volatile var sampleAt = 0L
         @Volatile var sampleBytes = 0L
-        /** 该任务通知是否存活（Cancel/完成后撤下，拦截在途回调 re-post） */
+        /** [translated]Task[translated]Cancel/Complete[translated] re-post[translated] */
         @Volatile var notifActive = true
-        /** 终态（成功/失败/Cancel）；Pause不算终态 */
+        /** [translated]Success/Failed/Cancel[translated]Pause[translated] */
         @Volatile var done = false
         @Volatile var thread: Thread? = null
         val notifId: Int = NOTIF_ID_BASE + (id.hashCode() and 0x7FFF)
@@ -129,7 +129,7 @@ class DownloadService : Service() {
                 val useAria2 = intent.getBooleanExtra(EXTRA_USE_ARIA2, false)
                 val id = filename
 
-                // 去重：同 id 任务仍在运行（含Pause）时忽略重复启动
+                // [translated] id Task[translated]Pause[translated]
                 val existing = tasks[id]
                 if (existing != null && !existing.done) return START_NOT_STICKY
 
@@ -145,9 +145,9 @@ class DownloadService : Service() {
                 )
                 tasks[id] = task
 
-                // startForegroundService 要求尽快 startForeground：本任务通知即前台通知
+                // startForegroundService [translated] startForeground[translated]Task[translated]
                 startForeground(task.notifId, buildNotif(task))
-                // 其余在途任务的通知补充 post（多任务小窗口并存）
+                // [translated]Task[translated] post[translated]Task[translated]
                 postOtherNotifs(task)
                 launch(task)
             }
@@ -158,17 +158,17 @@ class DownloadService : Service() {
         return START_NOT_STICKY
     }
 
-    /** 控制指令的目标任务：带 task_id 精确命中；无 id 时作用于全部未终态任务（批量语义） */
+    /** [translated]Task[translated] task_id [translated] id [translated]All[translated]Task[translated] */
     private fun targets(intent: Intent): List<TaskCtx> {
         val id = intent.getStringExtra(EXTRA_TASK_ID)
         if (id != null) return listOfNotNull(tasks[id])
         return tasks.values.filter { !it.done }
     }
 
-    // ==================== 任务执行 ====================
+    // ==================== TaskExecute ====================
 
     private fun launch(task: TaskCtx, fromSelf: Boolean = false) {
-        // fromSelf：由即将退出的旧线程发起的重启（Resume指令与杀进程竞态），忽略自身存活检查
+        // fromSelf[translated]Reboot[translated]Resume[translated]
         if (!fromSelf) {
             task.thread?.let { if (it.isAlive) return }
         }
@@ -177,9 +177,9 @@ class DownloadService : Service() {
         }.apply { start() }
     }
 
-    /** ROM Download：RomApi 线路 + JavaDownloader 多线程分块（Pause为原地等待） */
+    /** ROM Download[translated]RomApi [translated] + JavaDownloader [translated]Pause[translated]Waiting[translated] */
     private fun runRom(task: TaskCtx) {
-        broadcastTask(task, 1, 0, "开始Download")
+        broadcastTask(task, 1, 0, "Start download")
         val nodes = DownloadNode.values()
         val node = nodes.getOrElse(task.nodeIndex) { nodes[3] }
         val downloadUrl = RomApi.getDownloadUrl(task.fileName, task.version, node)
@@ -206,13 +206,13 @@ class DownloadService : Service() {
         )
 
         when {
-            result.success -> finishTask(task, true, "Download完成", result.file?.absolutePath ?: "")
+            result.success -> finishTask(task, true, "Download complete", result.file?.absolutePath ?: "")
             task.cancelled.get() -> finishTask(task, false, "Cancelled", "")
-            else -> finishTask(task, false, "Download失败: ${result.message}", "")
+            else -> finishTask(task, false, "Download failed: ${result.message}", "")
         }
     }
 
-    /** 按已Download字节差计算时速（JavaDownloader 每 ~1s 回调一次 onSizeInfo） */
+    /** [translated]Download[translated]JavaDownloader [translated] ~1s [translated] onSizeInfo[translated] */
     private fun updateSpeedByDelta(task: TaskCtx, downloaded: Long) {
         val now = System.currentTimeMillis()
         if (task.sampleAt == 0L) {
@@ -235,8 +235,8 @@ class DownloadService : Service() {
     }
 
     /**
-     * 解析保存文件：优先 /sdcard/Downloads（实测可写），不可写时回退应用私有目录。
-     * 与 JavaDownloader 的回退策略一致，保证无「所有文件访问权限」时 aria2c 也能直接落盘
+     * [translated]SaveFile[translated] /sdcard/Downloads[translated]App[translated]Directory[translated]
+     * [translated] JavaDownloader [translated]AllFile[translated]Permission[translated] aria2c [translated]
      */
     private fun resolveSaveFile(fileName: String): File {
         val dir = JavaDownloader.defaultSaveDir()
@@ -252,9 +252,9 @@ class DownloadService : Service() {
         return File(fb, fileName)
     }
 
-    /** 自定义直链：内置 aria2c 引擎。Pause=杀进程保留断点，Resume=断点续传重启进程 */
+    /** Custom[translated]Built-in aria2c [translated]Pause=[translated]Resume=[translated]Reboot[translated] */
     private fun runAria2(task: TaskCtx) {
-        broadcastTask(task, 1, task.progress, if (task.progress > 0) "Resuming download" else "开始Download")
+        broadcastTask(task, 1, task.progress, if (task.progress > 0) "Resuming download" else "Start download")
         val targetFile = resolveSaveFile(task.fileName)
         if (targetFile.parentFile?.absolutePath != JavaDownloader.defaultSaveDir().absolutePath) {
             broadcastLog(task, "⚠️ /sdcard/Downloads is not writable; saving to: ${targetFile.parent}")
@@ -272,7 +272,7 @@ class DownloadService : Service() {
             isCancelled = { task.cancelled.get() || task.paused.get() },
             onLog = { log -> broadcastLog(task, log) },
             onStats = { speedText ->
-                // aria2c 每秒回传实测速度，直接刷新界面时速
+                // aria2c [translated]Speed[translated]
                 task.speed = speedText
                 if (task.notifActive) updateNotif(task)
                 broadcastTask(task, 1, task.progress, "${task.progress}%")
@@ -281,11 +281,11 @@ class DownloadService : Service() {
 
         when {
             task.cancelled.get() -> finishTask(task, false, "Cancelled", "")
-            result.success -> finishTask(task, true, "Download完成", result.file?.absolutePath ?: "")
+            result.success -> finishTask(task, true, "Download complete", result.file?.absolutePath ?: "")
             result.message == "Cancelled" -> {
-                // 进程被主动终止（Pause或Resume竞态）：
-                // paused 仍为 true → 真Pause：广播Pause态，断点文件保留；
-                // paused 已被置 false → Resume指令与杀进程竞态，立即断点续传重启
+                // [translated]Pause[translated]Resume[translated]
+                // paused [translated] true → [translated]Pause[translated]Pause[translated]File[translated]
+                // paused [translated] false → Resume[translated]Reboot
                 if (task.paused.get()) {
                     broadcastTask(task, 5, task.progress, "Paused")
                     if (task.notifActive) updateNotif(task)
@@ -295,7 +295,7 @@ class DownloadService : Service() {
                 }
             }
             else -> {
-                // aria2c 全灭（引擎缺失/服务器怪异响应）：降级 JavaDownloader HTTP 引擎兜底
+                // aria2c [translated]/[translated] JavaDownloader HTTP [translated]
                 broadcastLog(task, "aria2c failed: ${result.message.take(80)}，switching to HTTP engine and retrying")
                 val httpResult = JavaDownloader.download(
                     this,
@@ -318,25 +318,25 @@ class DownloadService : Service() {
                 )
                 when {
                     task.cancelled.get() -> finishTask(task, false, "Cancelled", "")
-                    httpResult.success -> finishTask(task, true, "Download完成", httpResult.file?.absolutePath ?: "")
-                    // HTTP 兜底期间被Pause：线程即将退出，交由 resumeTask 重启（走 aria2c 断点续传）
+                    httpResult.success -> finishTask(task, true, "Download complete", httpResult.file?.absolutePath ?: "")
+                    // HTTP [translated]Pause[translated] resumeTask Reboot[translated] aria2c [translated]
                     task.paused.get() -> {
                         broadcastTask(task, 5, task.progress, "Paused")
                         if (task.notifActive) updateNotif(task)
                         promoteForeground()
                     }
-                    else -> finishTask(task, false, "Download失败: ${httpResult.message}", "")
+                    else -> finishTask(task, false, "Download failed: ${httpResult.message}", "")
                 }
             }
         }
     }
 
-    // ==================== 控制指令 ====================
+    // ==================== [translated] ====================
 
     private fun pauseTask(task: TaskCtx) {
         if (task.done) return
         task.paused.set(true)
-        // Pause即时清空时速并重置采样基准，避免恢复瞬间出现虚假峰值
+        // Pause[translated]Resume[translated]
         task.speed = ""
         task.sampleAt = 0L
         task.sampleBytes = 0L
@@ -352,8 +352,8 @@ class DownloadService : Service() {
         task.sampleBytes = 0L
         broadcastTask(task, 1, task.progress, "ResumeDownload")
         if (task.notifActive) updateNotif(task)
-        // aria2 路径：Pause时线程已随进程退出，这里断点续传重启；
-        // JavaDownloader 路径：原地解冻；若线程意外死亡同样重启
+        // aria2 Path[translated]Pause[translated]Reboot[translated]
+        // JavaDownloader Path[translated]Reboot
         task.thread?.let { if (it.isAlive) return }
         launch(task)
     }
@@ -362,7 +362,7 @@ class DownloadService : Service() {
         task.cancelled.set(true)
         task.paused.set(false)
         task.done = true
-        // 立即撤下通知并拦住在途回调 re-post
+        // [translated] re-post
         task.notifActive = false
         val nm = getSystemService(NotificationManager::class.java)
         nm.cancel(task.notifId)
@@ -371,7 +371,7 @@ class DownloadService : Service() {
         promoteForeground()
     }
 
-    /** 终态收尾：更新通知、广播完成、前台交接、空闲自停（已被Cancel的任务直接跳过，避免双重广播） */
+    /** [translated]Complete[translated]Cancel[translated]Task[translated] */
     private fun finishTask(task: TaskCtx, success: Boolean, message: String, savedPath: String) {
         if (task.done) return
         task.done = true
@@ -381,11 +381,11 @@ class DownloadService : Service() {
         if (success) {
             task.progress = 100
             if (task.totalSize > 0) task.downloadedSize = task.totalSize
-            // 完成通知短暂展示 3 秒后撤下
+            // Complete[translated] 3 [translated]
             nm.notify(task.notifId, buildNotif(task).apply {
                 flags = flags and Notification.FLAG_ONGOING_EVENT.inv()
             })
-            broadcastTask(task, 2, 100, "Download完成")
+            broadcastTask(task, 2, 100, "Download complete")
             broadcastDone(task, true, message, savedPath)
             Thread {
                 Thread.sleep(3000)
@@ -400,9 +400,9 @@ class DownloadService : Service() {
         }
     }
 
-    // ==================== 前台通知管理 ====================
+    // ==================== [translated] ====================
 
-    /** 前台通知交接：取第一个在途任务的通知为前台，其余任务通知补充 post；无在途则停服务 */
+    /** [translated]one[translated]Task[translated]Task[translated] post[translated] */
     private fun promoteForeground() {
         val active = tasks.values.filter { it.notifActive && !it.done }
         if (active.isEmpty()) {
@@ -415,7 +415,7 @@ class DownloadService : Service() {
         active.drop(1).forEach { nm.notify(it.notifId, buildNotif(it)) }
     }
 
-    /** 新任务启动时，为其余在途任务补发通知（各自独立小窗口） */
+    /** [translated]Task[translated]Task[translated] */
     private fun postOtherNotifs(exclude: TaskCtx) {
         val nm = getSystemService(NotificationManager::class.java)
         tasks.values
@@ -429,11 +429,11 @@ class DownloadService : Service() {
         nm.notify(task.notifId, buildNotif(task))
     }
 
-    // ==================== 广播 ====================
+    // ==================== [translated] ====================
 
     private fun broadcastTask(task: TaskCtx, state: Int, progress: Int, status: String) {
-        // Pause已受理（未终态）时丢弃在途的「Download中」进度广播：
-        // 进程真正被杀前回调仍在触发，这些广播会把界面/通知翻回Download中，造成"Pause did not take effect; tap twice"的错觉
+        // Pause[translated]Download[translated]Progress[translated]
+        // [translated]/[translated]Download[translated]"Pause did not take effect; tap twice"[translated]
         if (state == 1 && !task.done && task.paused.get()) return
         val intent = Intent(BROADCAST_UPDATE).apply {
             putExtra(EXTRA_STATE, state)
@@ -473,7 +473,7 @@ class DownloadService : Service() {
         sendBroadcast(intent)
     }
 
-    // ==================== 通知 ====================
+    // ==================== [translated] ====================
 
     private fun actionIntent(task: TaskCtx, action: String, code: Int): PendingIntent =
         PendingIntent.getBroadcast(
@@ -490,10 +490,10 @@ class DownloadService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "固件与文件Download",
+                "Firmware and file downloads",
                 NotificationManager.IMPORTANCE_LOW,
             ).apply {
-                description = "显示Download任务进度（支持多任务并行）"
+                description = "Show download task progress (supports parallel downloads)"
                 setShowBadge(false)
             }
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -513,7 +513,7 @@ class DownloadService : Service() {
             )
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setOngoing(true)
-            // 每任务独立小窗口：Download中 → [Pause][Cancel]；Paused → [Resume][Cancel]
+            // [translated]Task[translated]Download[translated] → [Pause][Cancel][translated]Paused → [Resume][Cancel]
             .addAction(
                 if (paused) android.R.drawable.ic_media_play else android.R.drawable.ic_media_pause,
                 if (paused) "Resume" else "Pause",
@@ -529,7 +529,7 @@ class DownloadService : Service() {
             builder.setProgress(100, task.progress, false)
         } else if (task.progress >= 100 && task.done) {
             builder.setProgress(0, 0, false)
-            builder.setContentText("Download完成")
+            builder.setContentText("Download complete")
             builder.setSmallIcon(android.R.drawable.stat_sys_download_done)
         } else {
             builder.setProgress(100, 0, false)
