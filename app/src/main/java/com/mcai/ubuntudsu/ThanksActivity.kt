@@ -18,7 +18,7 @@ import com.mcai.ubuntudsu.ui.Haptics
 import com.mcai.ubuntudsu.ui.Ui
 
 /**
- * 特别鸣谢页：内容移植自 Dsu-Manager DNA界面 / 设置 / 特别鸣谢。
+ * Special Thanks页：内容移植自 Dsu-Manager DNA界面 / 设置 / Special Thanks。
  * 沿用本应用拟态玻璃架构，避免引入 Dsu-Manager 的液态玻璃资源依赖。
  */
 class ThanksActivity : AppCompatActivity() {
@@ -36,68 +36,68 @@ class ThanksActivity : AppCompatActivity() {
         private val CREDITS = listOf(
             Credit(
                 R.drawable.credit_icon_author,
-                "项目作者",
-                "酷安@菜鸟_曾经的天明\nhttps://github.com/hetianming/Linux-Dsu",
+                "Project Author",
+                "CoolApk @菜鸟_曾经的天明\nhttps://github.com/hetianming/Linux-Dsu",
                 "https://www.coolapk.com/u/2705572",
             ),
             Credit(
                 R.drawable.credit_icon_dna_port,
-                "DNA移植源码",
-                "DNA 移植源码作者：小你可兰\nDsu-Manager 项目开发",
+                "DNA Ported Source",
+                "DNA port source author: 小你可兰\nDsu-Manager project developer",
                 "https://www.coolapk.com/u/3347561",
             ),
             Credit(
                 R.drawable.credit_icon_tik,
-                "TIK工具箱",
-                "部分代码来自于TIK2源码，在此感谢",
+                "TIK Toolbox",
+                "Some code comes from the TIK2 source; thanks to its author",
                 "https://gitee.com/yeliqin666/TIK",
             ),
             Credit(
                 R.drawable.credit_icon_magiskboot,
                 "magiskboot",
-                "镜像解包/打包核心工具",
+                "Core image unpacking/packing tools",
                 "https://github.com/topjohnwu/Magisk",
             ),
             Credit(
                 R.drawable.credit_icon_sdat,
                 "sdat2img and img2sdat",
-                "transfer.list 数据转换工具",
+                "transfer.list conversion tool",
                 "https://github.com/xpirt",
             ),
             Credit(
                 R.drawable.credit_icon_erofs,
                 "erofs-extract",
-                "EROFS 镜像提取工具",
+                "EROFS image extraction tool",
                 "https://github.com/sekaiacg/erofs-extract",
             ),
             Credit(
                 R.drawable.credit_icon_dna,
                 "DNA",
-                "使用了@温柔的慈悲大佬的DNA工具箱名字，向大佬致敬！",
+                "The DNA Toolbox name was inspired by @温柔的慈悲; respect to the author!",
                 "https://gitee.com/sharpeter/DNA",
             ),
             Credit(
                 R.drawable.credit_icon_dna_maintainer,
-                "酷安：@相见即是缘",
-                "感谢大佬一直维护的 DNA 工具，DNA 打包功能移植自其 20260530 版本",
+                "CoolApk: @相见即是缘",
+                "Thanks for maintaining the DNA tools; the DNA packing feature was ported from the 20260530 version",
                 "https://www.coolapk.com/u/1614257",
             ),
             Credit(
                 R.drawable.credit_icon_gjj,
-                "搞机助手",
-                "搞机助手原作者@情非得已c，提取了搞机助手部分代码文件使用！",
+                "Device Modding Assistant",
+                "Device Modding Assistant原作者@情非得已c，提取了Device Modding Assistant部分代码文件使用！",
                 "",
             ),
             Credit(
                 R.drawable.credit_icon_ffix,
                 "affggh",
-                "改用@affggh大佬的fspatch.py修补权限文件以及github开源的工具",
+                "Uses @affggh's fspatch.py and open-source GitHub tools to patch permission files",
                 "https://github.com/affggh/fspatch",
             ),
             Credit(
                 R.drawable.icon_dsu_modern,
                 "DSU-Sideloader",
-                "本应用的 GSI 安装流程参考并使用了 DSU-Sideloader 项目的相关方案",
+                "This app's GSI installation flow is based on approaches from the DSU-Sideloader project",
                 "https://github.com/VegaBobo/DSU-Sideloader",
             ),
         )
@@ -144,7 +144,7 @@ class ThanksActivity : AppCompatActivity() {
             setPadding(0, 0, 0, Ui.dp(16, d))
         }
         titleRow.addView(TextView(this).apply {
-            text = "‹ 返回"
+            text = "‹ Back"
             textSize = 13f
             setTextColor(Ui.buttonText(this@ThanksActivity))
             background = Ui.glassButton(this@ThanksActivity, Ui.buttonPrimary(this@ThanksActivity))
@@ -161,7 +161,7 @@ class ThanksActivity : AppCompatActivity() {
             )
         })
         titleRow.addView(TextView(this).apply {
-            text = "特别鸣谢"
+            text = "Special Thanks"
             textSize = 20f
             setTextColor(Ui.primaryText(this@ThanksActivity))
             setTypeface(typeface, android.graphics.Typeface.BOLD)
@@ -182,19 +182,19 @@ class ThanksActivity : AppCompatActivity() {
             setPadding(Ui.dp(18, d), Ui.dp(18, d), Ui.dp(18, d), Ui.dp(16, d))
         }
         headCard.addView(TextView(this).apply {
-            text = "特别鸣谢"
+            text = "Special Thanks"
             textSize = 24f
             setTextColor(Color.WHITE)
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         })
         headCard.addView(TextView(this).apply {
-            text = "不分先后，如有遗忘望提醒"
+            text = "In no particular order; please let us know if anyone was missed"
             textSize = 13f
             setTextColor(android.graphics.Color.argb(210, 255, 255, 255))
             setPadding(0, Ui.dp(5, d), 0, 0)
         })
         headCard.addView(TextView(this).apply {
-            text = "本软件的诞生离不开这些开源项目与开发者们的贡献"
+            text = "This app would not exist without the contributions of these open-source projects and developers"
             textSize = 11f
             setTextColor(android.graphics.Color.argb(180, 255, 255, 255))
             setPadding(0, Ui.dp(4, d), 0, 0)
@@ -206,7 +206,7 @@ class ThanksActivity : AppCompatActivity() {
         }
 
         page.addView(TextView(this).apply {
-            text = "开源让世界更美好\n谨向所有为中文搞机社区贡献过代码、教程与时间的人们致敬"
+            text = "Open source makes the world better.\nThanks to everyone who has contributed code, tutorials, and time to the Chinese Android modding community."
             textSize = 12f
             setTextColor(Ui.secondaryText(this@ThanksActivity))
             gravity = Gravity.CENTER
@@ -286,7 +286,7 @@ class ThanksActivity : AppCompatActivity() {
         runCatching {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         }.onFailure {
-            Toast.makeText(this, "无应用可打开链接", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "No app available to open the link", Toast.LENGTH_SHORT).show()
         }
     }
 
