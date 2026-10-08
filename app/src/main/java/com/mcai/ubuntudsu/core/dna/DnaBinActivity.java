@@ -31,8 +31,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * DNA · Extract BIN 独立二级页（v3.30.22）。
  * 流程：选文件 → 🔍Start Parsing（root CLI / Java 直读 payload.bin / OTA zip）
- *      → Select in dialog分区（仅名称 + 大小，不显示哈希）→ 底部「OK」即Start Extraction，
- *        日志实时显示Extracting的 img 与进度（页面不再展开分区列表）。
+ *      → Select in dialogpartitions（仅名称 + 大小，不显示哈希）→ 底部「OK」即Start Extraction，
+ *        日志实时显示Extracting的 img 与进度（页面不再展开partitions列表）。
  * v3.40.19 Extract走 libpayload_extract.so（pie 可执行，root shell 直跑）：
  * root 直读输入（bin/zip 原路径）、root 直写输出工程，无 FUSE 权限障碍、零复制。
  */
@@ -328,7 +328,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
 
         // ---- 手动路径输入框已移除（v3.30.23：已有 📂 浏览按钮，无需再显示路径框） ----
 
-        // ---- 解析按钮（v3.30.22：分区选择移入弹窗，页面不再展开列表） ----
+        // ---- 解析按钮（v3.30.22：partitions选择移入弹窗，页面不再展开列表） ----
         parseBtn = gradientButton("🔍  " + t("Start Parsing", "Parse"), new int[]{0xFF7C4DFF, 0xFF5633CC}, dp(16));
         parseBtn.setOnClickListener(v -> { Haptics.perform(v); parseFile(); });
         LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(-1, dp(46));
@@ -386,7 +386,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         // ---- 控制台（v3.41.14：Run Task时弹出小窗口，不再嵌入页面）----
         buildConsole();
         renderProject();
-        log(t("提示：Select File → Start Parsing → Select in dialog分区 → Confirm Extraction", "Tip: pick → parse → select → extract"));
+        log(t("Tip: pick → parse → select → extract", "Tip: pick → parse → select → extract"));
     }
 
     /** 日志卡片 (v3.41.15:弹出小窗口；标题Run Task，右侧Copy Log/Clear Log/Close窗 ✕) */
@@ -776,9 +776,9 @@ public final class DnaBinActivity extends DnaBaseActivity {
         });
     }
 
-    // ================= 分区选择弹窗（v3.30.22） =================
+    // ================= partitions选择弹窗（v3.30.22） =================
 
-    /** Parsing complete后Select in dialog分区（仅名称 + 大小，不显示哈希），底部「OK」即Start Extraction */
+    /** Parsing complete后Select in dialogpartitions（仅名称 + 大小，不显示哈希），底部「OK」即Start Extraction */
     private void showPartitionDialog() {
         // v3.30.25 修复 BadTokenException：Parsing complete回调时页面可能已退出，此时不能再弹窗
         if (isFinishing() || isDestroyed()) return;
@@ -822,7 +822,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         head.addView(count, new LinearLayout.LayoutParams(0, -2, 1f));
         panel.addView(head, new LinearLayout.LayoutParams(-1, -2));
 
-        // 可滚动分区列表：圆点勾选 + 名称 + 大小（不显示哈希）
+        // 可滚动partitions列表：圆点勾选 + 名称 + 大小（不显示哈希）
         ScrollView scroll = new ScrollView(this);
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
         panel.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
@@ -951,7 +951,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         for (PayloadExtractor.PartitionInfo p : partitions)
             if (checked.contains(p.getName())) ordered.add(p.getName());
         final String outDir = DnaTools.WORK_ROOT + "/" + project;
-        // v1.8.17：优先使用独立 Rust/JNI 路径，在每个分区内并行处理 payload 操作；
+        // v1.8.17：优先使用独立 Rust/JNI 路径，在每个partitions内并行处理 payload 操作；
         // 解析/操作不兼容或 JNI 失败时安全回退到既有 root CLI。成功日志仅在任务真正结束后发出。
         log("▶ " + t("Start Extraction", "Extracting") + " " + ordered.size() + t(" partitions → ", " partition(s) → ") + project);
         expandConsole();
@@ -965,9 +965,9 @@ public final class DnaBinActivity extends DnaBaseActivity {
         io.execute(() -> {
             final long startMs = System.currentTimeMillis();
             final String rawInput = binPath != null ? binPath : openInput;
-            // 兼容回退：一次性提交全部勾选分区，避免逐分区重启 CLI 并重复扫描 ZIP/manifest。
-            // 旧逐分区调 N 次：每次进程冷启动 + 重扫 ZIP + 重解析 manifest，--threads 单分区无效；
-            // 批量后 metadata 只解析一次，多分区并行解压。失败分区逐个单分区Retry拿精确错误。
+            // 兼容回退：一次性提交全部勾选partitions，避免逐partitions重启 CLI 并重复扫描 ZIP/manifest。
+            // 旧逐partitions调 N 次：每次进程冷启动 + 重扫 ZIP + 重解析 manifest，--threads 单partitions无效；
+            // 批量后 metadata 只解析一次，多partitions并行解压。失败partitions逐个单partitionsRetry拿精确错误。
             int okCount = 0;
             String lastErr = null;
             final java.util.List<String> failed = new ArrayList<>();
@@ -1124,7 +1124,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
                 });
                 return;
             }
-            // 按落盘文件统计成功；失败的逐个单分区重跑一次拿精确错误（正常全成功零开销）
+            // 按落盘文件统计成功；失败的逐个单partitions重跑一次拿精确错误（正常全成功零开销）
             for (int i = 0; i < ordered.size(); i++) {
                 final String n = ordered.get(i);
                 final File outFile = new File(outDir, n + ".img");
