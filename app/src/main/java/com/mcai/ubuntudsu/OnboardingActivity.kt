@@ -220,7 +220,7 @@ class OnboardingActivity : AppCompatActivity() {
             runCatching {
                 startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
             }.onFailure {
-                Toast.makeText(this, "系统设置页不可用", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "System settings page unavailable", Toast.LENGTH_SHORT).show()
             }
         }
         if (!rootVerified) {
@@ -228,7 +228,7 @@ class OnboardingActivity : AppCompatActivity() {
             applyPermissionSwitchState("root", rootVerified)
         }
         refreshPermissionState()
-        Toast.makeText(this, "已发起可自动授权项，返回应用后自动检测真实状态", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Automatic authorization has been requested. Return to the app to check the actual status.", Toast.LENGTH_SHORT).show()
     }
 
     // ==================== UI Construction ====================
@@ -311,23 +311,23 @@ class OnboardingActivity : AppCompatActivity() {
         0 -> createWelcomePage()
         1 -> createAgreementPage()
         2 -> createFeaturePage(
-            title = "DSU 与 Linux 桌面",
-            subtitle = "无需解锁、不动原系统，临时启动新系统镜像",
+            title = "DSU & Linux Desktop",
+            subtitle = "No unlocking or changes to the stock system; temporarily boot new system images",
             items = listOf(
-                Triple(R.drawable.icon_dsu_modern, "DSU 动态系统更新", "ROOT 直装 GSI 镜像，自定义 userdata 容量、清理旧缓存、一键重启切换"),
-                Triple(R.drawable.icon_linux_modern, "Linux ARM® 架构", "Chroot 安装运行 Ubuntu rootfs（本地 / 云端镜像），可卸载还原"),
-                Triple(R.drawable.icon_terminal_runner, "容器终端", "Termux 风格 Chroot 终端，支持 apt 安装软件包"),
-                Triple(R.drawable.ic_desktop_start, "远程桌面", "XFCE / KDE 桌面 + VNC 远程连接，音频桥接、分辨率自选"),
+                Triple(R.drawable.icon_dsu_modern, "DSU Dynamic System Update", "Install GSI images directly with ROOT, customize userdata size, clear old cache, and reboot with one tap"),
+                Triple(R.drawable.icon_linux_modern, "Linux ARM® Architecture", "Chroot 安装运行 Ubuntu rootfs（本地 / 云端镜像），可卸载还原"),
+                Triple(R.drawable.icon_terminal_runner, "Container Terminal", "Termux-style Chroot terminal with apt package installation"),
+                Triple(R.drawable.ic_desktop_start, "Remote Desktop", "XFCE / KDE 桌面 + VNC 远程连接，音频桥接、分辨率自选"),
             ),
         )
         3 -> createFeaturePage(
-            title = "ROM 固件与移植",
-            subtitle = "固件双源下载，DNA 工具箱一站式移植开发",
+            title = "ROM Firmware & Porting",
+            subtitle = "Dual-source firmware downloads and all-in-one DNA porting tools",
             items = listOf(
-                Triple(R.drawable.icon_rom_firmware, "ROM 固件下载", "HyperOS 与 ColorOS / FlymeOS / realme UI 双源，品牌机型筛选，aria2c 加速"),
-                Triple(R.drawable.icon_rom_port, "ROM 移植开发", "DNA 工具箱分解 / 合成 SUPER、payload 提取、镜像格式互转"),
-                Triple(R.drawable.icon_otg, "OTG 刷机助手", "检测 USB 设备 ADB / Fastboot 状态，刷机日志实时输出"),
-                Triple(R.drawable.icon_usb_boot, "U 盘启动", "本地制作 U 盘 IMG 镜像并虚拟 U 盘暴露给电脑"),
+                Triple(R.drawable.icon_rom_firmware, "ROM Firmware Download", "HyperOS 与 ColorOS / FlymeOS / realme UI 双源，品牌机型筛选，aria2c 加速"),
+                Triple(R.drawable.icon_rom_port, "ROM Porting", "DNA 工具箱分解 / 合成 SUPER、payload 提取、镜像格式互转"),
+                Triple(R.drawable.icon_otg, "OTG Flashing Assistant", "检测 USB 设备 ADB / Fastboot 状态，刷机日志实时输出"),
+                Triple(R.drawable.icon_usb_boot, "USB Boot", "本地制作 U 盘 IMG 镜像并虚拟 U 盘暴露给电脑"),
             ),
         )
         4 -> createPermissionsPage()
@@ -336,7 +336,7 @@ class OnboardingActivity : AppCompatActivity() {
         else -> createWelcomePage()
     }
 
-    /** 功能介绍页：标题 + 副标题 + 图标条目卡片 + 底部「下一步」 */
+    /** 功能介绍页：标题 + 副标题 + 图标条目卡片 + 底部「Next」 */
     private fun createFeaturePage(
         title: String,
         subtitle: String,
@@ -425,11 +425,11 @@ class OnboardingActivity : AppCompatActivity() {
         return container
     }
 
-    /** 底部「下一步」按钮（功能介绍页共用）：拟态实心渐变 + 阴影外环 */
+    /** 底部「Next」按钮（功能介绍页共用）：拟态实心渐变 + 阴影外环 */
     private fun bottomNextButton(): View {
         val d = resources.displayMetrics.density
         return TextView(this).apply {
-            text = "下一步"
+            text = "Next"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
@@ -491,7 +491,7 @@ class OnboardingActivity : AppCompatActivity() {
             }
         })
 
-        // "欢迎使用" — custom TextView with left-to-right rainbow gradient flowing animation
+        // "Welcome" — custom TextView with left-to-right rainbow gradient flowing animation
         val welcomeText = object : TextView(this) {
             private var gradientShader: android.graphics.LinearGradient? = null
             fun setGradientShader(shader: android.graphics.LinearGradient) {
@@ -503,7 +503,7 @@ class OnboardingActivity : AppCompatActivity() {
                 super.onDraw(canvas)
             }
         }.apply {
-            text = "欢迎使用"
+            text = "Welcome"
             textSize = 40f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -519,7 +519,7 @@ class OnboardingActivity : AppCompatActivity() {
         // Start flowing rainbow gradient animation after layout
         welcomeText.post {
             val paint = welcomeText.paint
-            val textWidth = paint.measureText("欢迎使用")
+            val textWidth = paint.measureText("Welcome")
             // 柔和彩虹（Material 400 级）：明快不深重，与浅色玻璃底协调
             val colors = intArrayOf(
                 Color.parseColor("#FF8A80"),
@@ -715,7 +715,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Title
         card.addView(TextView(this).apply {
-            text = "用户协议"
+            text = "User Agreement"
             textSize = 22f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@OnboardingActivity))
@@ -723,7 +723,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Agreement text
         card.addView(TextView(this).apply {
-            text = "欢迎使用 TMUI OS。本应用为 Android 设备提供 Linux 桌面环境运行能力，包括 DSU GSI 安装、Chroot Linux 容器、终端模拟及 VNC 远程桌面等功能。\n\n使用本应用需要设备已获取 ROOT 权限，并可能涉及系统级操作。请您仔细阅读以下条款后再决定是否继续使用。"
+            text = "Welcome TMUI OS。本应用为 Android 设备提供 Linux Desktop Environment运行能力，包括 DSU GSI 安装、Chroot Linux 容器、终端模拟及 VNC Remote Desktop等功能。\n\n使用本应用需要设备已获取 ROOT Access，并可能涉及系统级操作。请您仔细阅读以下条款后再决定是否继续使用。"
             textSize = 14f
             setTextColor(Ui.secondaryText(this@OnboardingActivity))
             setPadding(0, Ui.dp(16, d), 0, 0)
@@ -746,7 +746,7 @@ class OnboardingActivity : AppCompatActivity() {
         agreementRow.addView(checkBox)
 
         agreementRow.addView(TextView(this).apply {
-            text = "我已阅读并同意用户协议与隐私说明"
+            text = "我已阅读并同意User Agreement与隐私说明"
             textSize = 14f
             setTextColor(Ui.primaryText(this@OnboardingActivity))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
@@ -759,9 +759,9 @@ class OnboardingActivity : AppCompatActivity() {
         scroll.addView(card)
         container.addView(scroll)
 
-        // Bottom "下一步" button — placed outside the card, below the indicators
+        // Bottom "Next" button — placed outside the card, below the indicators
         val nextBtn = TextView(this).apply {
-            text = "下一步"
+            text = "Next"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
@@ -790,7 +790,7 @@ class OnboardingActivity : AppCompatActivity() {
                 if (agreementChecked) {
                     goToNextPage()
                 } else {
-                    Toast.makeText(this@OnboardingActivity, "请先同意用户协议", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@OnboardingActivity, "请先同意User Agreement", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -828,7 +828,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Title
         card.addView(TextView(this).apply {
-            text = "环境与权限"
+            text = "Environment & Permissions"
             textSize = 22f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@OnboardingActivity))
@@ -836,7 +836,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Description
         card.addView(TextView(this).apply {
-            text = "选择现在要检查的运行条件。其余设置可稍后在应用内修改。"
+            text = "Choose the conditions to check now. Other settings can be changed later."
             textSize = 14f
             setTextColor(Ui.secondaryText(this@OnboardingActivity))
             setPadding(0, Ui.dp(8, d), 0, Ui.dp(16, d))
@@ -844,14 +844,14 @@ class OnboardingActivity : AppCompatActivity() {
         })
 
         // Notification permission
-        card.addView(makePermissionRow("通知权限", "允许应用发送通知提醒", "notification", notificationGranted) { checked ->
+        card.addView(makePermissionRow("Notification Permission", "Allow the app to send notifications", "notification", notificationGranted) { checked ->
             if (checked && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 markPendingPermission("notification")
                 requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
             }
         })
 
-        card.addView(makePermissionRow("存储访问", "允许访问设备存储空间", "storage", storageGranted) { checked ->
+        card.addView(makePermissionRow("Storage Access", "Allow access to device storage", "storage", storageGranted) { checked ->
             if (checked) {
                 markPendingPermission("storage")
                 requestPermissions(
@@ -864,36 +864,36 @@ class OnboardingActivity : AppCompatActivity() {
             }
         })
 
-        card.addView(makePermissionRow("使用情况访问", "进程管理读取任务栏后台应用与前台识别", "usage", usageAccessGranted) { checked ->
+        card.addView(makePermissionRow("Usage Access", "Allows process management to read background apps and foreground activity", "usage", usageAccessGranted) { checked ->
             if (checked) {
                 runCatching {
                     startActivity(android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS))
                 }.onFailure {
-                    Toast.makeText(this@OnboardingActivity, "系统设置页不可用", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@OnboardingActivity, "System settings page unavailable", Toast.LENGTH_SHORT).show()
                 }
             }
         })
 
         // Root notice (not a real permission request, just status display)
         card.addView(TextView(this).apply {
-            text = "Root 不会自动请求。点按下方项目可验证已授予的 UID。"
+            text = "Root is not requested automatically. Tap the item below to verify the granted UID."
             textSize = 12f
             setTextColor(Ui.secondaryText(this@OnboardingActivity))
             setPadding(0, Ui.dp(8, d), 0, Ui.dp(4, d))
         })
 
-        card.addView(makePermissionRow("验证 Root", "检查 ROOT 权限可用性", "root", rootVerified) { checked ->
+        card.addView(makePermissionRow("Verify Root", "Check ROOT availability", "root", rootVerified) { checked ->
             if (checked) {
                 rootVerified = runCatching { com.mcai.ubuntudsu.core.RootShell.available() }.getOrDefault(false)
                 applyPermissionSwitchState("root", rootVerified)
                 if (!rootVerified) {
-                    Toast.makeText(this@OnboardingActivity, "Root 验证未通过", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@OnboardingActivity, "Root verification failed", Toast.LENGTH_SHORT).show()
                 }
             }
         })
 
         val oneTapBtn = TextView(this).apply {
-            text = "一键授权"
+            text = "Grant Access"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
@@ -923,7 +923,7 @@ class OnboardingActivity : AppCompatActivity() {
         scroll.addView(card)
         container.addView(scroll)
         val nextBtn = TextView(this).apply {
-            text = "下一步"
+            text = "Next"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
@@ -1001,7 +1001,7 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     /**
-     * Page 4: 环境体检 — 安装前实测 ROOT 授权 / CPU 架构 / 存储空间
+     * Page 4: Environment Check — 安装前实测 ROOT 授权 / CPU Architecture / Storage
      * 进入页面自动逐项检测（真实执行，非静态文案），状态实时上屏
      */
     private fun createEnvCheckPage(): View {
@@ -1029,7 +1029,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Title
         card.addView(TextView(this).apply {
-            text = "环境体检"
+            text = "Environment Check"
             textSize = 22f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@OnboardingActivity))
@@ -1037,7 +1037,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Description
         card.addView(TextView(this).apply {
-            text = "在开始之前，为你实测 ROOT 授权、CPU 架构与存储空间，全部通过即可获得最佳安装体验。"
+            text = "Before starting, we will check ROOT access, CPU architecture, and storage space. Passing all checks provides the best installation experience."
             textSize = 13f
             setTextColor(Ui.secondaryText(this@OnboardingActivity))
             setPadding(0, Ui.dp(8, d), 0, Ui.dp(10, d))
@@ -1056,7 +1056,7 @@ class OnboardingActivity : AppCompatActivity() {
                 }
             }
             val status = TextView(this).apply {
-                text = "检测中…"
+                text = "Checking…"
                 textSize = 12f
                 setTextColor(Ui.secondaryText(this@OnboardingActivity))
                 setPadding(0, Ui.dp(2, d), 0, 0)
@@ -1082,9 +1082,9 @@ class OnboardingActivity : AppCompatActivity() {
             return dot to status
         }
 
-        val rootRow = checkRow("ROOT 权限")
-        val archRow = checkRow("CPU 架构")
-        val storageRow = checkRow("存储空间")
+        val rootRow = checkRow("ROOT Access")
+        val archRow = checkRow("CPU Architecture")
+        val storageRow = checkRow("Storage")
 
         // 状态上屏：绿=通过，琥珀=受限可用，红=不满足
         fun mark(row: Pair<View, TextView>, level: Int, msg: String) {
@@ -1110,14 +1110,14 @@ class OnboardingActivity : AppCompatActivity() {
             mark(
                 rootRow,
                 if (rootOk) 0 else 1,
-                if (rootOk) "已获取 ROOT 授权，全部功能可用" else "未获取 ROOT 授权，核心功能受限",
+                if (rootOk) "ROOT access granted; all features are available" else "ROOT access not granted; core features are limited",
             )
             Thread.sleep(400)
             val archOk = Build.SUPPORTED_ABIS.contains("arm64-v8a")
             mark(
                 archRow,
                 if (archOk) 0 else 2,
-                if (archOk) "arm64-v8a · 兼容主流 rootfs 镜像" else "未检测到 arm64，兼容性受限",
+                if (archOk) "arm64-v8a · Compatible with common rootfs images" else "arm64 not detected; compatibility is limited",
             )
             Thread.sleep(400)
             val freeBytes = runCatching {
@@ -1131,16 +1131,16 @@ class OnboardingActivity : AppCompatActivity() {
                     freeGb >= 2f -> 1
                     else -> 2
                 },
-                "剩余 %.1f GB · 建议 ≥ 5GB".format(freeGb),
+                "%.1f GB free · Recommended ≥ 5 GB".format(freeGb),
             )
         }.start()
 
         scroll.addView(card)
         container.addView(scroll)
 
-        // Bottom "下一步" button
+        // Bottom "Next" button
         val nextBtn = TextView(this).apply {
-            text = "下一步"
+            text = "Next"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
@@ -1171,8 +1171,8 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     /**
-     * Page 4: Done — 一切就绪 + 功能亮点速览
-     * 大标题「一切就绪」+ 拟态卡片内 4 项核心功能（图标 + 名称 + 一句话说明）+ 开始使用按钮
+     * Page 4: Done — All Set + 功能亮点速览
+     * 大标题「All Set」+ 拟态卡片内 4 项核心功能（图标 + 名称 + 一句话说明）+ 开始使用按钮
      */
     private fun createDonePage(): View {
         val d = resources.displayMetrics.density
@@ -1194,14 +1194,14 @@ class OnboardingActivity : AppCompatActivity() {
 
         // 大标题 + 副标题
         content.addView(TextView(this).apply {
-            text = "一切就绪"
+            text = "All Set"
             textSize = 30f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(this@OnboardingActivity))
             gravity = Gravity.CENTER
         })
         content.addView(TextView(this).apply {
-            text = "你的口袋 Linux 工具箱已备好，四大核心能力随时待命"
+            text = "Your pocket Linux toolbox is ready, with four core capabilities at your fingertips"
             textSize = 13f
             setTextColor(Ui.secondaryText(this@OnboardingActivity))
             gravity = Gravity.CENTER
@@ -1216,10 +1216,10 @@ class OnboardingActivity : AppCompatActivity() {
             Ui.applyNeuShadow(this, 5f, 20f)
         }
         listOf(
-            Triple(R.drawable.icon_terminal_runner, "容器终端", "Chroot 容器 · Termux 风格 · apt 装包"),
-            Triple(R.drawable.icon_linux_modern, "桌面环境", "XFCE / KDE / GNOME + VNC 远程桌面"),
-            Triple(R.drawable.icon_dsu_modern, "DSU 管理", "ROOT 直装 GSI 镜像 · 一键重启切换"),
-            Triple(R.drawable.ic_download, "下载管理", "并行下载 · 断点续传 · 镜像直取"),
+            Triple(R.drawable.icon_terminal_runner, "Container Terminal", "Chroot 容器 · Termux 风格 · apt 装包"),
+            Triple(R.drawable.icon_linux_modern, "Desktop Environment", "XFCE / KDE / GNOME + VNC Remote Desktop"),
+            Triple(R.drawable.icon_dsu_modern, "DSU Manager", "ROOT 直装 GSI 镜像 · 一键重启切换"),
+            Triple(R.drawable.ic_download, "Download Manager", "Parallel downloads · Resume support · Direct image downloads"),
         ).forEachIndexed { index, (iconRes, title, desc) ->
             if (index > 0) {
                 // 水晶玻璃分隔条：分区之间的高光细线
@@ -1262,9 +1262,9 @@ class OnboardingActivity : AppCompatActivity() {
         }
         content.addView(highlightCard)
 
-        // 开源仓库地址（点击复制到剪贴板）
+        // Open-source repository地址（点击复制到剪贴板）
         content.addView(TextView(this).apply {
-            text = "开源仓库  github.com/hetianming/Linux-Dsu"
+            text = "Open-source repository  github.com/hetianming/Linux-Dsu"
             textSize = 12f
             setTextColor(Ui.buttonPrimary(this@OnboardingActivity))
             gravity = Gravity.CENTER
@@ -1274,7 +1274,7 @@ class OnboardingActivity : AppCompatActivity() {
             setOnClickListener {
                 val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 cm.setPrimaryClip(android.content.ClipData.newPlainText("repo", "https://github.com/hetianming/Linux-Dsu"))
-                Toast.makeText(this@OnboardingActivity, "仓库地址已复制", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@OnboardingActivity, "Repository address copied", Toast.LENGTH_SHORT).show()
             }
         })
         container.addView(content)
@@ -1388,9 +1388,9 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     private fun goToNextPage() {
-        // 协议页只能通过「下一步」按钮且勾选同意后前进，禁止滑动跳过
+        // 协议页只能通过「Next」按钮且勾选同意后前进，禁止滑动跳过
         if (currentPage == 1 && !agreementChecked) {
-            Toast.makeText(this, "请先同意用户协议", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "请先同意User Agreement", Toast.LENGTH_SHORT).show()
             return
         }
         if (currentPage < PAGE_COUNT - 1) {
