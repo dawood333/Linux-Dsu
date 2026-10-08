@@ -24,17 +24,17 @@ object Env {
     // 桌面环境检测结果：kde / xfce / 未安装
     // 通过查 rootfs 内对应启动器是否存在判断（无需 su，app uid 可读）
     fun desktopState(ctx: Context): String {
-        if (!ubuntuInstalled(ctx)) return "未安装 rootfs"
+        if (!ubuntuInstalled(ctx)) return "rootfs not installed"
         val rootfs = rootfs(ctx)
         val kdeFiles = listOf("usr/bin/startplasma-x11", "usr/bin/plasma-session")
         val xfceFiles = listOf("usr/bin/startxfce4", "usr/bin/xfce4-session")
         val kde = kdeFiles.any { File(rootfs, it).exists() }
         val xfce = xfceFiles.any { File(rootfs, it).exists() }
         return when {
-            kde && xfce -> "已安装 KDE + XFCE4 桌面环境"
-            kde -> "已安装 KDE 桌面环境"
-            xfce -> "已安装 XFCE4 桌面环境"
-            else -> "未安装任何桌面环境"
+            kde && xfce -> "KDE + XFCE4 desktop installed"
+            kde -> "KDE desktop installed"
+            xfce -> "XFCE4 desktop installed"
+            else -> "No desktop environment installed"
         }
     }
 
