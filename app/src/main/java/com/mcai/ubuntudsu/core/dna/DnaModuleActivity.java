@@ -277,7 +277,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
             android.content.ClipboardManager cm =
                     (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             cm.setPrimaryClip(android.content.ClipData.newPlainText("DNA module log", text));
-            toast(t("已复制全部日志", "Log copied"));
+            toast(t("All logs copied", "Log copied"));
         });
         consoleActions.addView(copyConsole, new LinearLayout.LayoutParams(-2, dp(30)));
         Button clearConsole = new Button(this, null, 0);
@@ -299,7 +299,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
         clearConsole.setOnClickListener(v -> {
             Haptics.perform(v);
             consoleText.setText("");
-            toast(t("日志已Clear", "Log cleared"));
+            toast(t("Logs cleared", "Log cleared"));
         });
         LinearLayout.LayoutParams clearLp = new LinearLayout.LayoutParams(-2, dp(30));
         clearLp.leftMargin = dp(6);
@@ -434,7 +434,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
             projectBadge.setText(project);
             projectBadge.setTextColor(pal.success);
         } else {
-            projectBadge.setText(t("⚠ 未Select Project —— 执行插件前请先在 DNA 页切换工程",
+            projectBadge.setText(t("⚠ No project selected —— 执行插件前请先在 DNA 页切换工程",
                     "⚠ No project — switch to one on the DNA page before running"));
             projectBadge.setTextColor(pal.danger);
         }
@@ -676,7 +676,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
                 Haptics.perform(v);
                 RootShell.INSTANCE.exec("rm -rf " + DnaTools.quote(mod.getAbsolutePath()), 30000, null);
                 if (mod.equals(expandedModule)) expandedModule = null;
-                toast(t("已Delete Plugin", "Module deleted"));
+                toast(t("Plugin deleted", "Module deleted"));
                 refreshModules();
             });
             card.addView(delete, new LinearLayout.LayoutParams(-1, dp(42)));
@@ -733,7 +733,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
                 running.set(false);
                 appendConsole((result.getSuccess() ? "✓ " : "✗ ") + result.getMessage());
                 consoleStop.setText(t("Collapse Console", "Hide console"));
-                toast(result.getSuccess() ? t("插件Execution complete", "Module finished") : t("Execution failed", "Failed"));
+                toast(result.getSuccess() ? t("Plugin execution complete", "Module finished") : t("Execution failed", "Failed"));
             });
         }, "dna-module-run").start();
     }
@@ -749,7 +749,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
                     + (name == null ? "" : ": " + name));
             return;
         }
-        toast(t("正在Import Plugin ...", "Importing module..."));
+        toast(t("Importing plugin...", "Importing module..."));
         new Thread(() -> {
             DnaTools.Result r = DnaTools.run(this,
                     "dna unzip " + DnaTools.quote(path) + " "
