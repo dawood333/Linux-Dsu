@@ -48,15 +48,15 @@ public final class PrivilegedRootService extends RootService {
                 Object images = invokeHidden("android.gsi.IImageService", imageService, "getAllBackingImages");
                 if (images instanceof List) return images.toString();
             } catch (Exception e) { return "ERROR|" + e.getMessage(); }
-            return "EMPTY|暂无已安装镜像";
+            return "EMPTY|No installed images";
         }
         @Override public String replaceDsuBackingImage(String slot, String imageName, ParcelFileDescriptor fd, long size, boolean force) {
-            if (fd == null || size <= 0) return "镜像文件为空";
+            if (fd == null || size <= 0) return "Image file is empty";
             try {
                 Object service = imageService(slot);
                 boolean exists = (Boolean) invokeHidden("android.gsi.IImageService", service, "backingImageExists", imageName);
                 boolean mapped = (Boolean) invokeHidden("android.gsi.IImageService", service, "isImageMapped", imageName);
-                if (exists && !force) return "镜像已存在，请确认替换";
+                if (exists && !force) return "Image already exists; confirm replacement";
                 if (mapped) invokeHidden("android.gsi.IImageService", service, "unmapImageDevice", imageName);
                 if (exists) invokeHidden("android.gsi.IImageService", service, "deleteBackingImage", imageName);
                 invokeHidden("android.gsi.IImageService", service, "createBackingImage", imageName, size, 1, null);
@@ -124,6 +124,6 @@ public final class PrivilegedRootService extends RootService {
             while ((count = input.read(buffer)) != -1) { output.write(buffer, 0, count); copied += count; }
             output.getFD().sync();
         }
-        if (copied != expected) throw new IOException("镜像写入长度不一致");
+        if (copied != expected) throw new IOException("Image write length mismatch");
     }
 }
