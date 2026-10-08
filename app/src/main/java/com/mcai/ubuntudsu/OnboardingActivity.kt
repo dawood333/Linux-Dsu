@@ -47,7 +47,7 @@ import com.mcai.ubuntudsu.ui.Ui
  *  1. Agreement   – white card with user agreement, checkbox, continue button
  *  2. Permissions – notification / storage / root verification with switches
  *  3. Settings    – color source, dark/light mode, UI scale slider
- *  4. Done        – app icon, "TMUI OSv1.0", "设置完毕", "开始使用" button
+ *  4. Done        – app icon, "TMUI OSv1.0", "Setup complete", "Get started" button
  */
 class OnboardingActivity : AppCompatActivity() {
 
@@ -68,7 +68,7 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var indicatorContainer: LinearLayout
     private lateinit var rootLayout: FrameLayout
     private val indicatorDots = mutableListOf<View>()
-    /** 欢迎页全屏动态彩虹背景层（挂 rootLayout，仅第 0 页显示） */
+    /** [translated] rootLayout[translated] 0 [translated]Display[translated] */
     private lateinit var rainbowFlow: RainbowFlowView
 
     // Swipe tracking
@@ -240,7 +240,7 @@ class OnboardingActivity : AppCompatActivity() {
         // 1. Animated gradient background (full screen)
         setupGradientBackground(rootLayout)
 
-        // 1.5 欢迎页动态阳光彩虹背景：独立全屏层（延伸到状态栏/导航栏下方），仅首页显示
+        // 1.5 [translated]Status[translated]/[translated]Display
         rainbowFlow = RainbowFlowView(this).apply {
             visibility = View.GONE
             layoutParams = FrameLayout.LayoutParams(
@@ -250,7 +250,7 @@ class OnboardingActivity : AppCompatActivity() {
         }
         rootLayout.addView(rainbowFlow)
 
-        // 2. Page container（接收 systemBars padding：内容避让，背景层保持全屏）
+        // 2. Page container[translated] systemBars padding[translated]content[translated]
         pageContainer = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -285,8 +285,8 @@ class OnboardingActivity : AppCompatActivity() {
         setContentView(rootLayout)
         Ui.enableEdgeToEdge(this, rootLayout)
 
-        // Edge-to-edge insets：padding 落在 pageContainer / 指示器上，
-        // rootLayout 自身不再留白，彩虹背景真正全屏（修复状态栏白条）
+        // Edge-to-edge insets[translated]padding [translated] pageContainer / [translated]
+        // rootLayout [translated]Status[translated]
         ViewCompat.setOnApplyWindowInsetsListener(rootLayout) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             pageContainer.setPadding(bars.left, bars.top, bars.right, bars.bottom)
@@ -301,7 +301,7 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     private fun setupGradientBackground(root: FrameLayout) {
-        // 全局拟态液态玻璃背景：与主界面同源的呼吸渐变（日间蓝灰 / 夜间深海军蓝）
+        // [translated] / [translated]
         Ui.animateLiquidBackground(root)
     }
 
@@ -315,9 +315,9 @@ class OnboardingActivity : AppCompatActivity() {
             subtitle = "No unlocking or changes to the stock system; temporarily boot new system images",
             items = listOf(
                 Triple(R.drawable.icon_dsu_modern, "DSU Dynamic System Update", "Install GSI images directly with ROOT, customize userdata size, clear old cache, and reboot with one tap"),
-                Triple(R.drawable.icon_linux_modern, "Linux ARM® Architecture", "Chroot 安装运行 Ubuntu rootfs（本地 / 云端镜像），可卸载还原"),
+                Triple(R.drawable.icon_linux_modern, "Linux ARM® Architecture", "Chroot Install运行 Ubuntu rootfs（Local / CloudImage），可Uninstall还原"),
                 Triple(R.drawable.icon_terminal_runner, "Container Terminal", "Termux-style Chroot terminal with apt package installation"),
-                Triple(R.drawable.ic_desktop_start, "Remote Desktop", "XFCE / KDE 桌面 + VNC 远程连接，音频桥接、分辨率自选"),
+                Triple(R.drawable.ic_desktop_start, "Remote Desktop", "XFCE / KDE Desktop + VNC 远程Connection，音频桥接、分辨率自选"),
             ),
         )
         3 -> createFeaturePage(
@@ -325,9 +325,9 @@ class OnboardingActivity : AppCompatActivity() {
             subtitle = "Dual-source firmware downloads and all-in-one DNA porting tools",
             items = listOf(
                 Triple(R.drawable.icon_rom_firmware, "ROM Firmware Download", "HyperOS 与 ColorOS / FlymeOS / realme UI 双源，品牌机型筛选，aria2c 加速"),
-                Triple(R.drawable.icon_rom_port, "ROM Porting", "DNA 工具箱分解 / 合成 SUPER、payload 提取、镜像格式互转"),
-                Triple(R.drawable.icon_otg, "OTG Flashing Assistant", "检测 USB 设备 ADB / Fastboot 状态，刷机日志实时输出"),
-                Triple(R.drawable.icon_usb_boot, "USB Boot", "本地制作 U 盘 IMG 镜像并虚拟 U 盘暴露给电脑"),
+                Triple(R.drawable.icon_rom_port, "ROM Porting", "DNA Tool箱分解 / 合成 SUPER、payload 提取、Image格式互转"),
+                Triple(R.drawable.icon_otg, "OTG Flashing Assistant", "Detect USB Device ADB / Fastboot Status，刷机Log实时Output"),
+                Triple(R.drawable.icon_usb_boot, "USB Boot", "Local制作 U 盘 IMG Image并虚拟 U 盘暴露给电脑"),
             ),
         )
         4 -> createPermissionsPage()
@@ -336,7 +336,7 @@ class OnboardingActivity : AppCompatActivity() {
         else -> createWelcomePage()
     }
 
-    /** 功能介绍页：标题 + 副标题 + 图标条目卡片 + 底部「Next」 */
+    /** [translated] + [translated] + [translated] + [translated]Next[translated] */
     private fun createFeaturePage(
         title: String,
         subtitle: String,
@@ -425,7 +425,7 @@ class OnboardingActivity : AppCompatActivity() {
         return container
     }
 
-    /** 底部「Next」按钮（功能介绍页共用）：拟态实心渐变 + 阴影外环 */
+    /** [translated]Next[translated]Total [translated] + [translated] */
     private fun bottomNextButton(): View {
         val d = resources.displayMetrics.density
         return TextView(this).apply {
@@ -466,7 +466,7 @@ class OnboardingActivity : AppCompatActivity() {
         val d = resources.displayMetrics.density
         val container = FrameLayout(this)
 
-        // 彩虹背景由 rootLayout 上的全屏 rainbowFlow 层提供（延伸到状态栏/导航栏下方）
+        // [translated] rootLayout [translated] rainbowFlow [translated]Status[translated]/[translated]
 
         // Central content: logo + rainbow text — centered vertically, slightly above center
         val content = LinearLayout(this).apply {
@@ -511,7 +511,7 @@ class OnboardingActivity : AppCompatActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             )
-            // 极淡阴影（radius=1.5f, dx=0, dy=1f），只做轻微浮起，不加深字色
+            // [translated]radius=1.5f, dx=0, dy=1f[translated]
             setShadowLayer(1.5f, 0f, 1f, Color.argb(50, 0, 0, 0))
         }
         content.addView(welcomeText)
@@ -520,7 +520,7 @@ class OnboardingActivity : AppCompatActivity() {
         welcomeText.post {
             val paint = welcomeText.paint
             val textWidth = paint.measureText("Welcome")
-            // 柔和彩虹（Material 400 级）：明快不深重，与浅色玻璃底协调
+            // [translated]Material 400 [translated]
             val colors = intArrayOf(
                 Color.parseColor("#FF8A80"),
                 Color.parseColor("#FFB74D"),
@@ -554,13 +554,13 @@ class OnboardingActivity : AppCompatActivity() {
         // Bottom circular arrow button — position matching video (~100dp from bottom)
         val arrowBtnSize = Ui.dp(56, d)
         val arrowBtn = FrameLayout(this).apply {
-            // 拟态玻璃圆钮：半透明玻璃 + 高光/阴影双环 + 涟漪
+            // [translated] + [translated]/[translated] + [translated]
             background = RippleDrawable(
                 ColorStateList.valueOf(Color.argb(60, 90, 160, 255)),
                 Ui.neuCard(this@OnboardingActivity, 28f, Ui.buttonPrimary(this@OnboardingActivity)),
                 null
             )
-            // 拟态彩色投影
+            // [translated]
             Ui.applyNeuShadow(this, 7f, 28f, Ui.buttonPrimary(this@OnboardingActivity))
             layoutParams = FrameLayout.LayoutParams(arrowBtnSize, arrowBtnSize, Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
                 bottomMargin = Ui.dp(100, d)
@@ -654,16 +654,16 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     /**
-     * 引导首页专属背景：静态混搭渐变（浅黑 → 绿 → 蓝 → 白）。
-     * 斜向对角多色渐变，整体偏深，保证白色导向按钮与文字清晰可读。
-     * 无动画、不耗电。
+     * [translated] → [translated] → [translated] → [translated]
+     * [translated]
+     * [translated]
      */
     private class RainbowFlowView(context: android.content.Context) : View(context) {
         private val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
         private var w = 0
         private var h = 0
 
-        // 静态混搭渐变：浅黑 → 绿 → 蓝 → 白（对角方向，白色仅占右下角小段做提亮）
+        // [translated] → [translated] → [translated] → [translated]
         private val colors = intArrayOf(
             Color.parseColor("#34383F"), // 浅黑
             Color.parseColor("#2F7A5B"), // 绿
@@ -708,7 +708,7 @@ class OnboardingActivity : AppCompatActivity() {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(20, d), Ui.dp(24, d), Ui.dp(20, d), Ui.dp(24, d))
-            // 拟态卡片：玻璃填充 + 高光/阴影双环，自液态背景「挤出」
+            // [translated] + [translated]/[translated]
             background = Ui.neuCard(this@OnboardingActivity, 20f)
             Ui.applyNeuShadow(this, 5f, 20f)
         }
@@ -723,7 +723,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         // Agreement text
         card.addView(TextView(this).apply {
-            text = "Welcome TMUI OS。本应用为 Android 设备提供 Linux Desktop Environment运行能力，包括 DSU GSI 安装、Chroot Linux 容器、终端模拟及 VNC Remote Desktop等功能。\n\n使用本应用需要设备已获取 ROOT Access，并可能涉及系统级操作。请您仔细阅读以下条款后再决定是否继续使用。"
+            text = "Welcome TMUI OS。本App为 Android Device提供 Linux Desktop Environment运行能力，包括 DSU GSI Install、Chroot Linux 容器、Terminal模拟及 VNC Remote Desktop等功能。\n\nUse本AppRequiredDevice已获取 ROOT Access，并可能涉及System级操作。Please read the following terms carefully before continuing。"
             textSize = 14f
             setTextColor(Ui.secondaryText(this@OnboardingActivity))
             setPadding(0, Ui.dp(16, d), 0, 0)
@@ -746,7 +746,7 @@ class OnboardingActivity : AppCompatActivity() {
         agreementRow.addView(checkBox)
 
         agreementRow.addView(TextView(this).apply {
-            text = "我已阅读并同意User Agreement与隐私说明"
+            text = "I have read and agree to the User Agreement and Privacy Policy"
             textSize = 14f
             setTextColor(Ui.primaryText(this@OnboardingActivity))
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
@@ -766,7 +766,7 @@ class OnboardingActivity : AppCompatActivity() {
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            // 拟态实心渐变按钮：accent 渐变 + 高光内环 + 阴影外环
+            // [translated]accent [translated] + [translated] + [translated]
             background = Ui.neuSolidButton(
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#62A8FF") else android.graphics.Color.parseColor("#5EA0FF"),
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#2E6CF0") else android.graphics.Color.parseColor("#2F6BF0"),
@@ -790,7 +790,7 @@ class OnboardingActivity : AppCompatActivity() {
                 if (agreementChecked) {
                     goToNextPage()
                 } else {
-                    Toast.makeText(this@OnboardingActivity, "请先同意User Agreement", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@OnboardingActivity, "Please accept the User Agreement first", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -821,7 +821,7 @@ class OnboardingActivity : AppCompatActivity() {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(20, d), Ui.dp(24, d), Ui.dp(20, d), Ui.dp(24, d))
-            // 拟态卡片：玻璃填充 + 高光/阴影双环，自液态背景「挤出」
+            // [translated] + [translated]/[translated]
             background = Ui.neuCard(this@OnboardingActivity, 20f)
             Ui.applyNeuShadow(this, 5f, 20f)
         }
@@ -928,7 +928,7 @@ class OnboardingActivity : AppCompatActivity() {
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            // 拟态实心渐变按钮：accent 渐变 + 高光内环 + 阴影外环
+            // [translated]accent [translated] + [translated] + [translated]
             background = Ui.neuSolidButton(
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#62A8FF") else android.graphics.Color.parseColor("#5EA0FF"),
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#2E6CF0") else android.graphics.Color.parseColor("#2F6BF0"),
@@ -960,7 +960,7 @@ class OnboardingActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(Ui.dp(12, d), Ui.dp(12, d), Ui.dp(12, d), Ui.dp(12, d))
-            // 拟态凹槽：内阴影环槽位，权限行「嵌」入卡片
+            // [translated]Permission[translated]
             background = Ui.neuInset(this@OnboardingActivity, 12f)
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1001,8 +1001,8 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     /**
-     * Page 4: Environment Check — 安装前实测 ROOT 授权 / CPU Architecture / Storage
-     * 进入页面自动逐项检测（真实执行，非静态文案），状态实时上屏
+     * Page 4: Environment Check — Install[translated] ROOT Authorized / CPU Architecture / Storage
+     * [translated]Auto[translated]Detect[translated]Execute[translated]Status[translated]
      */
     private fun createEnvCheckPage(): View {
         val d = resources.displayMetrics.density
@@ -1023,7 +1023,7 @@ class OnboardingActivity : AppCompatActivity() {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(20, d), Ui.dp(24, d), Ui.dp(20, d), Ui.dp(16, d))
-            // 拟态卡片：玻璃填充 + 高光/阴影双环，自液态背景「挤出」
+            // [translated] + [translated]/[translated]
             background = Ui.neuCard(this@OnboardingActivity, 20f)
         }
 
@@ -1044,7 +1044,7 @@ class OnboardingActivity : AppCompatActivity() {
             setLineSpacing(Ui.dp(4, d).toFloat(), 1f)
         })
 
-        // 检查行：状态点 + 标题 + 实时状态文案
+        // [translated]Status[translated] + [translated] + [translated]Status[translated]
         fun checkRow(title: String): Pair<View, TextView> {
             val dot = View(this).apply {
                 background = GradientDrawable().apply {
@@ -1086,7 +1086,7 @@ class OnboardingActivity : AppCompatActivity() {
         val archRow = checkRow("CPU Architecture")
         val storageRow = checkRow("Storage")
 
-        // 状态上屏：绿=通过，琥珀=受限可用，红=不满足
+        // Status[translated]=[translated]=[translated]Available[translated]=[translated]
         fun mark(row: Pair<View, TextView>, level: Int, msg: String) {
             runOnUiThread {
                 row.first.background = GradientDrawable().apply {
@@ -1103,7 +1103,7 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
 
-        // 后台顺序实测三项，每项间留出节奏感
+        // [translated]
         Thread {
             Thread.sleep(400)
             val rootOk = com.mcai.ubuntudsu.core.StatusDetector.rootAvailable()
@@ -1145,7 +1145,7 @@ class OnboardingActivity : AppCompatActivity() {
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            // 拟态实心渐变按钮：accent 渐变 + 高光内环 + 阴影外环
+            // [translated]accent [translated] + [translated] + [translated]
             background = Ui.neuSolidButton(
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#62A8FF") else android.graphics.Color.parseColor("#5EA0FF"),
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#2E6CF0") else android.graphics.Color.parseColor("#2F6BF0"),
@@ -1171,8 +1171,8 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     /**
-     * Page 4: Done — All Set + 功能亮点速览
-     * 大标题「All Set」+ 拟态卡片内 4 项核心功能（图标 + 名称 + 一句话说明）+ 开始使用按钮
+     * Page 4: Done — All Set + [translated]
+     * [translated]All Set[translated]+ [translated] 4 [translated] + [translated] + [translated]+ Get started[translated]
      */
     private fun createDonePage(): View {
         val d = resources.displayMetrics.density
@@ -1192,7 +1192,7 @@ class OnboardingActivity : AppCompatActivity() {
             }
         }
 
-        // 大标题 + 副标题
+        // [translated] + [translated]
         content.addView(TextView(this).apply {
             text = "All Set"
             textSize = 30f
@@ -1208,7 +1208,7 @@ class OnboardingActivity : AppCompatActivity() {
             setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(18, d))
         })
 
-        // 功能亮点卡：4 行入口预览，与主界面同款拟态质感
+        // [translated]4 [translated]
         val highlightCard = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(16, d), Ui.dp(14, d), Ui.dp(16, d), Ui.dp(14, d))
@@ -1218,11 +1218,11 @@ class OnboardingActivity : AppCompatActivity() {
         listOf(
             Triple(R.drawable.icon_terminal_runner, "Container Terminal", "Chroot 容器 · Termux 风格 · apt 装包"),
             Triple(R.drawable.icon_linux_modern, "Desktop Environment", "XFCE / KDE / GNOME + VNC Remote Desktop"),
-            Triple(R.drawable.icon_dsu_modern, "DSU Manager", "ROOT 直装 GSI 镜像 · 一键重启切换"),
+            Triple(R.drawable.icon_dsu_modern, "DSU Manager", "ROOT 直装 GSI Image · 一键Reboot切换"),
             Triple(R.drawable.ic_download, "Download Manager", "Parallel downloads · Resume support · Direct image downloads"),
         ).forEachIndexed { index, (iconRes, title, desc) ->
             if (index > 0) {
-                // 水晶玻璃分隔条：分区之间的高光细线
+                // [translated]Partition[translated]
                 highlightCard.addView(
                     Ui.crystalDivider(this, d),
                     LinearLayout.LayoutParams(
@@ -1262,7 +1262,7 @@ class OnboardingActivity : AppCompatActivity() {
         }
         content.addView(highlightCard)
 
-        // Open-source repository地址（点击复制到剪贴板）
+        // Open-source repository[translated]Copy[translated]
         content.addView(TextView(this).apply {
             text = "Open-source repository  github.com/hetianming/Linux-Dsu"
             textSize = 12f
@@ -1279,14 +1279,14 @@ class OnboardingActivity : AppCompatActivity() {
         })
         container.addView(content)
 
-        // Bottom "开始使用" button — placed directly below the indicators
+        // Bottom "Get started" button — placed directly below the indicators
         val startBtn = TextView(this).apply {
-            text = "开始使用"
+            text = "Get started"
             textSize = 16f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
             gravity = Gravity.CENTER
-            // 拟态实心渐变按钮：accent 渐变 + 高光内环 + 阴影外环
+            // [translated]accent [translated] + [translated] + [translated]
             background = Ui.neuSolidButton(
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#62A8FF") else android.graphics.Color.parseColor("#5EA0FF"),
                 if (Ui.isDark(this@OnboardingActivity)) android.graphics.Color.parseColor("#2E6CF0") else android.graphics.Color.parseColor("#2F6BF0"),
@@ -1322,7 +1322,7 @@ class OnboardingActivity : AppCompatActivity() {
         if (index !in 0 until PAGE_COUNT) return
         currentPage = index
 
-        // 彩虹背景仅首页显示；隐藏时 RainbowFlowView 内部自动停动画不耗电
+        // [translated]Display[translated] RainbowFlowView [translated]Auto[translated]
         if (::rainbowFlow.isInitialized) {
             rainbowFlow.visibility = if (index == 0) View.VISIBLE else View.GONE
         }
@@ -1375,7 +1375,7 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     private fun makeDotDrawable(active: Boolean): GradientDrawable {
-        // 拟态指示点：激活 = accent 实心 + 高光描边，未激活 = 半透明玻璃
+        // [translated] = accent [translated] + [translated] = [translated]
         return GradientDrawable().apply {
             shape = GradientDrawable.OVAL
             if (active) {
@@ -1388,9 +1388,9 @@ class OnboardingActivity : AppCompatActivity() {
     }
 
     private fun goToNextPage() {
-        // 协议页只能通过「Next」按钮且勾选同意后前进，禁止滑动跳过
+        // [translated]Next[translated]
         if (currentPage == 1 && !agreementChecked) {
-            Toast.makeText(this, "请先同意User Agreement", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Please accept the User Agreement first", Toast.LENGTH_SHORT).show()
             return
         }
         if (currentPage < PAGE_COUNT - 1) {
