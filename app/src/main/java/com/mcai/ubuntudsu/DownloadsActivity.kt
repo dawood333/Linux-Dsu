@@ -740,7 +740,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         // [translated]Task[translated]Download/Pause[translated]
         tasks[filename]?.let {
             if (it.state == 0 || it.state == 1 || it.state == 5) {
-                Toast.makeText(this, "Task "$filename" is already in the Download list", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Task \"$filename\" is already in the Download list", Toast.LENGTH_SHORT).show()
                 return
             }
         }
