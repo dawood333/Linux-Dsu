@@ -21,12 +21,12 @@ class DsuInstallService : Service() {
         val manager = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             manager.createNotificationChannel(
-                NotificationChannel("dsu_install", "DSU 安装", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel("dsu_install", "DSU Installation", NotificationManager.IMPORTANCE_LOW),
             )
         }
         return Notification.Builder(this, "dsu_install")
-            .setContentTitle("DSU 安装进行中")
-            .setContentText("系统正在通过本地服务读取 GSI 安装包，请保持应用在后台运行")
+            .setContentTitle("DSU Installation进行中")
+            .setContentText("The system is reading the GSI package through a local service; keep the app running in the background")
             .setSmallIcon(android.R.drawable.stat_sys_download)
             .setOngoing(true)
             .build()
