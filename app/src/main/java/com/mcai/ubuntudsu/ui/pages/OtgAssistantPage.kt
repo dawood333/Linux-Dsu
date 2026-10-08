@@ -395,7 +395,7 @@ class OtgAssistantPage(
         Thread {
             if (!alive) return@Thread
             val devices = OtgAssistantCore.listUsbDevices(ctx)
-            val protocol = OtgAssistantCore.detectProtocol(ctx)
+            val protocol = OtgAssistantCore.detectProtocolDevices(ctx)
             postUi {
                 if (devices.isEmpty()) {
                     deviceListText.text = "No USB device found"
@@ -965,7 +965,7 @@ class OtgAssistantPage(
     private fun executeRebootMode(mode: RebootMode) {
         setOperationActive(true)
         Thread {
-            val status = OtgAssistantCore.detectProtocol(ctx)
+            val status = OtgAssistantCore.detectProtocolDevices(ctx)
             val adbconnected = status.adb != "No device found" && !status.adb.contains("Waiting for USB authorization")
             val fastbootconnected = status.fastboot != "No device found"
             when {
@@ -999,7 +999,7 @@ class OtgAssistantPage(
         repeat(8) {
             Thread.sleep(750)
             if (!alive) return
-            val status = OtgAssistantCore.detectProtocol(ctx)
+            val status = OtgAssistantCore.detectProtocolDevices(ctx)
             if (status.fastboot != "No device found") {
                 postUi { appendLog("Fastboot status：${status.fastboot}\n") }
                 return
