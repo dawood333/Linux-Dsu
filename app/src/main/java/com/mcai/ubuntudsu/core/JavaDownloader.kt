@@ -13,11 +13,11 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * 多线程 HTTP Range 下载器（参考 Dsu-Manager）
- * - 使用 FileChannel 并发写入不同位置（线程安全，无需 synchronized）
- * - 每个线程独立 HTTP 连接 + 独立 RandomAccessFile
- * - 失败自动降级为单线程
- * - 断点续传支持
+ * 多Thread  HTTP Range Download器 (参考 Dsu-Manager)
+ * - 使用 FileChannel 并发写入不同位置 (Thread 安全，无需 synchronized)
+ * - 每个Thread 独立 HTTP 连接 + 独立 RandomAccessFile
+ * - failed自动降级为单Thread 
+ * - Resume from checkpoint支持
  */
 object JavaDownloader {
 
@@ -32,7 +32,7 @@ object JavaDownloader {
 
     data class Result(val success: Boolean, val file: File?, val message: String)
 
-    /** 暂停信号：暂停时抛出以立即断开 HTTP 连接，恢复后由重试循环从断点重连（不消耗重试次数） */
+    /** 暂停信号：暂停时抛出以立即断开 HTTP 连接，恢复后由retry循环从断点重连 (不消耗retry次数) */
     private class PausedSignal : Exception()
 
     fun defaultSaveDir(): File = File("/sdcard/Downloads")
@@ -43,8 +43,8 @@ object JavaDownloader {
     }
 
     /**
-     * 文件大小与已下载字节回调（用于 UI 显示「已下载 / 总大小」）
-     * 第一个参数为总字节数，第二个为已下载字节数
+     * 文件大小与已Download字节回调 (用于 UI 显示「已Download / 总大小」)
+     * 第一个参数为总字节数，第二个为已Download字节数
      */
     fun download(
         ctx: Context,
@@ -123,7 +123,7 @@ object JavaDownloader {
         onLog?.invoke("File size:  ${formatBytes(totalSize)}")
         onSizeInfo?.invoke(totalSize, 0L)
 
-        // 2. 选择下载策略
+        // 2. 选择Download策略
         val tmpFile = File(target.parentFile, "${target.name}.tmp")
         if (rangeSupported && totalSize > 2 * 1024 * 1024) {
             onLog?.invoke("Range supported; starting $THREAD_COUNT concurrent download threads...")
@@ -131,8 +131,8 @@ object JavaDownloader {
             if (result.success) {
                 return finalizeFile(tmpFile, target, onLog, onProgress)
             }
-            // 多线程失败，降级为单线程
-            onLog?.invoke("多线程Download failed，降级为单线程...")
+            // 多Thread failed，降级为单Thread 
+            onLog?.invoke("Parallel download failed; falling back to single-threaded download...")
             tmpFile.delete()
         }
 
@@ -158,7 +158,7 @@ object JavaDownloader {
                 conn.disconnect()
                 conn = openConnection(url, -1)
                 val code2 = conn.responseCode
-                onLog?.invoke("重试响应: HTTP $code2")
+                onLog?.invoke("Retry response: HTTP $code2")
                 if (code2 == HttpURLConnection.HTTP_OK || code2 == HttpURLConnection.HTTP_PARTIAL) {
                     val size = conn.contentLengthLong
                     val range = conn.getHeaderField("Accept-Ranges") == "bytes" || code2 == HttpURLConnection.HTTP_PARTIAL
@@ -173,7 +173,7 @@ object JavaDownloader {
         return Pair(-1, false)
     }
 
-    // ========== 多线程下载 ==========
+    // ========== 多Thread Download ==========
 
     private fun multiThreadDownload(
         url: String,
@@ -194,7 +194,7 @@ object JavaDownloader {
             return Result(false, null, "Preallocation failed")
         }
 
-        // 计算分块
+        // 计算Chunk 
         val segSize = totalSize / THREAD_COUNT
         val segments = Array(THREAD_COUNT) { i ->
             val start = i * segSize
@@ -207,7 +207,7 @@ object JavaDownloader {
         val errorMsg = java.util.concurrent.atomic.AtomicReference("")
         val latch = CountDownLatch(THREAD_COUNT)
 
-        // 启动线程
+        // 启动Thread 
         for (i in 0 until THREAD_COUNT) {
             val seg = segments[i]
             Thread {
@@ -216,8 +216,8 @@ object JavaDownloader {
                 } catch (e: Exception) {
                     if (!cancelled.get()) {
                         anyError.set(true)
-                        errorMsg.set("分块${seg.index}: ${e.message}")
-                        onLog?.invoke("分块${seg.index} 失败: ${e.message}")
+                        errorMsg.set("Chunk ${seg.index}: ${e.message}")
+                        onLog?.invoke("Chunk ${seg.index} failed: ${e.message}")
                     }
                 } finally {
                     latch.countDown()
@@ -225,7 +225,7 @@ object JavaDownloader {
             }.start()
         }
 
-        // 等待完成
+        // 等待Complete
         try {
             latch.await()
         } catch (_: InterruptedException) {}
@@ -241,7 +241,7 @@ object JavaDownloader {
             return Result(false, null, "File incomplete")
         }
 
-        return Result(true, tmpFile, "完成")
+        return Result(true, tmpFile, "Complete")
     }
 
     private fun downloadSegment(
@@ -270,7 +270,7 @@ object JavaDownloader {
                 val code = conn.responseCode
 
                 if (code == HttpURLConnection.HTTP_PARTIAL || code == HttpURLConnection.HTTP_OK) {
-                    onLog?.invoke("线程${seg.index} 连接成功，下载 ${formatBytes(seg.start)}-${formatBytes(seg.end)}")
+                    onLog?.invoke("Thread ${seg.index} connected; downloading ${formatBytes(seg.start)}-${formatBytes(seg.end)}")
                     conn.inputStream.use { input ->
                         RandomAccessFile(tmpFile, "rw").use { raf ->
                             var lastReport = System.currentTimeMillis()
@@ -280,12 +280,12 @@ object JavaDownloader {
                                 // 暂停：抛信号立即断开连接。
                                 // 原地 sleep 等待的话，闲置连接会被服务器/NAT 静默断开，
                                 // 恢复后 input.read() 阻塞在死连接上直至读超时——界面显示
-                                // "下载中"却零字节（假恢复）。断开重连才能即刻恢复传输。
+                                // "Download中"却零字节 (假恢复)。断开重连才能即刻恢复传输。
                                 if (isPaused()) throw PausedSignal()
                                 val bytesRead = input.read(buffer)
                                 if (bytesRead < 0) break
 
-                                // 定位写入（每个线程写不同区域，无需同步）
+                                // 定位写入 (每个Thread 写不同区域，无需同步)
                                 raf.seek(seg.cursor)
                                 raf.write(buffer, 0, bytesRead)
 
@@ -299,30 +299,30 @@ object JavaDownloader {
                                     val speed = (total - lastBytes) * 1000 / (now - lastReport)
                                     onProgress(pct)
                                     onSizeInfo?.invoke(totalSize, total)
-                                    onLog?.invoke("进度: $pct% | ${formatBytes(total)}/${formatBytes(totalSize)} | ${formatBytes(speed)}/s")
+                                    onLog?.invoke("Progress: $pct% | ${formatBytes(total)}/${formatBytes(totalSize)} | ${formatBytes(speed)}/s")
                                     lastReport = now
                                     lastBytes = total
                                 }
                             }
                         }
                     }
-                    onLog?.invoke("线程${seg.index} 完成")
+                    onLog?.invoke("Thread ${seg.index} Complete")
                     return
                 } else {
-                    onLog?.invoke("线程${seg.index} HTTP $code，重试 ${retries + 1}/$MAX_RETRIES")
+                    onLog?.invoke("Thread ${seg.index} HTTP $code，retry ${retries + 1}/$MAX_RETRIES")
                     retries++
                     if (retries > MAX_RETRIES) throw java.io.IOException("HTTP $code")
                     Thread.sleep(2000L * retries)
                 }
             } catch (e: PausedSignal) {
-                // 连接已断开，原地等待恢复；恢复后回到循环顶部按 seg.cursor 断点重连（不消耗重试次数）
+                // 连接已断开，原地等待恢复；恢复后回到循环顶部按 seg.cursor 断点重连 (不消耗retry次数)
                 while (isPaused()) {
                     if (cancelled.get() || isCancelled()) return
                     Thread.sleep(100)
                 }
             } catch (e: Exception) {
                 if (cancelled.get()) return
-                onLog?.invoke("线程${seg.index} 异常: ${e.message}，重试 ${retries + 1}/$MAX_RETRIES")
+                onLog?.invoke("Thread ${seg.index} error: ${e.message}，retry ${retries + 1}/$MAX_RETRIES")
                 retries++
                 if (retries > MAX_RETRIES) throw e
                 Thread.sleep(2000L * retries)
@@ -332,7 +332,7 @@ object JavaDownloader {
         }
     }
 
-    // ========== 单线程下载 ==========
+    // ========== 单Thread Download ==========
 
     private fun singleThreadDownload(
         url: String,
@@ -356,7 +356,7 @@ object JavaDownloader {
                 var existing = 0L
                 if (tmpFile.isFile) {
                     existing = tmpFile.length()
-                    if (existing > 0) onLog?.invoke("断点续传: ${formatBytes(existing)}")
+                    if (existing > 0) onLog?.invoke("Resume from checkpoint: ${formatBytes(existing)}")
                 }
 
                 conn = openConnection(url, existing)
@@ -375,7 +375,7 @@ object JavaDownloader {
                         tmpFile.delete()
                     }
 
-                    onLog?.invoke("开始下载...")
+                    onLog?.invoke("开始Download...")
                     var done = existing
                     onSizeInfo?.invoke(actualTotal, done)
                     val buffer = ByteArray(BUFFER_BYTES)
@@ -387,7 +387,7 @@ object JavaDownloader {
                             if (existing > 0) raf.seek(existing) else raf.setLength(0)
 
                             while (!cancelled.get() && !isCancelled()) {
-                                // 暂停：抛信号断开连接，避免恢复后阻塞在已被服务端断掉的死连接上（同多线程路径）
+                                // 暂停：抛信号断开连接，避免恢复后阻塞在已被服务端断掉的死连接上 (同多Thread 路径)
                                 if (isPaused()) throw PausedSignal()
                                 val bytesRead = input.read(buffer)
                                 if (bytesRead < 0) break
@@ -400,7 +400,7 @@ object JavaDownloader {
                                     val speed = (done - lastBytes) * 1000 / (now - lastReport)
                                     onProgress(pct)
                                     onSizeInfo?.invoke(actualTotal, done)
-                                    onLog?.invoke("进度: $pct% | ${formatBytes(done)}/${formatBytes(actualTotal)} | ${formatBytes(speed)}/s")
+                                    onLog?.invoke("Progress: $pct% | ${formatBytes(done)}/${formatBytes(actualTotal)} | ${formatBytes(speed)}/s")
                                     lastReport = now
                                     lastBytes = done
                                 }
@@ -411,26 +411,26 @@ object JavaDownloader {
                     if (cancelled.get() || isCancelled()) return Result(false, null, "Cancelled")
 
                     if (actualTotal > 0 && tmpFile.length() < actualTotal) {
-                        onLog?.invoke("File incomplete，重试...")
+                        onLog?.invoke("File incomplete，retry...")
                         retries++
                         continue
                     }
 
                     return finalizeFile(tmpFile, target, onLog, onProgress)
                 } else {
-                    onLog?.invoke("HTTP $code，重试 ${retries + 1}/$MAX_RETRIES")
+                    onLog?.invoke("HTTP $code，retry ${retries + 1}/$MAX_RETRIES")
                     retries++
                     if (retries > MAX_RETRIES) return Result(false, null, "HTTP $code")
                     Thread.sleep(2000L * retries)
                 }
             } catch (e: PausedSignal) {
-                // 连接已断开，原地等待恢复；恢复后回到循环顶部按 tmpFile 长度断点重连（不消耗重试次数）
+                // 连接已断开，原地等待恢复；恢复后回到循环顶部按 tmpFile 长度断点重连 (不消耗retry次数)
                 while (isPaused()) {
                     if (cancelled.get() || isCancelled()) return Result(false, null, "Cancelled")
                     Thread.sleep(100)
                 }
             } catch (e: Exception) {
-                onLog?.invoke("异常: ${e.message}，重试 ${retries + 1}/$MAX_RETRIES")
+                onLog?.invoke("error: ${e.message}，retry ${retries + 1}/$MAX_RETRIES")
                 retries++
                 if (retries > MAX_RETRIES) return Result(false, null, e.message ?: "Download failed")
                 Thread.sleep(2000L * retries)
@@ -445,8 +445,8 @@ object JavaDownloader {
 
     private fun finalizeFile(tmpFile: File, target: File, onLog: ((String) -> Unit)?, onProgress: (Int) -> Unit): Result {
         if (target.exists() && !target.delete()) {
-            onLog?.invoke("无法删除旧文件，使用临时文件")
-            return Result(true, tmpFile, "完成（临时文件）")
+            onLog?.invoke("Unable to delete old file; using temporary file")
+            return Result(true, tmpFile, "Complete (临时文件)")
         }
         if (!tmpFile.renameTo(target)) {
             tmpFile.inputStream().use { input ->
@@ -456,7 +456,7 @@ object JavaDownloader {
         }
         onLog?.invoke("Download complete!")
         onProgress(100)
-        return Result(true, target, "完成")
+        return Result(true, target, "Complete")
     }
 
     private fun formatBytes(bytes: Long): String {
