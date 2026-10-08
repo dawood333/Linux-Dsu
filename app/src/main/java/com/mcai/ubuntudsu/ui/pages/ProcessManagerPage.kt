@@ -84,7 +84,7 @@ class ProcessManagerPage(
             setPadding(0, 0, 0, Ui.dp(12, d))
         }
         titleRow.addView(TextView(activity).apply {
-            text = "进程管理"
+            text = "Process Manager"
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -164,7 +164,7 @@ class ProcessManagerPage(
         }
         overview.addView(summaryInfoText)
         overview.addView(TextView(activity).apply {
-            text = "提示：结束进程需 ROOT 权限，点击应用可查看详情并强制停止"
+            text = "提示：End进程需 ROOT 权限，点击应用可查看详情并强制Stop"
             textSize = 10f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(4, d), 0, 0)
@@ -209,7 +209,7 @@ class ProcessManagerPage(
         // ===== Tab 切换 =====
         page.addView(buildTabBar(d))
 
-        // ===== 状态栏 + 刷新 =====
+        // ===== 状态栏 + Refresh =====
         val statusBar = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -223,7 +223,7 @@ class ProcessManagerPage(
         }
         statusBar.addView(statusText)
         refreshBtn = TextView(activity).apply {
-            text = "刷新"
+            text = "Refresh"
             textSize = 11f
             gravity = Gravity.CENTER
             setTextColor(Ui.buttonText(activity))
@@ -408,7 +408,7 @@ class ProcessManagerPage(
                 recentPackages = scan.recentPackages
 
                 // 后台运行（任务栏语义）：优先取最近任务列表（事件流/ROOT recents），
-                // 两途径均失败时降级为 /proc 真实运行进程
+                // 两途径均Failed时降级为 /proc 真实运行进程
                 val recentMode = scan.recentPackages.isNotEmpty()
 
                 // 过滤
@@ -455,7 +455,7 @@ class ProcessManagerPage(
                             when {
                                 scan.recentPackages.isNotEmpty() -> append(" · 任务栏实测")
                                 scan.usageAccessGranted ->
-                                    append(" · 任务栏数据待刷新")
+                                    append(" · 任务栏数据待Refresh")
                                 else -> append(" · 降级为运行进程")
                             }
                         }
@@ -466,7 +466,7 @@ class ProcessManagerPage(
             } catch (e: Exception) {
                 activity.runOnUiThread {
                     if (activity.isFinishing) return@runOnUiThread
-                    statusText.text = "加载失败: ${e.message?.take(30)}"
+                    statusText.text = "加载Failed: ${e.message?.take(30)}"
                     refreshBtn.isEnabled = true
                     refreshBtn.alpha = 1f
                 }
@@ -771,10 +771,10 @@ class ProcessManagerPage(
             setOnClickListener { showAppDetail(app) }
         })
 
-        // 强制停止按钮（非本应用才显示）
+        // 强制Stop按钮（非本应用才显示）
         if (!app.isOwnApp) {
             row2.addView(TextView(activity).apply {
-                text = "结束"
+                text = "End"
                 textSize = 10f
                 gravity = Gravity.CENTER
                 setTextColor(Ui.buttonText(activity))
@@ -876,7 +876,7 @@ class ProcessManagerPage(
             .setNegativeButton("关闭", null)
 
         if (!app.isOwnApp) {
-            builder.setPositiveButton("强制停止") { _, _ ->
+            builder.setPositiveButton("强制Stop") { _, _ ->
                 killApp(app)
             }
         }
@@ -893,28 +893,28 @@ class ProcessManagerPage(
         builder.show()
     }
 
-    // ===== 结束进程确认 =====
+    // ===== End进程确认 =====
     private fun showKillConfirm(app: AppProcessInfo) {
         AlertDialog.Builder(activity)
-            .setTitle("强制停止应用")
+            .setTitle("强制Stop应用")
             .setMessage(
-                "确定要强制停止「${app.appLabel}」吗？\n\n" +
+                "确定要强制Stop「${app.appLabel}」吗？\n\n" +
                     "包名: ${app.packageName}\n" +
                     "进程数: ${app.processCount}\n" +
                     "实时 CPU: ${ProcessScanner.formatCpu(app.cpuPercent)}\n" +
                     "累计 CPU: ${ProcessScanner.formatCpuTime(app.cpuTimeJiffies)}\n" +
                     "内存: ${ProcessScanner.formatMemory(app.memoryKb)}\n\n" +
-                    "强制停止后，该应用的所有服务和后台进程将被终止。"
+                    "强制Stop后，该应用的所有服务和后台进程将被终止。"
             )
-            .setPositiveButton("强制停止") { _, _ -> killApp(app) }
+            .setPositiveButton("强制Stop") { _, _ -> killApp(app) }
             .setNegativeButton("取消", null)
             .show()
     }
 
     private fun killApp(app: AppProcessInfo) {
         val loading = AlertDialog.Builder(activity)
-            .setTitle("正在停止")
-            .setMessage("正在停止 ${app.appLabel}...")
+            .setTitle("正在Stop")
+            .setMessage("正在Stop ${app.appLabel}...")
             .setCancelable(false)
             .show()
 
@@ -927,19 +927,19 @@ class ProcessManagerPage(
 
                 if (success) {
                     AlertDialog.Builder(activity)
-                        .setTitle("操作成功")
-                        .setMessage("「${app.appLabel}」已强制停止。")
+                        .setTitle("操作Success")
+                        .setMessage("「${app.appLabel}」已强制Stop。")
                         .setPositiveButton("确定") { _, _ -> loadData() }
                         .show()
                 } else {
                     val hasRoot = runCatching { RootShell.available() }.getOrDefault(false)
                     val msg = if (!hasRoot) {
-                        "操作失败，需要 ROOT 权限才能强制停止应用。"
+                        "操作Failed，需要 ROOT 权限才能强制Stop应用。"
                     } else {
-                        "操作失败，该应用可能无法被终止或已自动重启。"
+                        "操作Failed，该应用可能无法被终止或已自动重启。"
                     }
                     AlertDialog.Builder(activity)
-                        .setTitle("操作失败")
+                        .setTitle("操作Failed")
                         .setMessage(msg)
                         .setPositiveButton("确定", null)
                         .show()
