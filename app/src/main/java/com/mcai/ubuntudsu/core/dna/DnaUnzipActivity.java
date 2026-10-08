@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * DNA · 解压 ROM 独立二级页（v3.30.23）。
+ * DNA · Extract ROM 独立二级页（v3.30.23）。
  * 对齐原版 home.sh：dna unzip --delete $silence $DNA_DIR/$ZIP $DNA_DIR
  * —— 解压目标固定为工程根目录 /sdcard/PDNA，dna 自动创建 PDNA_<zip名> 新工程。
- * 文件列表点选/再点取消；浏览选择文件，不再提供手动路径输入框。
+ * 文件列表点选/再点Cancel；浏览Select File，不再提供手动路径输入框。
  */
 public final class DnaUnzipActivity extends DnaBaseActivity {
 
@@ -92,7 +92,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         com.mcai.ubuntudsu.ui.Ui.INSTANCE.enableEdgeToEdge(this, getWindow().getDecorView());
         buildUi();
         refreshZips();
-        log(t("提示：解压目标为工程根目录，自动创建 PDNA_ 新工程", "Tip: unzip to work root, auto-creates a PDNA_ project"));
+        log(t("Tip: The extraction target is the project root; a new PDNA_ project is created automatically", "Tip: unzip to work root, auto-creates a PDNA_ project"));
     }
 
     @Override
@@ -156,7 +156,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = new TextView(this);
-        title.setText(t("DNA · 解压 ROM", "DNA · Unzip ROM"));
+        title.setText(t("DNA · Extract ROM", "DNA · Unzip ROM"));
         title.setTextSize(19);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -200,13 +200,13 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         tb.setOrientation(LinearLayout.VERTICAL);
         tb.setPadding(dp(12), 0, 0, 0);
         TextView h1 = new TextView(this);
-        h1.setText(t("解压 ROM 压缩包", "Unzip ROM package"));
+        h1.setText(t("解压 ROM Archive", "Unzip ROM package"));
         h1.setTextSize(15.5f);
         h1.setTypeface(null, 1);
         h1.setTextColor(pal.title);
         tb.addView(h1, new LinearLayout.LayoutParams(-1, -2));
         TextView h2 = new TextView(this);
-        h2.setText(t("解压 zip 自动创建 PDNA_ 新工程于工程根目录", "Unzips zip, auto-creates a PDNA_ project at work root"));
+        h2.setText(t("Extract ZIP and automatically create a new PDNA_ project in the project root", "Unzips zip, auto-creates a PDNA_ project at work root"));
         h2.setTextSize(11.5f);
         h2.setTextColor(pal.subtitle);
         LinearLayout.LayoutParams h2Lp = new LinearLayout.LayoutParams(-1, -2);
@@ -224,7 +224,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         zh.setOrientation(LinearLayout.HORIZONTAL);
         zh.setGravity(Gravity.CENTER_VERTICAL);
         TextView zt = new TextView(this);
-        zt.setText(t("压缩包", "Packages"));
+        zt.setText(t("Archive", "Packages"));
         zt.setTextSize(14f);
         zt.setTypeface(null, 1);
         zt.setTextColor(pal.title);
@@ -243,7 +243,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
             Haptics.perform(v);
             startActivityForResult(
                     com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
-                            this, t("选择 ROM 压缩包", "Select ROM zip"), new String[]{".zip", ".zip2"}),
+                            this, t("选择 ROM Archive", "Select ROM zip"), new String[]{".zip", ".zip2"}),
                     PICK_ROM_ZIP);
         });
         android.widget.LinearLayout.LayoutParams brLp = new LinearLayout.LayoutParams(dp(38), dp(32));
@@ -252,7 +252,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         zipCard.addView(zh, new LinearLayout.LayoutParams(-1, -2));
 
         zipEmpty = new TextView(this);
-        zipEmpty.setText(t("未发现 zip，点 📂 浏览选择文件", "No zip found, tap 📂 to browse"));
+        zipEmpty.setText(t("未发现 zip，点 📂 浏览Select File", "No zip found, tap 📂 to browse"));
         zipEmpty.setTextSize(12f);
         zipEmpty.setTextColor(pal.subtitle);
         zipEmpty.setPadding(dp(2), dp(8), 0, dp(4));
@@ -271,7 +271,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
 
         // ---- 手动路径输入框已移除（v3.30.23：已有 📂 浏览按钮，无需再显示路径框） ----
 
-        // ---- 已选文件横幅（v3.30.25：列表/浏览选择均可见，可一键取消） ----
+        // ---- Selected文件横幅（v3.30.25：列表/浏览选择均可见，可一键Cancel） ----
         chosenBanner = glassCard();
         chosenBanner.setVisibility(View.GONE);
         LinearLayout.LayoutParams cbLp = new LinearLayout.LayoutParams(-1, -2);
@@ -317,15 +317,15 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
             chosenZip = null;
             chosenSizeText = "";
             renderSelection();
-            log("⊘ " + t("已取消选择", "Deselected"));
+            log("⊘ " + t("已Cancel选择", "Deselected"));
         });
         cbRow.addView(clearSel, new LinearLayout.LayoutParams(dp(32), dp(32)));
         chosenBanner.addView(cbRow, new LinearLayout.LayoutParams(-1, -2));
 
         // ---- 目标提示 ----
         TextView targetHint = new TextView(this);
-        targetHint.setText("➜ " + t("解压到 ", "Unzip to ") + DnaTools.WORK_ROOT
-                + t("（自动创建 PDNA_ 新工程）", " (auto-creates a PDNA_ project)"));
+        targetHint.setText("➜ " + t("Extract to ", "Unzip to ") + DnaTools.WORK_ROOT
+                + t("(automatically create a new PDNA_ project)", " (auto-creates a PDNA_ project)"));
         targetHint.setTextSize(11f);
         targetHint.setTextColor(pal.success);
         targetHint.setSingleLine(true);
@@ -335,7 +335,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
 
         // ---- 选项 ----
         deleteSource = new CheckBox(this);
-        deleteSource.setText(t("解压后删除源 zip 文件", "Delete source zip after unzip"));
+        deleteSource.setText(t("Delete source ZIP after extraction", "Delete source zip after unzip"));
         deleteSource.setTextSize(12.5f);
         deleteSource.setTextColor(pal.title);
         deleteSource.setPadding(dp(2), 0, 0, 0);
@@ -360,7 +360,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
 
         // ---- 解压按钮 ----
         runBtn = new Button(this, null, 0);
-        runBtn.setText("▶  " + t("开始解压", "Unzip"));
+        runBtn.setText("▶  " + t("Start Extraction", "Unzip"));
         runBtn.setTextSize(15f);
         runBtn.setTypeface(null, 1);
         runBtn.setAllCaps(false);
@@ -378,7 +378,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         runBtn.setStateListAnimator(null);
         runBtn.setOnClickListener(v -> {
             Haptics.perform(v);
-            if (running.get()) { cancelFlag.set(true); log(t("正在取消 ...", "Cancelling...")); return; }
+            if (running.get()) { cancelFlag.set(true); log(t("正在Cancel ...", "Cancelling...")); return; }
             startUnzip();
         });
         LinearLayout.LayoutParams rbLp = new LinearLayout.LayoutParams(-1, dp(54));
@@ -386,11 +386,11 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         rbLp.bottomMargin = dp(10);
         content.addView(runBtn, rbLp);
 
-        // ---- 控制台（v3.41.14：执行任务时弹出小窗口，不再嵌入页面）----
+        // ---- 控制台（v3.41.14：Run Task时弹出小窗口，不再嵌入页面）----
         buildConsole();
     }
 
-    /** 浅色磨砂控制台卡（v3.30.25：弃用黑色日志框；可滚动 / 复制日志 / 清除日志 / 关闭窗） */
+    /** 浅色磨砂控制台卡（v3.30.25：弃用黑色日志框；可滚动 / Copy Log / Clear Log / Close窗） */
     private LinearLayout buildConsole() {
         consoleCard = new LinearLayout(this);
         LinearLayout card = consoleCard;
@@ -409,7 +409,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setPadding(0, 0, 0, dp(8));
         TextView title = new TextView(this);
-        title.setText(t("执行任务", "Run Task"));
+        title.setText(t("Run Task", "Run Task"));
         title.setTextSize(14f);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -418,14 +418,14 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
-        Button copy = pillButton(t("复制日志", "Copy Log"), 11f, pal.success, dp(64), dp(28));
+        Button copy = pillButton(t("Copy Log", "Copy Log"), 11f, pal.success, dp(64), dp(28));
         copy.setOnClickListener(v -> {
             android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             cm.setPrimaryClip(android.content.ClipData.newPlainText("log", consoleText.getText()));
-            toast(t("日志已复制", "Log copied"));
+            toast(t("Log copied", "Log copied"));
         });
         actions.addView(copy);
-        Button clear = pillButton(t("清除日志", "Clear Log"), 11f, pal.danger, dp(64), dp(28));
+        Button clear = pillButton(t("Clear Log", "Clear Log"), 11f, pal.danger, dp(64), dp(28));
         clear.setOnClickListener(v -> consoleText.setText(""));
         android.widget.LinearLayout.LayoutParams clLp = new LinearLayout.LayoutParams(dp(64), dp(28));
         clLp.leftMargin = dp(6);
@@ -460,7 +460,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         return card;
     }
 
-    /** 任务开始时弹出日志小窗口（标题执行任务；右侧复制/清除/关闭窗），已弹出则复用 */
+    /** 任务开始时弹出日志小窗口（标题Run Task；右侧复制/清除/Close窗），已弹出则复用 */
     private void expandConsole() {
         if (consoleCard == null) return;
         if (consoleDialog == null) {
@@ -574,11 +574,11 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
             row.addView(right, new LinearLayout.LayoutParams(-2, -2));
             row.setOnClickListener(v -> {
                 Haptics.perform(v);
-                // v3.30.23：点选再点取消（toggle）
+                // v3.30.23：点选再点Cancel（toggle）
                 if (fullPath.equals(chosenZip)) {
                     chosenZip = null;
                     chosenSizeText = "";
-                    log("⊘ " + t("已取消选择", "Deselected") + " " + e.name);
+                    log("⊘ " + t("已Cancel选择", "Deselected") + " " + e.name);
                 } else {
                     chosenZip = fullPath;
                     chosenSizeText = fmtSize(e.size);
@@ -609,7 +609,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         }
         int total = zipList.getChildCount();
         zipCount.setText(total == 0 ? "" : " " + (chosenZip != null ? 1 : 0) + "/" + total);
-        // v3.30.25：已选横幅（浏览选择的文件不在列表内，靠横幅显示当前选中）
+        // v3.30.25：Selected横幅（浏览选择的文件不在列表内，靠横幅显示当前选中）
         if (chosenBanner != null) {
             boolean has = chosenZip != null && !chosenZip.isEmpty();
             chosenBanner.setVisibility(has ? View.VISIBLE : View.GONE);
@@ -624,7 +624,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
 
     private void startUnzip() {
         if (chosenZip == null || chosenZip.isEmpty()) {
-            toast(t("请选择要解压的 zip 文件", "Pick a zip file to unzip"));
+            toast(t("Select a ZIP file to extract", "Pick a zip file to unzip"));
             return;
         }
         final String zip = chosenZip;
@@ -636,8 +636,8 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         log("$ " + command);
         running.set(true);
         cancelFlag.set(false);
-        runBtn.setText("■  " + t("取消", "Cancel"));
-        status.setText(t("正在解压 ...", "Unzipping..."));
+        runBtn.setText("■  " + t("Cancel", "Cancel"));
+        status.setText(t("Extracting...", "Unzipping..."));
         status.setTextColor(pal.subtitle);
         progressTrack.setVisibility(View.VISIBLE);
         io.execute(() -> {
@@ -646,16 +646,16 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
                     () -> cancelFlag.get());
             main.post(() -> {
                 running.set(false);
-                runBtn.setText("▶  " + t("开始解压", "Unzip"));
+                runBtn.setText("▶  " + t("Start Extraction", "Unzip"));
                 progressTrack.setVisibility(View.GONE);
                 if (result.getSuccess()) {
                     log("✓ " + result.getMessage());
-                    status.setText("✓ " + t("解压完成（新工程已创建，可在 DNA 页切换）", "Done (new project created)"));
+                    status.setText("✓ " + t("Extraction complete（新工程已创建，可在 DNA 页切换）", "Done (new project created)"));
                     status.setTextColor(pal.success);
-                    toast(t("解压完成", "Done"));
+                    toast(t("Extraction complete", "Done"));
                 } else {
                     log("✗ " + result.getMessage());
-                    status.setText("✗ " + t("解压失败", "Failed") + ": " + result.getMessage());
+                    status.setText("✗ " + t("Extraction failed", "Failed") + ": " + result.getMessage());
                     status.setTextColor(pal.danger);
                 }
                 refreshZips();
