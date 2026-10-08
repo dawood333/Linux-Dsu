@@ -755,7 +755,7 @@ class RomPage(
             id = filename,
             fileName = filename,
             deviceName = "${entry.device} - ${entry.version}",
-            status = "准备Download",
+            status = "Preparing download",
             state = 0,
             url = url,
             startTime = System.currentTimeMillis(),
@@ -1137,7 +1137,7 @@ class RomPage(
                 if (versions.isEmpty()) {
                     AlertDialog.Builder(activity)
                         .setTitle("No Data")
-                        .setMessage("未Found ${device.name}（${device.codename}）的Firmware版本信息。\n\n数据源：HyperOS.fans")
+                        .setMessage("No firmware information found for ${device.name} (${device.codename}).\n\nSource: HyperOS.fans")
                         .setPositiveButton("OK", null)
                         .show()
                 } else {
@@ -1406,7 +1406,7 @@ class RomPage(
             id = filename,
             fileName = filename,
             deviceName = "$deviceName - $label",
-            status = "准备Download",
+            status = "Preparing download",
             state = 0,
         ))
 

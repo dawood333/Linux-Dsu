@@ -499,7 +499,7 @@ class SettingsPage(
                 }
                 activity.runOnUiThread {
                     if (activity.isFinishing) return@runOnUiThread
-                    dialog.setTitle("正在安装 v${info.version}")
+                    dialog.setTitle("Installing v${info.version}")
                     runCatching { progress.isIndeterminate = true }
                     percentText.text = "Installing in background, please wait…"
                 }
@@ -524,7 +524,7 @@ class SettingsPage(
                     } else {
                         AlertDialog.Builder(activity)
                             .setTitle("Manual Installation Required")
-                            .setMessage("已下载 v${info.version}。\n\nAutomatic installation failed:${install.message}")
+                            .setMessage("v${info.version} was downloaded.\n\nAutomatic installation failed: ${install.message}")
                             .setPositiveButton("Use System Installer") { _, _ ->
                                 runCatching { com.mcai.ubuntudsu.core.AppUpdater.install(activity, target) }
                             }
