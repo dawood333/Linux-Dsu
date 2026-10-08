@@ -55,7 +55,7 @@
     <string name="title_report_bug">Report an issue</string>
     <string name="title_source_code">Source code</string>
     <string name="title_unlock_dialog">Unlock to continue</string>
-    <string name="title_automatic">自动</string>
+    <string name="title_automatic">Automatic</string>
     <string name="title_none">None</string>
     <string name="title_next">Next</string>
     <string name="title_got_it">Got it</string>
@@ -107,7 +107,7 @@
     <string name="msg_tap_to_select_a_key">Tap to select a key:</string>
     <string name="msg_button_up_delay_help">Delaying click events can help in some rare cases if an app is not responding to clicks.</string>
     <string name="msg_wake_on_lan_help">Wake-on-LAN can be used to remotely power-on a computer.\n\nFirst, configure WoL on remote computer, then enable it in AVNC.\nOnce enabled, WoL magic packet will be automatically sent before connecting to this server.</string>
-    <string name="msg_gesture_style_help"><b>触摸屏</b>\n在触摸位置执行操作\n\n<b>触摸板</b>\n在鼠标指针位置执行操作</string>
+    <string name="msg_gesture_style_help"><b>Touchscreen</b>\nPerform actions at the touch location\n\n<b>Touchpad</b>\nPerform actions at the mouse pointer location</string>
     <string name="msg_drag_gesture_help">Assigning an action to this gesture will change Long press detection:\n\n<b>Press-hold-release</b> → Long press\n<b>Press-hold-swipe</b> → Long press and swipe</string>
     <string name="msg_shortcut_server_deleted">This server has been deleted</string>
     <string name="tip_empty_server_list">Server list is empty.\nClick \'<b>+</b>\' to add a server, or\nuse the top address bar to connect directly.</string>
@@ -184,7 +184,7 @@
     <string name="pref_gesture">Gestures</string>
     <string name="pref_gesture_style">Gesture style</string>
     <string name="pref_gesture_style_auto" translatable="false">@string/title_automatic</string>
-    <string name="pref_gesture_style_auto_summary">根据应用设置</string>
+    <string name="pref_gesture_style_auto_summary">Based on application settings</string>
     <string name="pref_gesture_style_touchscreen">触摸屏</string>
     <string name="pref_gesture_style_touchscreen_summary">在触摸位置执行操作</string>
     <string name="pref_gesture_style_touchpad">触摸板</string>
