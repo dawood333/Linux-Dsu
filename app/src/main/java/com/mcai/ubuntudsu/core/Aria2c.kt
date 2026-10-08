@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 
 // aria2c 多线程直链下载封装：
-// - 优先使用 app 内置二进制（jniLibs: libaria2c.so，免 root）
-// - 其次使用 root 环境 PATH 中的 aria2c
+// - 优先Using app 内置二进制（jniLibs: libaria2c.so，免 root）
+// - 其次Using root 环境 PATH 中的 aria2c
 // - 写入公共目录（/storage/emulated/0/...）且 app 无权限时自动经 su 以 root 运行
 object Aria2c {
     // 多连接数：直链大文件满速下载
@@ -25,10 +25,10 @@ object Aria2c {
     private const val OVERALL_TIMEOUT_MS = 15 * 60_000L
     private val progressRegex = Regex("""\(([0-9]{1,3})%\)""")
     val progressPattern = progressRegex
-    // summary 中已下载字节片段（如 "1.0MiB/"）：服务器无 Content-Length 时据此与预期大小计算百分比
+    // summary 中已下载字节片段（如 "1.0MiB/"):服务器无 Content-Length 时据此与预期大小计算百分比
     private val byteRegex = Regex("""\s([0-9]+(?:\.[0-9]+)?)(B|KiB|MiB|GiB)/""")
     private val byteUnits = mapOf("B" to 1L, "KiB" to 1024L, "MiB" to 1048576L, "GiB" to 1073741824L)
-    // summary 行下载速度片段（如 "DL:5.2MiB"）：解析后换算为用户熟悉的 KB/s、MB/s
+    // summary 行下载速度片段（如 "DL:5.2MiB"):解析后换算为用户熟悉的 KB/s、MB/s
     private val dlRegex = Regex("""DL:([0-9]+(?:\.[0-9]+)?)(B|KiB|MiB|GiB)""")
 
     data class Result(
@@ -177,13 +177,13 @@ object Aria2c {
         if (binaries.isEmpty()) {
             return Result(false, null, "No usable aria2c found (built-in component missing and not installed on the system)")
         }
-        onLog?.invoke("使用 ${binaries.first()}")
+        onLog?.invoke("Using ${binaries.first()}")
 
         var lastError = "Download failed"
         val tried = mutableSetOf<String>()
         for (binary in binaries) {
             val appBinary = isAppBinary(binary)
-            // app 内置且 app 有写权限：先免 root 直跑；其余/失败后经 su 以 root 兜底
+            // app 内置且 app 有写权限：先免 root direct run；其余/失败后经 su 以 root 兜底
             val plans = mutableListOf<Boolean>()
             if (!forceRoot && appCanWrite && appBinary) plans.add(false)
             plans.add(true)
@@ -196,9 +196,9 @@ object Aria2c {
                 if (result.success) return result
                 if (result.message == "Cancelled") return result
                 lastError = result.message
-                onLog?.invoke("尝试失败（${if (useRoot) "root" else "直跑"}）：${result.message.take(120)}")
+                onLog?.invoke("Attempt failed (${if (useRoot) "root" else "direct run"}):${result.message.take(120)}")
                 // 网络类故障与运行身份/二进制无关，立即交给外层换线路，避免重复等待同一坏链路
-                if (result.message.startsWith("网络无进展") || result.message.startsWith("下载超时")) return result
+                if (result.message.startsWith("No network progress") || result.message.startsWith("Download timeout")) return result
             }
         }
         return Result(false, null, lastError)
