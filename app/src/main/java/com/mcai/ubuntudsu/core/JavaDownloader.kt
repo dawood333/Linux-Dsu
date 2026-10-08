@@ -58,7 +58,7 @@ object JavaDownloader {
     ): Result {
         val cleanUrl = url.replace(Regex("\\s+"), "")
         if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-            return Result(false, null, "URL 无效")
+            return Result(false, null, "Invalid URL")
         }
 
         // 确定保存路径：强制使用 /sdcard/Downloads
@@ -81,26 +81,26 @@ object JavaDownloader {
                     val fb = ctx.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
                     if (fb != null && (fb.exists() || fb.mkdirs())) {
                         finalTarget = File(fb, target.name)
-                        onLog?.invoke("⚠️ /sdcard/Downloads 不可写，回退到: ${fb.absolutePath}")
-                        onLog?.invoke("请在系统设置中授予「所有文件访问权限」以使用 /sdcard/Downloads")
+                        onLog?.invoke("⚠️ /sdcard/Downloads is not writable; falling back to:  ${fb.absolutePath}")
+                        onLog?.invoke("Grant “All files access” in system settings to use /sdcard/Downloads")
                     } else {
-                        return Result(false, null, "无法创建保存目录，请检查存储权限")
+                        return Result(false, null, "Unable to create save directory; check storage permission")
                     }
                 }
             }
         } else {
-            return Result(false, null, "保存路径无效")
+            return Result(false, null, "Invalid save path")
         }
 
-        onLog?.invoke("下载地址: $cleanUrl")
-        onLog?.invoke("保存路径: ${finalTarget.absolutePath}")
+        onLog?.invoke("Download URL:  $cleanUrl")
+        onLog?.invoke("Save path:  ${finalTarget.absolutePath}")
 
         val cancelled = AtomicBoolean(false)
         return try {
             downloadInternal(cleanUrl, finalTarget, onProgress, cancelled, { isCancelled() }, { isPaused() }, onLog, onSizeInfo)
         } catch (e: Exception) {
-            onLog?.invoke("下载异常: ${e.message}")
-            Result(false, null, e.message ?: "下载失败")
+            onLog?.invoke("Download error:  ${e.message}")
+            Result(false, null, e.message ?: "Download failed")
         }
     }
 
@@ -115,24 +115,24 @@ object JavaDownloader {
         onSizeInfo: ((Long, Long) -> Unit)?,
     ): Result {
         // 1. 探测文件大小
-        onLog?.invoke("正在连接服务器...")
+        onLog?.invoke("Connecting to server...")
         val (totalSize, rangeSupported) = probeFile(url, onLog)
         if (totalSize <= 0) {
-            return Result(false, null, "无法获取文件大小")
+            return Result(false, null, "Unable to determine file size")
         }
-        onLog?.invoke("文件大小: ${formatBytes(totalSize)}")
+        onLog?.invoke("File size:  ${formatBytes(totalSize)}")
         onSizeInfo?.invoke(totalSize, 0L)
 
         // 2. 选择下载策略
         val tmpFile = File(target.parentFile, "${target.name}.tmp")
         if (rangeSupported && totalSize > 2 * 1024 * 1024) {
-            onLog?.invoke("支持 Range，启动 $THREAD_COUNT 线程并发下载...")
+            onLog?.invoke("Range supported; starting $THREAD_COUNT concurrent download threads...")
             val result = multiThreadDownload(url, tmpFile, totalSize, onProgress, cancelled, isCancelled, isPaused, onLog, onSizeInfo)
             if (result.success) {
                 return finalizeFile(tmpFile, target, onLog, onProgress)
             }
             // 多线程失败，降级为单线程
-            onLog?.invoke("多线程下载失败，降级为单线程...")
+            onLog?.invoke("多线程Download failed，降级为单线程...")
             tmpFile.delete()
         }
 
@@ -146,7 +146,7 @@ object JavaDownloader {
         try {
             conn = openConnection(url, 0)
             val code = conn.responseCode
-            onLog?.invoke("服务器响应: HTTP $code")
+            onLog?.invoke("Server response: HTTP $code")
 
             if (code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_PARTIAL) {
                 val size = conn.contentLengthLong
@@ -154,7 +154,7 @@ object JavaDownloader {
                 return Pair(size, range)
             }
             if (code == HttpURLConnection.HTTP_FORBIDDEN) {
-                onLog?.invoke("403 被拒，重试不带 Range...")
+                onLog?.invoke("403 denied; retrying without Range...")
                 conn.disconnect()
                 conn = openConnection(url, -1)
                 val code2 = conn.responseCode
@@ -166,7 +166,7 @@ object JavaDownloader {
                 }
             }
         } catch (e: Exception) {
-            onLog?.invoke("探测失败: ${e.message}")
+            onLog?.invoke("Probe failed:  ${e.message}")
         } finally {
             conn?.disconnect()
         }
@@ -190,8 +190,8 @@ object JavaDownloader {
         try {
             RandomAccessFile(tmpFile, "rw").use { it.setLength(totalSize) }
         } catch (e: Exception) {
-            onLog?.invoke("预分配文件失败: ${e.message}")
-            return Result(false, null, "预分配失败")
+            onLog?.invoke("File preallocation failed:  ${e.message}")
+            return Result(false, null, "Preallocation failed")
         }
 
         // 计算分块
@@ -231,14 +231,14 @@ object JavaDownloader {
         } catch (_: InterruptedException) {}
 
         if (cancelled.get() || isCancelled()) {
-            return Result(false, null, "已取消")
+            return Result(false, null, "Cancelled")
         }
         if (anyError.get()) {
             return Result(false, null, errorMsg.get())
         }
         if (tmpFile.length() < totalSize) {
-            onLog?.invoke("文件不完整: ${formatBytes(tmpFile.length())}/${formatBytes(totalSize)}")
-            return Result(false, null, "文件不完整")
+            onLog?.invoke("File incomplete: ${formatBytes(tmpFile.length())}/${formatBytes(totalSize)}")
+            return Result(false, null, "File incomplete")
         }
 
         return Result(true, tmpFile, "完成")
@@ -349,7 +349,7 @@ object JavaDownloader {
         var retries = 0
 
         while (retries <= MAX_RETRIES) {
-            if (cancelled.get() || isCancelled()) return Result(false, null, "已取消")
+            if (cancelled.get() || isCancelled()) return Result(false, null, "Cancelled")
 
             var conn: HttpURLConnection? = null
             try {
@@ -361,7 +361,7 @@ object JavaDownloader {
 
                 conn = openConnection(url, existing)
                 val code = conn.responseCode
-                onLog?.invoke("服务器响应: HTTP $code")
+                onLog?.invoke("Server response: HTTP $code")
 
                 if (code == HttpURLConnection.HTTP_OK || code == HttpURLConnection.HTTP_PARTIAL) {
                     val actualTotal = if (code == HttpURLConnection.HTTP_PARTIAL && existing > 0) {
@@ -408,10 +408,10 @@ object JavaDownloader {
                         }
                     }
 
-                    if (cancelled.get() || isCancelled()) return Result(false, null, "已取消")
+                    if (cancelled.get() || isCancelled()) return Result(false, null, "Cancelled")
 
                     if (actualTotal > 0 && tmpFile.length() < actualTotal) {
-                        onLog?.invoke("文件不完整，重试...")
+                        onLog?.invoke("File incomplete，重试...")
                         retries++
                         continue
                     }
@@ -426,19 +426,19 @@ object JavaDownloader {
             } catch (e: PausedSignal) {
                 // 连接已断开，原地等待恢复；恢复后回到循环顶部按 tmpFile 长度断点重连（不消耗重试次数）
                 while (isPaused()) {
-                    if (cancelled.get() || isCancelled()) return Result(false, null, "已取消")
+                    if (cancelled.get() || isCancelled()) return Result(false, null, "Cancelled")
                     Thread.sleep(100)
                 }
             } catch (e: Exception) {
                 onLog?.invoke("异常: ${e.message}，重试 ${retries + 1}/$MAX_RETRIES")
                 retries++
-                if (retries > MAX_RETRIES) return Result(false, null, e.message ?: "下载失败")
+                if (retries > MAX_RETRIES) return Result(false, null, e.message ?: "Download failed")
                 Thread.sleep(2000L * retries)
             } finally {
                 conn?.disconnect()
             }
         }
-        return Result(false, null, "下载失败")
+        return Result(false, null, "Download failed")
     }
 
     // ========== 工具方法 ==========
@@ -454,7 +454,7 @@ object JavaDownloader {
             }
             tmpFile.delete()
         }
-        onLog?.invoke("下载完成！")
+        onLog?.invoke("Download complete!")
         onProgress(100)
         return Result(true, target, "完成")
     }
