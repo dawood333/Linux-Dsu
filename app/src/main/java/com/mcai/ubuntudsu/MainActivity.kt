@@ -27,7 +27,7 @@ class MainActivity : AppCompatActivity() {
     private val lifecycleStopHooks = mutableListOf<Runnable>()
     fun addLifecycleStopHook(hook: Runnable) { lifecycleStopHooks.add(hook) }
     private val executor = Executors.newSingleThreadExecutor()
-    private val tabs = listOf("首页", "Linux", "DSU", "更多")
+    private val tabs = listOf("Home", "Linux", "DSU", "More")
     private var currentTab = 0
     private lateinit var pageHost: FrameLayout
     private lateinit var pageStrip: android.widget.HorizontalScrollView
@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() {
             if (path != null) dsuPage?.onZipPicked(android.net.Uri.fromFile(java.io.File(path)))
         }
 
-    // 首页头图背景选择：OpenDocument 可持久授权，结果拷贝进应用私有目录
+    // Home头图背景选择：OpenDocument 可持久授权，结果拷贝进应用私有目录
     private val pickHeroImageLauncher =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
             uri?.let { homePage?.onHeroImagePicked(it) }
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     fun pickHeroImage() {
         runCatching { pickHeroImageLauncher.launch(arrayOf("image/*")) }
             .onFailure {
-                android.widget.Toast.makeText(this, "无法打开图片选择器", android.widget.Toast.LENGTH_SHORT).show()
+                android.widget.Toast.makeText(this, "Unable to open image picker", android.widget.Toast.LENGTH_SHORT).show()
             }
     }
 
