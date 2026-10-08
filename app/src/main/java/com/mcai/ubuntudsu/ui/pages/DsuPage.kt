@@ -69,13 +69,13 @@ class DsuPage(
         if (availGB <= 0) return ""
         val maxSafeGB = (availGB * 40 / 100).toInt()
         return when {
-            GB > maxSafeGB * 2 -> "Warning: ${GB} GB far exceeds available device space（${availGB} GB），安装极可能失败，建议改用 ${maxSafeGB.coerceAtLeast(8)} GB"
-            GB > maxSafeGB -> "Notice: ${GB} GB 超过device safe capacity（约 ${maxSafeGB} GB），安装可能失败"
+            GB > maxSafeGB * 2 -> "Warning: ${GB} GB far exceeds available device space (${availGB} GB)，installation is very likely to fail，recommended to use ${maxSafeGB.coerceAtLeast(8)} GB"
+            GB > maxSafeGB -> "Notice: ${GB} GB exceeds the device safe capacity (about  ${maxSafeGB} GB)，installation may fail"
             else -> ""
         }
     }
 
-    /** 动态上限：40% of available space（Android 官方限制），下限 8 GB，不设硬顶（覆盖 1TB 设备） */
+    /** 动态上限：40% of available space (Android 官方限制)，下限 8 GB，不设硬顶 (覆盖 1TB 设备) */
     private fun maxAllowedGB(): Int = ((availableGB() * 40 / 100).toInt()).coerceAtLeast(8)
 
     fun onZipPicked(uri: Uri?) {
@@ -114,7 +114,7 @@ class DsuPage(
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(16, d))
         }
-        // 标题：左侧"DSU Manager"（设置入口仅在首页）
+        // 标题：左侧"DSU Manager" (设置入口仅在首页)
         page.addView(TextView(activity).apply {
             text = "DSU Manager"
             textSize = 22f
@@ -123,10 +123,10 @@ class DsuPage(
             setPadding(0, 0, 0, Ui.dp(14, d))
         })
 
-        // 恢复上次选中的 GSI 包（进程重建场景，fileNameText 创建时同步显示）
+        // 恢复上次选中的 GSI 包 (进程重建场景，fileNameText 创建时同步显示)
         restoreSelectedZip()
 
-        // 进度卡（紧凑单行：状态文字与百分比同行 + 8dp 细进度条，给下方 DSU Tools图标留空间）
+        // 进度卡 (紧凑单行：状态文字与百分比同行 + 8dp 细进度条，给下方 DSU Tools图标留空间)
         val progressCard = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(12, d), Ui.dp(6, d), Ui.dp(12, d), Ui.dp(6, d))
@@ -191,15 +191,15 @@ class DsuPage(
             sizeRow.addView(chip)
         }
         parameterCard.addView(sizeRow)
-        // 剩余空间提示（参考 DSU-Sideloader 40% 安全限制说明）
+        // 剩余空间提示 (参考 DSU-Sideloader 40% 安全限制说明)
         parameterCard.addView(label(
-            "Free space: ${availableGB()} GB · recommended limit：${maxAllowedGB()} GB（40% of available space）",
+            "Free space: ${availableGB()} GB · recommended limit：${maxAllowedGB()} GB (40% of available space)",
             11f,
         ).apply {
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(4, d), 0, 0)
         })
-        // 自定义Capacity：输入框 + OK按钮二合一（免弹框，直接输入 GB 数）
+        // 自定义Capacity：输入框 + OK按钮二合一 (免弹框，直接输入 GB 数)
         val customRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, Ui.dp(5, d), 0, 0)
@@ -224,7 +224,7 @@ class DsuPage(
                         Toast.makeText(activity, "Enter a valid size", Toast.LENGTH_SHORT).show()
                     }
                     value > maxAllowedGB() -> {
-                        Toast.makeText(activity, "Capacity ${value} GB 超过recommended limit ${maxAllowedGB()} GB（剩余空间 ${availableGB()} GB 40%），安装可能失败", Toast.LENGTH_LONG).show()
+                        Toast.makeText(activity, "Capacity ${value} GB exceeds the recommended limit ${maxAllowedGB()} GB (available space ${availableGB()} GB 40%)，installation may fail", Toast.LENGTH_LONG).show()
                     }
                     else -> {
                         selectedUserdataGB = value
@@ -281,7 +281,7 @@ class DsuPage(
         )
         page.addView(parameterCard)
 
-        // 工具入口：2x2 大图标网格（Reboot to DSU / Repair Environment / Remove Installed GSI / Wipe userdata）
+        // 工具入口：2x2 大图标网格 (Reboot to DSU / Repair Environment / Remove Installed GSI / Wipe userdata)
         page.addView(
             label("DSU Tools", 12f, bold = true).apply { setTextColor(Ui.secondaryText(activity)) },
             LinearLayout.LayoutParams(
@@ -432,7 +432,7 @@ class DsuPage(
             Toast.makeText(activity, "ROOT DSU installer is not connected. Grant ROOT access and try again.", Toast.LENGTH_SHORT).show()
             return
         }
-        confirmAction("Start DSU Installation", "将通过 ROOT DSU 安装器直接创建分区并写入 GSI 镜像。") {
+        confirmAction("Start DSU Installation", "将通过 ROOT DSU ROOT DSU installer will create the partitions directly and write the GSI image.") {
             executor.execute {
                 if (clearUserdata) {
                     log("Clearing old cache: /metadata/gsi/dsu/dsu/lp_metadata")
@@ -441,7 +441,7 @@ class DsuPage(
                 }
                 runCatching {
                     val path = zipUri.path ?: error("Unable to read GSI ZIP")
-                    // 先试普通流（可直读秒开）；失败或无权限降级 root 流（su cat，零拷贝）
+                    // 先试普通流 (可直读秒开)；失败或无权限降级 root 流 (su cat，零拷贝)
                     val input = runCatching {
                         java.io.File(path).takeIf { it.canRead() }?.inputStream()
                     }.getOrNull()
