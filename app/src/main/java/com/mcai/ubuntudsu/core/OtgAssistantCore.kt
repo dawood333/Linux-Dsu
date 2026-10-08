@@ -106,7 +106,7 @@ object OtgAssistantCore {
                 else -> line.split(Regex("\\s+")).size >= 2
             }
         }.toList()
-        return devices.joinToString("\n").ifBlank { "未发现设备" }
+        return devices.joinToString("\n").ifBlank { "No devices found" }
     }
 
     fun executeCommand(
@@ -124,7 +124,7 @@ object OtgAssistantCore {
         timeoutMs: Long = 30000,
         onOutput: (String) -> Unit = {},
     ): CommandResult {
-        if (toolPath == null) return CommandResult(-1, "Error: 工具未找到，请检查 nativeLibraryDir")
+        if (toolPath == null) return CommandResult(-1, "Error: Tool not found; check nativeLibraryDir")
         return try {
             if (hasRootAccess()) {
                 return executeCommandAsRoot(toolPath, command, timeoutMs, onOutput)
@@ -170,7 +170,7 @@ object OtgAssistantCore {
         timeoutMs: Long,
         onOutput: (String) -> Unit,
     ): CommandResult {
-        if (toolPath == null) return CommandResult(-1, "Error: 工具未找到，请检查 nativeLibraryDir")
+        if (toolPath == null) return CommandResult(-1, "Error: Tool not found; check nativeLibraryDir")
         val arguments = command.trim().split(Regex("\\s+")).drop(1)
         val script = (listOf(shellQuote(toolPath)) + arguments.map(::shellQuote)).joinToString(" ")
         val result = RootShell.exec(script, timeoutMs, onOutput)
@@ -226,10 +226,10 @@ object OtgAssistantCore {
     ): OtaExtractionResult {
         val root = File(context.filesDir, "ota")
         root.deleteRecursively()
-        if (!root.mkdirs() && !root.isDirectory) throw IllegalStateException("无法创建私有 OTA 目录")
+        if (!root.mkdirs() && !root.isDirectory) throw IllegalStateException("Unable to create private OTA directory")
         val input = File(root, "payload.bin")
         val source = context.contentResolver.openInputStream(uri)
-            ?: throw IllegalStateException("无法读取 OTA/BIN 文件")
+            ?: throw IllegalStateException("Unable to read OTA/BIN file")
         val totalInputBytes = context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length }
             ?.takeIf { it > 0L }
         source.use { stream ->
@@ -238,7 +238,7 @@ object OtgAssistantCore {
             val signature = ByteArray(4)
             val signatureSize = buffered.read(signature)
             buffered.reset()
-            onProgress(1, "正在读取 OTA 文件...")
+            onProgress(1, "Reading OTA file...")
             if (signatureSize == 4 && signature.contentEquals(byteArrayOf(0x50, 0x4b, 0x03, 0x04))) {
                 ZipInputStream(buffered).use { zip ->
                     var entry = zip.nextEntry
@@ -246,22 +246,22 @@ object OtgAssistantCore {
                         zip.closeEntry()
                         entry = zip.nextEntry
                     }
-                    if (entry == null) throw IllegalStateException("ZIP 中没有 payload.bin")
+                    if (entry == null) throw IllegalStateException("payload.bin not found in ZIP")
                     copyWithProgress(zip, input, totalInputBytes) { percent ->
-                        onProgress(percent * 20 / 100, "正在读取 ZIP 中的 payload.bin...")
+                        onProgress(percent * 20 / 100, "Reading payload.bin from ZIP...")
                     }
                 }
             } else {
                 copyWithProgress(buffered, input, totalInputBytes) { percent ->
-                    onProgress(percent * 20 / 100, "正在读取 BIN 文件...")
+                    onProgress(percent * 20 / 100, "Reading BIN file...")
                 }
             }
         }
-        onProgress(20, "输入文件读取完成，开始解包分区...")
+        onProgress(20, "Input file read; starting partition extraction...")
         val extracted = File(root, "extracted").apply { mkdirs() }
         val extractor = File(context.applicationInfo.nativeLibraryDir, "libpayload_extract.so")
         if (!extractor.isFile || !extractor.canExecute()) {
-            throw IllegalStateException("payload_extract 不可执行: ${extractor.absolutePath}")
+            throw IllegalStateException("payload_extract is not executable: ${extractor.absolutePath}")
         }
         val process = ProcessBuilder(
             extractor.absolutePath,
@@ -305,16 +305,16 @@ object OtgAssistantCore {
                 lastObservedBytes = writtenBytes
                 lastObservedImages = files.size
             }
-            onProgress(-1, "正在解包分区：已生成 ${files.size} 个镜像，已写入 ${formatBytes(writtenBytes)}")
+            onProgress(-1, "Extracting partitions: generated ${files.size} 个镜像，已写入 ${formatBytes(writtenBytes)}")
             Thread.sleep(500)
         }
         outputReader.join(2000)
         val exitCode = process.waitFor()
         val outputText = synchronized(output) { output.toString() }
-        if (exitCode != 0) throw IllegalStateException("payload_extract 失败（退出码 $exitCode）: ${outputText.takeLast(1200)}")
+        if (exitCode != 0) throw IllegalStateException("payload_extract failed (exit code $exitCode）: ${outputText.takeLast(1200)}")
         val images = extracted.listFiles()?.filter { it.isFile && it.extension.equals("img", true) }.orEmpty()
-        if (images.isEmpty()) throw IllegalStateException("payload_extract 未生成镜像: ${outputText.takeLast(1200)}")
-        onProgress(100, "分区解包完成，共生成 ${images.size} 个镜像")
+        if (images.isEmpty()) throw IllegalStateException("payload_extract produced no images: ${outputText.takeLast(1200)}")
+        onProgress(100, "Partition extraction complete; generated ${images.size} 个镜像")
         return OtaExtractionResult(
             root = root,
             containsPayload = true,
@@ -412,7 +412,7 @@ object OtgAssistantCore {
             while (input.read(buffer).also { count = it } >= 0) {
                 if (count > 0) digest.update(buffer, 0, count)
             }
-        } ?: throw IllegalStateException("无法读取镜像文件")
+        } ?: throw IllegalStateException("Unable to read image file")
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
@@ -421,13 +421,13 @@ object OtgAssistantCore {
         val file = File(dir, "${System.currentTimeMillis()}-$name")
         context.contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(file).use { output -> input.copyTo(output) }
-        } ?: throw IllegalStateException("无法读取镜像文件")
+        } ?: throw IllegalStateException("Unable to read image file")
         return file
     }
 
     /** 内置文件选择器（RootfsFilesActivity）返回真实路径时，从本地文件复制进缓存目录 */
     fun copyLocalFileToCache(context: Context, source: File, name: String): File {
-        if (!source.isFile) throw IllegalStateException("源文件不存在: ${source.absolutePath}")
+        if (!source.isFile) throw IllegalStateException("Source file not found: ${source.absolutePath}")
         val dir = File(context.cacheDir, "flash-images").apply { mkdirs() }
         val file = File(dir, "${System.currentTimeMillis()}-$name")
         source.copyTo(file, overwrite = false)
@@ -440,10 +440,10 @@ object OtgAssistantCore {
         sourceFile: File,
         onProgress: (Int, String) -> Unit = { _, _ -> },
     ): OtaExtractionResult {
-        if (!sourceFile.isFile) throw IllegalStateException("源文件不存在: ${sourceFile.absolutePath}")
+        if (!sourceFile.isFile) throw IllegalStateException("Source file not found: ${sourceFile.absolutePath}")
         val root = File(context.filesDir, "ota")
         root.deleteRecursively()
-        if (!root.mkdirs() && !root.isDirectory) throw IllegalStateException("无法创建私有 OTA 目录")
+        if (!root.mkdirs() && !root.isDirectory) throw IllegalStateException("Unable to create private OTA directory")
         val payload = File(root, "payload.bin")
         // 先读取源文件头部判断是 ZIP 还是裸 payload，再抽取到私有目录的 payload.bin
         sourceFile.inputStream().use { source ->
@@ -459,14 +459,14 @@ object OtgAssistantCore {
                         zip.closeEntry()
                         entry = zip.nextEntry
                     }
-                    if (entry == null) throw IllegalStateException("ZIP 中没有 payload.bin")
+                    if (entry == null) throw IllegalStateException("payload.bin not found in ZIP")
                     copyWithProgress(zip, payload, sourceFile.length()) { percent ->
-                        onProgress(percent * 20 / 100, "正在读取 ZIP 中的 payload.bin...")
+                        onProgress(percent * 20 / 100, "Reading payload.bin from ZIP...")
                     }
                 }
             } else {
                 copyWithProgress(buffered, payload, sourceFile.length()) { percent ->
-                    onProgress(percent * 20 / 100, "正在读取 BIN 文件...")
+                    onProgress(percent * 20 / 100, "Reading BIN file...")
                 }
             }
         }
@@ -478,11 +478,11 @@ object OtgAssistantCore {
         payload: File,
         onProgress: (Int, String) -> Unit,
     ): OtaExtractionResult {
-        onProgress(20, "输入文件读取完成，开始解包分区...")
+        onProgress(20, "Input file read; starting partition extraction...")
         val extracted = File(File(context.filesDir, "ota"), "extracted").apply { mkdirs() }
         val extractor = File(context.applicationInfo.nativeLibraryDir, "libpayload_extract.so")
         if (!extractor.isFile || !extractor.canExecute()) {
-            throw IllegalStateException("payload_extract 不可执行: ${extractor.absolutePath}")
+            throw IllegalStateException("payload_extract is not executable: ${extractor.absolutePath}")
         }
         val process = ProcessBuilder(
             extractor.absolutePath,
@@ -524,16 +524,16 @@ object OtgAssistantCore {
                 lastObservedBytes = writtenBytes
                 lastObservedImages = files.size
             }
-            onProgress(-1, "正在解包分区：已生成 ${files.size} 个镜像，已写入 ${formatBytes(writtenBytes)}")
+            onProgress(-1, "Extracting partitions: generated ${files.size} 个镜像，已写入 ${formatBytes(writtenBytes)}")
             Thread.sleep(500)
         }
         outputReader.join(2000)
         val exitCode = process.waitFor()
         val outputText = synchronized(output) { output.toString() }
-        if (exitCode != 0) throw IllegalStateException("payload_extract 失败（退出码 $exitCode）: ${outputText.takeLast(1200)}")
+        if (exitCode != 0) throw IllegalStateException("payload_extract failed (exit code $exitCode）: ${outputText.takeLast(1200)}")
         val images = extracted.listFiles()?.filter { it.isFile && it.extension.equals("img", true) }.orEmpty()
-        if (images.isEmpty()) throw IllegalStateException("payload_extract 未生成镜像: ${outputText.takeLast(1200)}")
-        onProgress(100, "分区解包完成，共生成 ${images.size} 个镜像")
+        if (images.isEmpty()) throw IllegalStateException("payload_extract produced no images: ${outputText.takeLast(1200)}")
+        onProgress(100, "Partition extraction complete; generated ${images.size} 个镜像")
         return OtaExtractionResult(
             root = File(context.filesDir, "ota"),
             containsPayload = true,
