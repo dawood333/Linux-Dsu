@@ -28,6 +28,9 @@ jobs:
           yes | sdkmanager --licenses
           sdkmanager "platforms;android-36" "build-tools;35.0.0" "ndk;26.1.10909125"
 
+      - name: Prepare Gradle properties
+        run: cp gradle.properties.example gradle.properties
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
