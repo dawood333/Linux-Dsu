@@ -25,7 +25,7 @@ import java.util.Calendar
 import java.util.Locale
 
 /**
- * 日历工时记页面：上下班打卡 + 日历月视图 + 每日工时 + 月度统计（工时/工资）
+ * Sun历Work Time页面：上Clock Out打卡 + Sun历月视图 + 每SunWork Time + 月度统计（Work Time/Pay）
  *
  * 数据源 [WorkTimeStore]（SharedPreferences）；界面沿用主应用拟态玻璃架构（Ui.glassSurface / neuCard）。
  */
@@ -54,19 +54,19 @@ class WorkTimePage(private val activity: Activity) {
     private var timerRunnable: Runnable? = null
     private val handler = Handler(Looper.getMainLooper())
 
-    /** 设置面板各输入框的「校验并Save」动作；点「完成」时统一执行，任一校验失败则阻止关闭 */
+    /** 设置面板各输入框的「校验并Save」动作；点「Done」时统Mon执行，任Mon校验失败则阻止Off闭 */
     private val settingsSaves = ArrayList<() -> Boolean>()
 
-    // 工资参数随工资模式动态切换（时薪模式只留时薪；月薪模式只留月薪 + 标准工时）
+    // Pay参数随Pay模式动态切换（Hourly Pay只留Hourly Rate；Monthly Pay只留Monthly Salary + 标准Work Time）
     private var salaryTitle: TextView? = null
     private var salaryContainer: LinearLayout? = null
     private var salaryHourlyInput: EditText? = null
     private var salaryMonthlyInput: EditText? = null
     private var salaryStdHoursInput: EditText? = null
 
-    /** 工时记主题色（青绿，与蓝灰玻璃卡片协调） */
+    /** Work Time主题色（青绿，与蓝灰玻璃卡片协调） */
     private val ACCENT = Color.parseColor("#00A98F")
-    /** 当日高亮用的半透明主题色 */
+    /** 当Sun高亮用的半透明主题色 */
     private val ACCENT_SOFT = Color.argb(56, 0, 169, 143)
 
     fun build(): View {
@@ -123,7 +123,7 @@ class WorkTimePage(private val activity: Activity) {
             topMargin = 0
         }
         titleContainer.addView(TextView(activity).apply {
-            text = "工时记"
+            text = "Work Time"
             textSize = 18f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Color.WHITE)
@@ -168,14 +168,14 @@ class WorkTimePage(private val activity: Activity) {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = Ui.dp(10, d) }
         }
-        card.addView(sectionTitle("本月统计"))
+        card.addView(sectionTitle("This Month"))
         val statsRow = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
-        statTotal = statsRow.addStatCell("总工时", "0")
-        statSalary = statsRow.addStatCell("工资", "0")
-        statDays = statsRow.addStatCell("打卡天数", "0")
+        statTotal = statsRow.addStatCell("Total Hours", "0")
+        statSalary = statsRow.addStatCell("Pay", "0")
+        statDays = statsRow.addStatCell("Days Worked", "0")
         card.addView(statsRow)
         card.addView(TextView(activity).apply {
-            text = "复制当月记录"
+            text = "Copy Monthly Records"
             textSize = 11f
             setTextColor(ACCENT)
             background = Ui.neuInset(activity, 10f)
@@ -195,7 +195,7 @@ class WorkTimePage(private val activity: Activity) {
         setPadding(0, 0, 0, Ui.dp(8, d))
     }
 
-    /** 统计单元：大数字（数值）+ 上方大标签 + 下方单位，标签可指定橙色（工资） */
+    /** 统计单CNY：大数字（数值）+ 上方大标签 + 下方单位，标签可指定橙色（Pay） */
     private fun LinearLayout.addStatCell(title: String, value: String): TextView {
         val cell = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -206,27 +206,27 @@ class WorkTimePage(private val activity: Activity) {
         cell.addView(TextView(activity).apply {
             text = title
             textSize = 12f
-            setTextColor(if (title == "工资") ACCENT else Ui.secondaryText(activity))
+            setTextColor(if (title == "Pay") ACCENT else Ui.secondaryText(activity))
             setPadding(0, 0, 0, Ui.dp(6, d))
         })
         val valueText = TextView(activity).apply {
             text = value
             textSize = 26f
             setTypeface(typeface, Typeface.BOLD)
-            setTextColor(if (title == "工资") ACCENT else Ui.primaryText(activity))
+            setTextColor(if (title == "Pay") ACCENT else Ui.primaryText(activity))
         }
         cell.addView(valueText)
         cell.addView(TextView(activity).apply {
-            text = if (title == "总工时") "小时" else if (title == "工资") "元" else "天"
+            text = if (title == "Total Hours") "hours" else if (title == "Pay") "CNY" else "days"
             textSize = 10f
-            setTextColor(if (title == "工资") ACCENT else Ui.secondaryText(activity))
+            setTextColor(if (title == "Pay") ACCENT else Ui.secondaryText(activity))
             setPadding(0, Ui.dp(2, d), 0, 0)
         })
         addView(cell)
         return valueText
     }
 
-    // ==================== 日历卡 ====================
+    // ==================== Sun历卡 ====================
 
     private fun calendarCard(): View {
         val card = LinearLayout(activity).apply {
@@ -261,7 +261,7 @@ class WorkTimePage(private val activity: Activity) {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, Ui.dp(6, d), 0, Ui.dp(2, d))
         }
-        for (w in listOf("一", "二", "三", "四", "五", "六", "日")) {
+        for (w in listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")) {
             headRow.addView(TextView(activity).apply {
                 text = w
                 textSize = 10f
@@ -271,7 +271,7 @@ class WorkTimePage(private val activity: Activity) {
             })
         }
         card.addView(headRow)
-        // 日期行容器（refresh 时动态重建）
+        // Sun期行容器（refresh 时动态重建）
         daysContainer = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
         card.addView(daysContainer!!)
         return card
@@ -290,7 +290,7 @@ class WorkTimePage(private val activity: Activity) {
         }
     }
 
-    // ==================== 当日详情卡 ====================
+    // ==================== 当Sun详情卡 ====================
 
     private fun dayDetailCard(): View {
         val card = LinearLayout(activity).apply {
@@ -301,7 +301,7 @@ class WorkTimePage(private val activity: Activity) {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { bottomMargin = Ui.dp(10, d) }
         }
-        card.addView(sectionTitle("当日详情"))
+        card.addView(sectionTitle("当Sun详情"))
         dayDetailPanel = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
         card.addView(dayDetailPanel!!)
         return card
@@ -315,11 +315,11 @@ class WorkTimePage(private val activity: Activity) {
             background = Ui.glassSurface(activity, 18f)
             setPadding(Ui.dp(16, d), Ui.dp(14, d), Ui.dp(16, d), Ui.dp(14, d))
         }
-        card.addView(sectionTitle("Today打卡"))
+        card.addView(sectionTitle("Today's Check-in"))
         val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
 
         clockInBtn = TextView(activity).apply {
-            text = "上班"
+            text = "Clock In"
             textSize = 13f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -346,7 +346,7 @@ class WorkTimePage(private val activity: Activity) {
         row.addView(liveTimer!!)
 
         clockOutBtn = TextView(activity).apply {
-            text = "下班"
+            text = "Clock Out"
             textSize = 13f
             setTypeface(typeface, Typeface.BOLD)
             gravity = Gravity.CENTER
@@ -365,7 +365,7 @@ class WorkTimePage(private val activity: Activity) {
         return card
     }
 
-    // ==================== 日历日期行生成 ====================
+    // ==================== Sun历Sun期行生成 ====================
 
     private fun buildDayRows(): LinearLayout {
         val container = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
@@ -376,7 +376,7 @@ class WorkTimePage(private val activity: Activity) {
         val firstOfMonth = (cal.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, 1) }
         val lastDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
         val firstWeek = firstOfMonth.get(Calendar.DAY_OF_WEEK) // 1=Sun,2=Mon,...7=Sat
-        val leading = if (firstWeek == 1) 6 else firstWeek - 2 // 周一基
+        val leading = if (firstWeek == 1) 6 else firstWeek - 2 // 周Mon基
 
         var cell = 0
         var row = newDayRow()
@@ -453,7 +453,7 @@ class WorkTimePage(private val activity: Activity) {
             })
             gravity = Gravity.CENTER
         })
-        // 标记点：休息日显示空心圈，工作日显示实心点
+        // 标记点：休息Sun显示空心圈，工作Sun显示实心点
         if (isMarked || restDay) {
             cell.addView(View(activity).apply {
                 layoutParams = LinearLayout.LayoutParams(Ui.dp(4, d), Ui.dp(4, d)).apply {
@@ -487,7 +487,7 @@ class WorkTimePage(private val activity: Activity) {
         monthTitle?.text = String.format(Locale.getDefault(), "%d年%d月",
             cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1)
 
-        // 重建日历
+        // 重建Sun历
         val old = daysContainer
         if (old != null) {
             old.removeAllViews()
@@ -507,7 +507,7 @@ class WorkTimePage(private val activity: Activity) {
         expandDayDetail(selected)
     }
 
-    // ==================== 当日详情 ====================
+    // ==================== 当Sun详情 ====================
 
     private fun expandDayDetail(dateStr: String) {
         val panel = dayDetailPanel ?: return
@@ -515,11 +515,11 @@ class WorkTimePage(private val activity: Activity) {
         val record = store.getRecordFor(dateStr)
         if (record == null) {
             panel.addView(TextView(activity).apply {
-                text = "当日无记录"
+                text = "当Sun无记录"
                 textSize = 12f
                 setTextColor(Ui.secondaryText(activity))
             })
-            panel.addView(actionChip("补录 / 修改工时") { showEditHoursDialog(dateStr) })
+            panel.addView(actionChip("Add / Edit Work Time") { showEditHoursDialog(dateStr) })
             return
         }
         val row = LinearLayout(activity).apply {
@@ -527,16 +527,16 @@ class WorkTimePage(private val activity: Activity) {
             setPadding(0, Ui.dp(4, d), 0, 0)
         }
         val inValue = if (record.clockIn > 0) timeFmt.format(record.clockIn * 1000L) else "—"
-        row.addView(buildDetailCell("上班", inValue, Ui.primaryText(activity)))
+        row.addView(buildDetailCell("Clock In", inValue, Ui.primaryText(activity)))
         val outValue = if (record.inProgress) "—"
         else timeFmt.format(record.clockOut * 1000L)
-        row.addView(buildDetailCell("下班", outValue, Ui.primaryText(activity)))
-        val workValue = if (record.inProgress) "进行中"
+        row.addView(buildDetailCell("Clock Out", outValue, Ui.primaryText(activity)))
+        val workValue = if (record.inProgress) "In Progress"
         else String.format(Locale.getDefault(), "%.2f", store.netHours(record))
-        row.addView(buildDetailCell("工时", workValue,
+        row.addView(buildDetailCell("Work Time", workValue,
             if (record.inProgress) ACCENT else Ui.primaryText(activity)))
         val del = TextView(activity).apply {
-            text = "删除"
+            text = "Delete"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             gravity = Gravity.CENTER
@@ -548,14 +548,14 @@ class WorkTimePage(private val activity: Activity) {
         }
         row.addView(wrapCell(del))
         panel.addView(row)
-        panel.addView(actionChip("修改工时") { showEditHoursDialog(dateStr) })
+        panel.addView(actionChip("修改Work Time") { showEditHoursDialog(dateStr) })
 
         if (!record.inProgress) {
             val ev = store.evalLateEarly(dateStr, record)
             if (ev.late || ev.early) {
                 val tags = ArrayList<String>()
-                if (ev.late) tags.add("迟到")
-                if (ev.early) tags.add("早退")
+                if (ev.late) tags.add("Late")
+                if (ev.early) tags.add("Early")
                 panel.addView(TextView(activity).apply {
                     text = tags.joinToString(" · ")
                     textSize = 11f
@@ -600,29 +600,29 @@ class WorkTimePage(private val activity: Activity) {
                 String.format(Locale.getDefault(), "%.2f", store.netHours(record))
             else -> ""
         }
-        val inInput = dialogField("上班时间（HH:mm）", inDefault)
-        val outInput = dialogField("下班时间（HH:mm）", outDefault)
-        val hoursInput = dialogField("净工时（小时，可直接改）", hoursDefault)
+        val inInput = dialogField("Clock InTime（HH:mm）", inDefault)
+        val outInput = dialogField("Clock OutTime（HH:mm）", outDefault)
+        val hoursInput = dialogField("净Work Time（hours，可直接改）", hoursDefault)
         form.addView(inInput.first)
         form.addView(outInput.first)
         form.addView(hoursInput.first)
         form.addView(TextView(activity).apply {
-            text = "改净工时会按上班时间自动推算下班时间；改上下班会自动重算工时。"
+            text = "改净Work Time会按Clock InTime自动推算Clock OutTime；改上Clock Out会自动重算Work Time。"
             textSize = 11f
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(8, d), 0, 0)
         })
         val dialog = AlertDialog.Builder(activity)
-            .setTitle("修改 $dateStr 工时")
+            .setTitle("修改 $dateStr Work Time")
             .setView(form)
             .setPositiveButton("Save", null)
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .create()
         dialog.show()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
             val inEpoch = parseHmToEpoch(dateStr, inInput.second.text.toString().trim())
             if (inEpoch == null) {
-                inInput.second.error = "格式 HH:mm"
+                inInput.second.error = "Format HH:mm"
                 return@setOnClickListener
             }
             val hoursText = hoursInput.second.text.toString().trim()
@@ -630,7 +630,7 @@ class WorkTimePage(private val activity: Activity) {
             val clockOut: Long = if (hoursEdited) {
                 val hours = hoursText.toDoubleOrNull()
                 if (hours == null || hours < 0.0) {
-                    hoursInput.second.error = "工时需 ≥ 0"
+                    hoursInput.second.error = "Work TimeMust be ≥ 0"
                     return@setOnClickListener
                 }
                 val deductSec = store.getRestDeductMinutes() * 60L
@@ -638,18 +638,18 @@ class WorkTimePage(private val activity: Activity) {
             } else {
                 val outEpoch = parseHmToEpoch(dateStr, outInput.second.text.toString().trim())
                 if (outEpoch == null) {
-                    outInput.second.error = "格式 HH:mm"
+                    outInput.second.error = "Format HH:mm"
                     return@setOnClickListener
                 }
                 outEpoch
             }
             if (!store.upsertRecord(dateStr, inEpoch, clockOut)) {
-                toast("下班须晚于上班")
+                toast("Clock Out须晚于Clock In")
                 return@setOnClickListener
             }
             dialog.dismiss()
             refresh()
-            toast("已Save当日工时")
+            toast("已Save当SunWork Time")
         }
     }
 
@@ -688,7 +688,7 @@ class WorkTimePage(private val activity: Activity) {
         return c.timeInMillis / 1000L
     }
 
-    /** 明细单元：数值（大字）+ 标签（小字） */
+    /** 明细单CNY：数值（大字）+ 标签（小字） */
     private fun buildDetailCell(label: String, value: String, valueColor: Int): View {
         val col = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -711,7 +711,7 @@ class WorkTimePage(private val activity: Activity) {
         return col
     }
 
-    /** 把内容 TextView 包成等宽单元格 */
+    /** 把内容 TextView 包成等宽单CNY格 */
     private fun wrapCell(content: TextView): View {
         val wrap = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
@@ -732,7 +732,7 @@ class WorkTimePage(private val activity: Activity) {
             record == null -> {
                 clockInBtn?.isEnabled = true; clockInBtn?.alpha = 1f
                 clockOutBtn?.isEnabled = false; clockOutBtn?.alpha = 0.4f
-                liveTimer?.text = "尚未打卡"
+                liveTimer?.text = "Not checked in yet"
                 liveTimer?.textSize = 13f
                 liveTimer?.setTextColor(Ui.secondaryText(activity))
             }
@@ -756,15 +756,15 @@ class WorkTimePage(private val activity: Activity) {
     private fun doClockIn() {
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(System.currentTimeMillis())
         if (store.clockIn(todayStr, System.currentTimeMillis() / 1000L)) refresh()
-        else toast("Today已打卡")
+        else toast("Checked in today")
     }
 
     private fun doClockOut() {
         val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(System.currentTimeMillis())
         val rec = store.getRecordFor(todayStr)
-        if (rec == null) { toast("请先上班打卡"); return }
+        if (rec == null) { toast("请先Clock In打卡"); return }
         if (rec.inProgress && store.clockOut(todayStr, System.currentTimeMillis() / 1000L)) refresh()
-        else toast("下班时间需晚于上班时间，可删除重打")
+        else toast("Clock OutTime需晚于Clock InTime，可Delete重打")
     }
 
     private fun startTimer(record: WorkTimeStore.Record) {
@@ -784,7 +784,7 @@ class WorkTimePage(private val activity: Activity) {
         timerRunnable = null
     }
 
-    // ==================== 完整设置面板（工时记全部配置） ====================
+    // ==================== 完整设置面板（Work Time全部配置） ====================
 
     private fun showSettingsPanel() {
         settingsSaves.clear()
@@ -795,34 +795,34 @@ class WorkTimePage(private val activity: Activity) {
         val scroll = ScrollView(activity)
         scroll.addView(root)
 
-        root.addView(setSubTitle("工作日设置"))
+        root.addView(setSubTitle("工作Sun设置"))
         root.addView(buildWorkdayRow())
-        root.addView(setSubTitle("上下班基准（迟到/早退判定）"))
+        root.addView(setSubTitle("上Clock Out基准（Late/Early判定）"))
         root.addView(buildBaseTimeRow())
-        root.addView(setSubTitle("加班倍率"))
+        root.addView(setSubTitle("Overtime Multiplier"))
         root.addView(buildOtRateSection())
-        root.addView(setSubTitle("吃饭 / 休息扣除（不计入工时）"))
+        root.addView(setSubTitle("吃饭 / 休息扣除（不计入Work Time）"))
         root.addView(buildRestDeductRow())
-        root.addView(setSubTitle("工资模式"))
+        root.addView(setSubTitle("Pay模式"))
         root.addView(buildPayModeRow())
-        salaryTitle = setSubTitle("工资参数")
+        salaryTitle = setSubTitle("Pay参数")
         root.addView(salaryTitle)
         root.addView(buildSalarySection())
 
         val dialog = AlertDialog.Builder(activity)
-            .setTitle("工时记设置")
+            .setTitle("Work Time设置")
             .setView(scroll)
-            .setPositiveButton("完成", null)
+            .setPositiveButton("Done", null)
             .create()
         dialog.show()
-        // 覆盖默认的点击关闭：先校验并Save全部输入，全部通过才关闭
+        // 覆盖默认的点击Off闭：先校验并Save全部输入，全部通过才Off闭
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setOnClickListener {
             val ok = settingsSaves.all { it() } and validateSalary()
             if (ok) {
                 refresh()
                 dialog.dismiss()
             } else {
-                toast("请检查输入格式（时间 HH:mm，数值需 > 0）")
+                toast("Check the input format (time HH:mm; values must be > 0)")
             }
         }
     }
@@ -835,10 +835,10 @@ class WorkTimePage(private val activity: Activity) {
         setPadding(0, Ui.dp(14, d), 0, Ui.dp(6, d))
     }
 
-    /** 周一~周日 7 个开关 */
+    /** 周Mon~周Sun 7 个OnOff */
     private fun buildWorkdayRow(): View {
         val bits = store.getWorkdays()
-        val labels = arrayOf("一", "二", "三", "四", "五", "六", "日")
+        val labels = arrayOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
         val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         for (i in 0 until 7) {
             val on = bits[i]
@@ -877,15 +877,15 @@ class WorkTimePage(private val activity: Activity) {
         return row
     }
 
-    /** 上班 / 下班 基准时间（两个输入框） */
+    /** Clock In / Clock Out 基准Time（两个输入框） */
     private fun buildBaseTimeRow(): View {
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
         }
-        row.addView(baseTimeInput("上班", store.getBaseClockIn()) { v ->
+        row.addView(baseTimeInput("Clock In", store.getBaseClockIn()) { v ->
             store.setBaseClockIn(v)
         })
-        row.addView(baseTimeInput("下班", store.getBaseClockOut()) { v ->
+        row.addView(baseTimeInput("Clock Out", store.getBaseClockOut()) { v ->
             store.setBaseClockOut(v)
         })
         return row
@@ -898,7 +898,7 @@ class WorkTimePage(private val activity: Activity) {
                 .apply { marginEnd = Ui.dp(8, d) }
         }
         val input = EditText(activity).apply {
-            hint = label + "时间"
+            hint = label + "Time"
             inputType = android.text.InputType.TYPE_CLASS_DATETIME or
                 android.text.InputType.TYPE_DATETIME_VARIATION_TIME
             setText(current)
@@ -908,11 +908,11 @@ class WorkTimePage(private val activity: Activity) {
         }
         fun commit(): Boolean {
             val v = input.text.toString().trim()
-            if (!v.matches(Regex("\\d{1,2}:\\d{2}"))) { input.error = "格式 HH:mm"; return false }
+            if (!v.matches(Regex("\\d{1,2}:\\d{2}"))) { input.error = "Format HH:mm"; return false }
             val p = v.split(":")
             val h = p[0].toIntOrNull() ?: -1
             val m = p[1].toIntOrNull() ?: -1
-            if (h !in 0..23 || m !in 0..59) { input.error = "时间无效"; return false }
+            if (h !in 0..23 || m !in 0..59) { input.error = "Time无效"; return false }
             input.error = null
             onCommit(v)
             return true
@@ -929,7 +929,7 @@ class WorkTimePage(private val activity: Activity) {
         return col
     }
 
-    /** 加班倍率：开关 + 三个倍率输入（关闭时隐藏参数） */
+    /** Overtime Multiplier：OnOff + Wed个倍率输入（Off闭时隐藏参数） */
     private var otRateContainer: LinearLayout? = null
 
     private fun buildOtRateSection(): View {
@@ -941,15 +941,15 @@ class WorkTimePage(private val activity: Activity) {
             setPadding(0, Ui.dp(6, d), 0, Ui.dp(6, d))
         }
         toggleRow.addView(TextView(activity).apply {
-            text = "加班倍率"
+            text = "Overtime Multiplier"
             textSize = 13f
             setTypeface(typeface, Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         })
         val sw = Switch(activity).apply {
-            textOn = "开"
-            textOff = "关"
+            textOn = "On"
+            textOff = "Off"
             setChecked(store.getOtEnabled())
             setOnCheckedChangeListener { _, checked ->
                 store.setOtEnabled(checked)
@@ -967,15 +967,15 @@ class WorkTimePage(private val activity: Activity) {
         return wrap
     }
 
-    /** 三个加班倍率输入框 */
+    /** Wed个Overtime Multiplier输入框 */
     private fun buildOtRateRow(): LinearLayout {
         val row = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, 0, 0, Ui.dp(6, d))
         }
-        row.addView(rateInput("工作日", store.getOtRateWeekday()) { store.setOtRateWeekday(it) })
-        row.addView(rateInput("休息日", store.getOtRateRest()) { store.setOtRateRest(it) })
-        row.addView(rateInput("节假日", store.getOtRateHoliday()) { store.setOtRateHoliday(it) })
+        row.addView(rateInput("工作Sun", store.getOtRateWeekday()) { store.setOtRateWeekday(it) })
+        row.addView(rateInput("休息Sun", store.getOtRateRest()) { store.setOtRateRest(it) })
+        row.addView(rateInput("节假Sun", store.getOtRateHoliday()) { store.setOtRateHoliday(it) })
         return row
     }
 
@@ -996,12 +996,12 @@ class WorkTimePage(private val activity: Activity) {
         input.setOnEditorActionListener { _, _, _ ->
             val v = input.text.toString().toDoubleOrNull()
             if (v != null && v > 0.0) { input.error = null; onCommit(v); true }
-            else { input.error = "需 > 0"; false }
+            else { input.error = "Must be > 0"; false }
         }
         settingsSaves.add {
             val v = input.text.toString().toDoubleOrNull()
             if (v != null && v > 0.0) { input.error = null; onCommit(v); true }
-            else { input.error = "需 > 0"; false }
+            else { input.error = "Must be > 0"; false }
         }
         col.addView(TextView(activity).apply {
             text = label + " ×"
@@ -1013,10 +1013,10 @@ class WorkTimePage(private val activity: Activity) {
         return col
     }
 
-    /** 工资模式 单选（时薪 / 月薪） */
+    /** Pay模式 单选（Hourly Rate / Monthly Salary） */
     private fun buildPayModeRow(): View {
         val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
-        val items = arrayOf("时薪模式" to WorkTimeStore.PayMode.HOURLY, "月薪模式" to WorkTimeStore.PayMode.MONTHLY)
+        val items = arrayOf("Hourly Pay" to WorkTimeStore.PayMode.HOURLY, "Monthly Pay" to WorkTimeStore.PayMode.MONTHLY)
         val chips = arrayOfNulls<TextView>(items.size)
         fun render() {
             val mode = store.getPayMode()
@@ -1059,7 +1059,7 @@ class WorkTimePage(private val activity: Activity) {
         return row
     }
 
-    /** 工资参数区（随工资模式动态切换内容） */
+    /** Pay参数区（随Pay模式动态切换内容） */
     private fun buildSalarySection(): View {
         val container = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
         salaryContainer = container
@@ -1067,7 +1067,7 @@ class WorkTimePage(private val activity: Activity) {
         return container
     }
 
-    /** 按时薪/月薪模式重建工资参数：时薪模式只留时薪；月薪模式只留月薪 + 标准工时 */
+    /** 按Hourly Rate/Monthly Pay重建Pay参数：Hourly Pay只留Hourly Rate；Monthly Pay只留Monthly Salary + 标准Work Time */
     private fun renderSalary() {
         val container = salaryContainer ?: return
         container.removeAllViews()
@@ -1076,30 +1076,30 @@ class WorkTimePage(private val activity: Activity) {
         salaryStdHoursInput = null
         val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         if (store.getPayMode() == WorkTimeStore.PayMode.HOURLY) {
-            salaryTitle?.text = "时薪设置"
-            val (v, et) = amountInput("时薪", store.getHourlyRate())
+            salaryTitle?.text = "Hourly Pay Settings"
+            val (v, et) = amountInput("Hourly Rate", store.getHourlyRate())
             salaryHourlyInput = et
             row.addView(v)
         } else {
-            salaryTitle?.text = "月薪 / 月标准工时"
-            val (v1, et1) = amountInput("月薪", store.getMonthlySalary())
+            salaryTitle?.text = "Monthly Salary / 月标准Work Time"
+            val (v1, et1) = amountInput("Monthly Salary", store.getMonthlySalary())
             salaryMonthlyInput = et1
             row.addView(v1)
-            val (v2, et2) = amountInput("标准工时", store.getStdMonthHours())
+            val (v2, et2) = amountInput("标准Work Time", store.getStdMonthHours())
             salaryStdHoursInput = et2
             row.addView(v2)
         }
         container.addView(row)
     }
 
-    /** 校验并Save当前显示的工资参数（只Save与模式相关的字段） */
+    /** 校验并Save当前显示的Pay参数（只Save与模式相Off的字段） */
     private fun validateSalary(): Boolean {
         var ok = true
         fun check(et: EditText?, save: (Double) -> Unit) {
             val input = et ?: return
             val v = input.text.toString().toDoubleOrNull()
             if (v != null && v > 0.0) { input.error = null; save(v) }
-            else { input.error = "需 > 0"; ok = false }
+            else { input.error = "Must be > 0"; ok = false }
         }
         check(salaryHourlyInput) { store.setHourlyRate(it) }
         check(salaryMonthlyInput) { store.setMonthlySalary(it) }
@@ -1131,10 +1131,10 @@ class WorkTimePage(private val activity: Activity) {
         return Pair(col, input)
     }
 
-    /** 休息扣除：整数（分钟/天），允许 0 */
+    /** 休息扣除：整数（分钟/days），允许 0 */
     private fun buildRestDeductRow(): View {
         val row = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
-        row.addView(intInput("扣除（分钟/天）", store.getRestDeductMinutes()) {
+        row.addView(intInput("扣除（分钟/days）", store.getRestDeductMinutes()) {
             store.setRestDeductMinutes(it)
         })
         return row
@@ -1156,7 +1156,7 @@ class WorkTimePage(private val activity: Activity) {
         fun commit(): Boolean {
             val v = input.text.toString().trim().toIntOrNull()
             return if (v != null && v >= 0) { input.error = null; onCommit(v); true }
-            else { input.error = "需 ≥ 0"; false }
+            else { input.error = "Must be ≥ 0"; false }
         }
         input.setOnEditorActionListener { _, _, _ -> commit() }
         settingsSaves.add { commit() }
@@ -1170,7 +1170,7 @@ class WorkTimePage(private val activity: Activity) {
         return col
     }
 
-    // ==================== 复制当月记录到剪贴板 ====================
+    // ==================== Copy Monthly Records到剪贴板 ====================
 
     private fun copyMonthRecords() {
         val ym = monthFmt.format(cal.time)
@@ -1179,8 +1179,8 @@ class WorkTimePage(private val activity: Activity) {
         val csv = store.exportMonthCsv(ym, label)
         val cb = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
             as android.content.ClipboardManager
-        cb.setPrimaryClip(android.content.ClipData.newPlainText("工时记录", csv))
-        toast("已复制当月记录到剪贴板")
+        cb.setPrimaryClip(android.content.ClipData.newPlainText("Work Time录", csv))
+        toast("已Copy Monthly Records到剪贴板")
     }
 
     private fun toast(msg: String) {
