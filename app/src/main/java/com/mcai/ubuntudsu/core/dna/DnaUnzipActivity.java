@@ -200,7 +200,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         tb.setOrientation(LinearLayout.VERTICAL);
         tb.setPadding(dp(12), 0, 0, 0);
         TextView h1 = new TextView(this);
-        h1.setText(t("解压 ROM Archive", "Unzip ROM package"));
+        h1.setText(t("Extract ROM Archive", "Unzip ROM package"));
         h1.setTextSize(15.5f);
         h1.setTypeface(null, 1);
         h1.setTextColor(pal.title);
@@ -243,7 +243,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
             Haptics.perform(v);
             startActivityForResult(
                     com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
-                            this, t("选择 ROM Archive", "Select ROM zip"), new String[]{".zip", ".zip2"}),
+                            this, t("Select ROM Archive", "Select ROM zip"), new String[]{".zip", ".zip2"}),
                     PICK_ROM_ZIP);
         });
         android.widget.LinearLayout.LayoutParams brLp = new LinearLayout.LayoutParams(dp(38), dp(32));
@@ -252,7 +252,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         zipCard.addView(zh, new LinearLayout.LayoutParams(-1, -2));
 
         zipEmpty = new TextView(this);
-        zipEmpty.setText(t("未发现 zip，点 📂 浏览Select File", "No zip found, tap 📂 to browse"));
+        zipEmpty.setText(t("No ZIP found; tap 📂 to select a file", "No zip found, tap 📂 to browse"));
         zipEmpty.setTextSize(12f);
         zipEmpty.setTextColor(pal.subtitle);
         zipEmpty.setPadding(dp(2), dp(8), 0, dp(4));
@@ -317,7 +317,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
             chosenZip = null;
             chosenSizeText = "";
             renderSelection();
-            log("⊘ " + t("已Cancel选择", "Deselected"));
+            log("⊘ " + t("Selection cancelled", "Deselected"));
         });
         cbRow.addView(clearSel, new LinearLayout.LayoutParams(dp(32), dp(32)));
         chosenBanner.addView(cbRow, new LinearLayout.LayoutParams(-1, -2));
@@ -378,7 +378,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
         runBtn.setStateListAnimator(null);
         runBtn.setOnClickListener(v -> {
             Haptics.perform(v);
-            if (running.get()) { cancelFlag.set(true); log(t("正在Cancel ...", "Cancelling...")); return; }
+            if (running.get()) { cancelFlag.set(true); log(t("Cancelling...", "Cancelling...")); return; }
             startUnzip();
         });
         LinearLayout.LayoutParams rbLp = new LinearLayout.LayoutParams(-1, dp(54));
@@ -485,7 +485,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
 
     /** 扫描 PDNA 根目录 + 当前工程内的 zip（root 列目录带大小） */
     private void refreshZips() {
-        status.setText(t("正在扫描 zip ...", "Scanning zips..."));
+        status.setText(t("Scanning ZIP...", "Scanning zips..."));
         io.execute(() -> {
             List<ZipItem> entries = new ArrayList<>();
             String cur = DnaTools.currentProject(this);
@@ -578,7 +578,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
                 if (fullPath.equals(chosenZip)) {
                     chosenZip = null;
                     chosenSizeText = "";
-                    log("⊘ " + t("已Cancel选择", "Deselected") + " " + e.name);
+                    log("⊘ " + t("Selection cancelled", "Deselected") + " " + e.name);
                 } else {
                     chosenZip = fullPath;
                     chosenSizeText = fmtSize(e.size);
@@ -650,7 +650,7 @@ public final class DnaUnzipActivity extends DnaBaseActivity {
                 progressTrack.setVisibility(View.GONE);
                 if (result.getSuccess()) {
                     log("✓ " + result.getMessage());
-                    status.setText("✓ " + t("Extraction complete（新工程已创建，可在 DNA 页切换）", "Done (new project created)"));
+                    status.setText("✓ " + t("Extraction complete (new project created; switch to it on the DNA page)", "Done (new project created)"));
                     status.setTextColor(pal.success);
                     toast(t("Extraction complete", "Done"));
                 } else {
