@@ -48,8 +48,8 @@ object DsuManager {
             "--el KEY_USERDATA_SIZE ${userdataGB.toLong() * 1024L * 1024L * 1024L}"
         log("-> $command")
         val result = RootShell.exec(command, timeoutMs = 120000, log = log)
-        if (result.success) log("已交给系统 DSU 安装，正在读取安装进度。")
-        else log("启动 DSU 安装失败，退出码 ${result.code}")
+        if (result.success) log("Handed over to the system DSU installer; reading installation progress.")
+        else log("Failed to start DSU installation, exit code ${result.code}")
         return result
     }
 
@@ -92,7 +92,7 @@ object DsuManager {
         return listOf("/data/gsi/dsu/dsu", "/metadata/gsi/dsu", "/data/unencrypted/dsu").mapNotNull { path ->
             val result = RootShell.exec("du -sb ${shellQuote(path)} 2>/dev/null || true", timeoutMs = 15000, log = log)
             val size = result.stdout.trim().split(Regex("\\s+")).firstOrNull()?.toLongOrNull() ?: return@mapNotNull null
-            DsuPartition(path, size, "${Env.formatSize(size)} · ${if (path.endsWith("/dsu")) "DSU 镜像" else "DSU 元数据"}")
+            DsuPartition(path, size, "${Env.formatSize(size)} · ${if (path.endsWith("/dsu")) "DSU image" else "DSU metadata"}")
         }
     }
 
