@@ -51,7 +51,7 @@ class LinuxPage(
         page.addView(infoCard)
 
         installHint = TextView(activity).apply {
-            text = "Ubuntu rootfs 尚未安装，点击下方“安装 rootfs 系统”开始。"
+            text = "Ubuntu rootfs 尚Not installed，点击下方“Install rootfs 系统”开始。"
             textSize = 11f
             setTextColor(if (Ui.isDark(activity)) Color.parseColor("#FFB4A8") else Color.parseColor("#B5473B"))
             setPadding(Ui.dp(4, d), Ui.dp(6, d), Ui.dp(4, d), 0)
@@ -59,7 +59,7 @@ class LinuxPage(
         page.addView(installHint)
 
         page.addView(spacer(6))
-        // 安装/卸载二合一卡片：一张拟态玻璃卡内两行入口，水晶玻璃渲染条分格
+        // Install/Uninstall二合一卡片：一张拟态玻璃卡内两行入口，水晶玻璃渲染条分格
         val manageCard = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             background = Ui.glassSurface(activity, 18f)
@@ -70,7 +70,7 @@ class LinuxPage(
             ).apply { bottomMargin = Ui.dp(8, d) }
         }
         manageCard.addView(
-            actionRow(R.drawable.icon_install_rootfs, "安装 rootfs 系统", "本地安装 · 云端下载 · 备份") {
+            actionRow(R.drawable.icon_install_rootfs, "Install rootfs 系统", "本地Install · 云端Download · 备份") {
                 activity.startActivity(Intent(activity, RootfsInstallActivity::class.java))
             },
         )
@@ -79,7 +79,7 @@ class LinuxPage(
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(2, d)),
         )
         manageCard.addView(
-            actionRow(R.drawable.icon_trash_rootfs, "卸载 rootfs 系统", "删除已安装的 Ubuntu 系统") { confirmUninstall() },
+            actionRow(R.drawable.icon_trash_rootfs, "Uninstall rootfs 系统", "删除Installed的 Ubuntu 系统") { confirmUninstall() },
         )
         page.addView(manageCard)
 
@@ -90,7 +90,7 @@ class LinuxPage(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = Ui.dp(10, d); bottomMargin = Ui.dp(8, d) },
         )
-        // 大图标入口：一排两个往下排（容器终端 / 桌面环境），第三项文件管理独占一排
+        // 大图标入口：一排两个往下排（容器终端 / Desktop Environment），第三项文件管理独占一排
         // 大图标直接悬浮在卡片/页面上（已去图标底色），仅靠大字号 emoji 图标 + 标题 + 描述
         val tileRow = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         tileRow.addView(
@@ -102,7 +102,7 @@ class LinuxPage(
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
         tileRow.addView(
-            Ui.iconTile(activity, "桌面环境", "XFCE · KDE · GNOME + VNC", R.drawable.icon_linux_modern, Color.parseColor("#2D64AA")) {
+            Ui.iconTile(activity, "Desktop Environment", "XFCE · KDE · GNOME + VNC", R.drawable.icon_linux_modern, Color.parseColor("#2D64AA")) {
                 requireRootfs {
                     activity.startActivity(
                         Intent(activity, TerminalActivity::class.java).apply {
@@ -130,12 +130,12 @@ class LinuxPage(
         return page
     }
 
-    // rootfs 未安装时自动弹出安装界面，已安装则执行后续动作
+    // rootfs Not installed时自动弹出Install界面，Installed则执行后续动作
     private fun requireRootfs(action: () -> Unit) {
         if (Env.ubuntuInstalled(activity)) {
             action()
         } else {
-            Toast.makeText(activity, "Ubuntu rootfs 尚未安装，请先完成安装", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Ubuntu rootfs 尚Not installed，请先完成Install", Toast.LENGTH_SHORT).show()
             activity.startActivity(Intent(activity, RootfsInstallActivity::class.java))
         }
     }
@@ -145,11 +145,11 @@ class LinuxPage(
         val path = Env.rootfs(activity).path
         installHint.visibility = if (installed) View.GONE else View.VISIBLE
         if (!installed) {
-            infoText.text = "系统版本信息：未安装\n状态：未安装\n安装后可通过终端进入 Linux（Chroot + Root 权限）"
+            infoText.text = "系统版本信息：Not installed\n状态：Not installed\nInstall后可通过终端进入 Linux（Chroot + Root 权限）"
             return
         }
         val version = rootfsVersion()
-        infoText.text = "系统版本信息：$version\n状态：已安装\n路径：$path"
+        infoText.text = "系统版本信息：$version\n状态：Installed\n路径：$path"
     }
 
     private fun rootfsVersion(): String {
@@ -163,26 +163,26 @@ class LinuxPage(
 
     private fun confirmUninstall() {
         if (!Env.ubuntuInstalled(activity)) {
-            Toast.makeText(activity, "当前没有已安装的 Linux rootfs", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "当前没有Installed的 Linux rootfs", Toast.LENGTH_SHORT).show()
             return
         }
         val running = TerminalSessionStore.takeRunning()
         if (running != null) {
             AlertDialog.Builder(activity)
                 .setTitle("终端正在运行")
-                .setMessage("请先结束终端进程并卸载挂载点，再删除 rootfs。")
+                .setMessage("请先结束终端进程并Uninstall挂载点，再删除 rootfs。")
                 .setPositiveButton("关闭终端") { _, _ ->
                     running.finishIfRunning()
-                    Toast.makeText(activity, "终端已请求关闭，请稍后再卸载", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "终端已请求关闭，请稍后再Uninstall", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("取消", null)
                 .show()
             return
         }
         AlertDialog.Builder(activity)
-            .setTitle("卸载 Linux")
+            .setTitle("Uninstall Linux")
             .setMessage("将删除 rootfs 目录及全部数据，此操作不可恢复。确定继续？")
-            .setPositiveButton("卸载") { _, _ ->
+            .setPositiveButton("Uninstall") { _, _ ->
                 executor.execute {
                     val rootfs = Env.rootfs(activity)
                     val ref = rootfs.absolutePath
@@ -203,9 +203,9 @@ sleep 1""".trimIndent()
                     val gone = result.stdout.contains("__GONE__") && !result.stdout.contains("__REMAIN__")
                     activity.runOnUiThread {
                         if (gone) {
-                            Toast.makeText(activity, "已卸载 rootfs 系统", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(activity, "已Uninstall rootfs 系统", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(activity, "卸载失败：目录仍存在，请关闭终端后重试", Toast.LENGTH_LONG).show()
+                            Toast.makeText(activity, "Uninstall失败：目录仍存在，请关闭终端后重试", Toast.LENGTH_LONG).show()
                         }
                         refreshInfo()
                     }
