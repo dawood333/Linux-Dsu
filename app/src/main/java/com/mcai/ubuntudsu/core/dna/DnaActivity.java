@@ -350,7 +350,7 @@ public final class DnaActivity extends DnaBaseActivity {
         LinearLayout projectText = new LinearLayout(this);
         projectText.setOrientation(LinearLayout.VERTICAL);
         TextView projectLabel = new TextView(this);
-        projectLabel.setText(t("当前工程（点击选择）", "Current project (tap to switch)"));
+        projectLabel.setText("Current project (tap to switch)");
         projectLabel.setTextSize(11.5f);
         projectLabel.setTextColor(pal.subtitle);
         projectText.addView(projectLabel, new LinearLayout.LayoutParams(-1, -2));
@@ -417,7 +417,7 @@ public final class DnaActivity extends DnaBaseActivity {
         pickHead.setGravity(Gravity.CENTER_VERTICAL);
         TextView pickTitle = new TextView(this);
         // v3.30.12：根目录扫描模式列 /sdcard/PDMA 根目录文件（非工程目录）
-        pickTitle.setText(rootScanMode() ? t("PDNA 文件（/sdcard/PDNA）", "PDNA files (root)") : t("工程文件", "Project files"));
+        pickTitle.setText(rootScanMode() ? "PDNA files (root)" : "Project files");
         pickTitle.setTextSize(15);
         pickTitle.setTypeface(null, 1);
         pickTitle.setTextColor(pal.title);
@@ -431,7 +431,7 @@ public final class DnaActivity extends DnaBaseActivity {
         // v3.28.7：多选模式加「全选 / 清空」（分解 / 合成 / 转换等可批量处理全部文件）
         if (multiPick()) {
             Button fileAllBtn = new Button(this);
-            fileAllBtn.setText(t("全选", "All"));
+            fileAllBtn.setText("All");
             fileAllBtn.setAllCaps(false);
             fileAllBtn.setTextSize(12);
             fileAllBtn.setMinWidth(0);
@@ -449,7 +449,7 @@ public final class DnaActivity extends DnaBaseActivity {
             });
             pickHead.addView(fileAllBtn, new LinearLayout.LayoutParams(dp(52), dp(32)));
             Button fileNoneBtn = new Button(this);
-            fileNoneBtn.setText(t("清空", "None"));
+            fileNoneBtn.setText("None");
             fileNoneBtn.setAllCaps(false);
             fileNoneBtn.setTextSize(12);
             fileNoneBtn.setMinWidth(0);
@@ -501,7 +501,7 @@ public final class DnaActivity extends DnaBaseActivity {
             Haptics.perform(v);
             startActivityForResult(
                     com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
-                            this, t("选择文件", "Pick file"), browseExts()),
+                            this, "Pick file", browseExts()),
                     PICK_FILE);
         });
         pickHead.addView(pickSaf, safLp);
@@ -519,7 +519,7 @@ public final class DnaActivity extends DnaBaseActivity {
         manualInput.setTextSize(12.5f);
         manualInput.setTextColor(pal.title);
         manualInput.setHintTextColor(pal.subtitle);
-        manualInput.setHint(t("或输入绝对路径（多个用空格分隔）", "Or absolute paths, space separated"));
+        manualInput.setHint("Or absolute paths, space separated");
         manualInput.setBackground(null);
         // v3.28.6：垂直居中 + 上下对称内边距（修复文字贴上沿不居中）
         manualInput.setGravity(Gravity.CENTER_VERTICAL);
@@ -550,7 +550,7 @@ public final class DnaActivity extends DnaBaseActivity {
             if (mode == MODE_BIN) {
                 binParseBtn = new Button(this);
                 binParseBtn.setAllCaps(false);
-                binParseBtn.setText("🔍  " + t("开始解析", "Parse"));
+                binParseBtn.setText("🔍  " + "Parse");
                 binParseBtn.setTextSize(14);
                 binParseBtn.setTypeface(null, 1);
                 binParseBtn.setTextColor(Color.WHITE);
@@ -575,7 +575,7 @@ public final class DnaActivity extends DnaBaseActivity {
             partHead.setOrientation(LinearLayout.HORIZONTAL);
             partHead.setGravity(Gravity.CENTER_VERTICAL);
             TextView partTitle = new TextView(this);
-            partTitle.setText(mode == MODE_BIN ? "payload 分区" : "super 分区");
+            partTitle.setText(mode == MODE_BIN ? "Payload partitions" : "Super partitions");
             partTitle.setTextSize(15);
             partTitle.setTypeface(null, 1);
             partTitle.setTextColor(pal.title);
@@ -586,7 +586,7 @@ public final class DnaActivity extends DnaBaseActivity {
             partitionsHint.setPadding(0, 0, dp(10), 0);
             partHead.addView(partitionsHint, new LinearLayout.LayoutParams(-2, -2));
             Button allBtn = new Button(this);
-            allBtn.setText(t("全选", "All"));
+            allBtn.setText("All");
             allBtn.setAllCaps(false);
             allBtn.setTextSize(12);
             allBtn.setMinWidth(0);
@@ -604,7 +604,7 @@ public final class DnaActivity extends DnaBaseActivity {
             });
             partHead.addView(allBtn, new LinearLayout.LayoutParams(dp(56), dp(32)));
             Button noneBtn = new Button(this);
-            noneBtn.setText(t("清空", "None"));
+            noneBtn.setText("None");
             noneBtn.setAllCaps(false);
             noneBtn.setTextSize(12);
             noneBtn.setMinWidth(0);
@@ -634,8 +634,8 @@ public final class DnaActivity extends DnaBaseActivity {
             partLp.bottomMargin = dp(10);
             content.addView(partitionsCard, partLp);
             showPartitionsHint(mode == MODE_BIN
-                    ? t("选文件 → 开始解析 → 勾选要提取的分区", "Pick → Parse → check partitions")
-                    : t("选择文件后自动列出分区（不勾选 = 全部）", "Auto-listed after picking (none = all)"));
+                    ? "Pick → Parse → check partitions"
+                    : "Auto-listed after picking (none = all)");
         }
 
         // ---- 模式选项 ----
@@ -678,7 +678,7 @@ public final class DnaActivity extends DnaBaseActivity {
             Haptics.perform(v);
             if (running.get()) {
                 cancelFlag.set(true);
-                logLine(t("正在取消 ...", "Cancelling..."));
+                logLine("Cancelling...");
                 return;
             }
             execute();
@@ -704,7 +704,7 @@ public final class DnaActivity extends DnaBaseActivity {
         logHead.setGravity(Gravity.CENTER_VERTICAL);
         logHead.setPadding(0, 0, 0, dp(8));
         logTitleView = new TextView(this);
-        logTitleView.setText(t("执行任务", "Run Task"));
+        logTitleView.setText("Run Task");
         logTitleView.setTextSize(14f);
         logTitleView.setTypeface(null, 1);
         logTitleView.setTextColor(pal.title);
@@ -715,7 +715,7 @@ public final class DnaActivity extends DnaBaseActivity {
         logActions.setOrientation(LinearLayout.HORIZONTAL);
         logActions.setGravity(Gravity.CENTER_VERTICAL);
         Button copyLog = new Button(this);
-        copyLog.setText(t("复制日志", "Copy Log"));
+        copyLog.setText("Copy Log");
         copyLog.setAllCaps(false);
         copyLog.setTextSize(11.5f);
         copyLog.setTypeface(null, 1);
@@ -730,17 +730,17 @@ public final class DnaActivity extends DnaBaseActivity {
             Haptics.perform(v);
             CharSequence text = logDisplay.getText();
             if (text.length() == 0) {
-                toast(t("暂无日志", "Nothing to copy"));
+                toast("Nothing to copy");
                 return;
             }
             android.content.ClipboardManager cm =
                     (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             cm.setPrimaryClip(android.content.ClipData.newPlainText("DNA log", text));
-            toast(t("已复制全部日志", "Log copied"));
+            toast("Log copied");
         });
         logActions.addView(copyLog, new LinearLayout.LayoutParams(-2, dp(30)));
         Button clearLog = new Button(this);
-        clearLog.setText(t("清除日志", "Clear Log"));
+        clearLog.setText("Clear Log");
         clearLog.setAllCaps(false);
         clearLog.setTextSize(11.5f);
         clearLog.setTypeface(null, 1);
@@ -754,7 +754,7 @@ public final class DnaActivity extends DnaBaseActivity {
         clearLog.setOnClickListener(v -> {
             Haptics.perform(v);
             logDisplay.setText("");
-            toast(t("日志已清空", "Log cleared"));
+            toast("Log cleared");
         });
         LinearLayout.LayoutParams clearLp = new LinearLayout.LayoutParams(-2, dp(30));
         clearLp.leftMargin = dp(6);
@@ -833,53 +833,39 @@ public final class DnaActivity extends DnaBaseActivity {
 
     private String modeTitle() {
         switch (mode) {
-            case MODE_BIN: return "DNA · " + t("分解 bin", "Extract bin");
-            case MODE_SUPER_UNPACK: return "DNA · " + t("分解 super", "Extract super");
-            case MODE_REPACK: return "DNA · " + t("合成镜像", "Repack");
-            case MODE_SUPER_PACK: return "DNA · " + t("合成 super", "Build super");
-            case MODE_CONVERT: return "DNA · " + t("img-dat-br 转换", "img-dat-br");
-            case MODE_SPARSE: return "DNA · " + t("img-simg 互转", "img-simg");
-            case MODE_ZST: return "DNA · " + t("zst-img 互转", "zst-img");
-            case MODE_CHUNK: return "DNA · " + t("合并 Sparse 分段", "Merge sparse chunks");
-            case MODE_VBMETA: return "DNA · " + t("去除 vbmeta 验证", "Remove vbmeta");
-            case MODE_SELINUX: return "DNA · " + t("一键宽容 v2.0", "Permissive v2.0");
-            case MODE_MERGE_MY: return "DNA · " + t("合并 my_ 分区进 system", "Merge my_ into system");
-            case MODE_MERGE_SUPER: return "DNA · " + t("合并分段 super", "Merge split super");
-            case MODE_MERGE_PART: return "DNA · " + t("合并其他分区进 system", "Merge partitions into system");
-            default: return "DNA · " + t("分解镜像", "Extract");
+            case MODE_BIN: return "DNA · " + "Extract bin";
+            case MODE_SUPER_UNPACK: return "DNA · " + "Extract super";
+            case MODE_REPACK: return "DNA · " + "Repack";
+            case MODE_SUPER_PACK: return "DNA · " + "Build super";
+            case MODE_CONVERT: return "DNA · " + "img-dat-br";
+            case MODE_SPARSE: return "DNA · " + "img-simg";
+            case MODE_ZST: return "DNA · " + "zst-img";
+            case MODE_CHUNK: return "DNA · " + "Merge sparse chunks";
+            case MODE_VBMETA: return "DNA · " + "Remove vbmeta";
+            case MODE_SELINUX: return "DNA · " + "Permissive v2.0";
+            case MODE_MERGE_MY: return "DNA · " + "Merge my_ into system";
+            case MODE_MERGE_SUPER: return "DNA · " + "Merge split super";
+            case MODE_MERGE_PART: return "DNA · " + "Merge partitions into system";
+            default: return "DNA · " + "Extract";
         }
     }
 
     private String modeDesc() {
         switch (mode) {
-            case MODE_BIN: return t("payload.bin / OTA zip → 分区镜像（JNI 直读，原生支持 zip 内 payload.bin）。选择文件 → 点「开始解析」列出全部分区（含大小与 SHA256 哈希）→ 勾选要提取的分区（单选/多选均可）→ 开始分解，提取到当前工程并自动校验哈希。",
-                    "payload.bin / OTA zip → partition images (payload_extract reads payload.bin inside zip natively).");
-            case MODE_SUPER_UNPACK: return t("super.img → 分区镜像（lpunpack）。自动识别动态分区，可勾选分区、支持提取后自动分解。",
-                    "super.img → partition images (lpunpack).");
-            case MODE_REPACK: return t("分解目录 → img / dat / br 镜像（repack）。自动列出当前工程 /data/PDNA/工程名 下的分解输出目录（原版 findfile.sh dir），支持 ext4 / erofs / f2fs，可多目录同时打包。",
-                    "Extracted dirs → img / dat / br (repack). ext4 / erofs / f2fs.");
-            case MODE_SUPER_PACK: return t("分区镜像 → super.img（lpmake）。支持 A-only / AB / Virtual-AB，raw / sparse 输出。",
-                    "Partition images → super.img (lpmake).");
-            case MODE_CONVERT: return t("img → dat / br（dna convert）。多选批量转换，自动压缩等级。",
-                    "img → dat / br (dna convert).");
-            case MODE_SPARSE: return t("img ↔ sparse 互转。gettype 自动判断方向：ext / erofs → img2simg，sparse → simg2img，输出到工程 out/",
-                    "raw ↔ sparse (auto direction), output to project out/.");
-            case MODE_ZST: return t("zst ↔ img 互转（zstd 多线程高速压缩 / 解压），输出到工程 out/。",
-                    "zst ↔ img (zstd multithread), output to project out/.");
-            case MODE_CHUNK: return t("分段 Sparse 镜像合并：xxx.img.1 + xxx.img.2 … → out/xxx.img（simg2img）。",
-                    "Merge split sparse images: prefix.N → out/prefix (simg2img).");
-            case MODE_VBMETA: return t("读取 /sdcard/PDNA 根目录下的 img，vbmeta 镜像去除 AVB 验证（magiskboot hexpatch）。原版 del_vbmeta.sh：先 gettype 校验，输出到 /sdcard/PDNA/out/。",
-                    "Read img from /sdcard/PDNA root, disable AVB verification (hexpatch), output to /sdcard/PDNA/out/.");
-            case MODE_SELINUX: return t("读取 /sdcard/PDNA 根目录下的 img，boot / vendor_boot 注入 androidboot.selinux=permissive（magiskboot unpack/repack）。原版 patch_selinux.sh，输出到 /sdcard/PDNA/out/。",
-                    "Read img from /sdcard/PDNA root, inject permissive cmdline, output to /sdcard/PDNA/out/.");
-            case MODE_MERGE_MY: return t("把分解出的 my_* 分区目录合并进 system 目录并同步 fs_config / file_contexts（原版 my_partition_merge.sh）。请先分解 my 分区和 system 分区。",
-                    "Merge extracted my_* partition dirs into system (my_partition_merge.sh).");
-            case MODE_MERGE_SUPER: return t("合并项目目录下的分段 super 文件：super.img.1 + super.img.2 … → out/super.img（原版 merge_superchunk.sh，simg2img）。",
-                    "Merge split super images: super.img.N → out/super.img (merge_superchunk.sh).");
-            case MODE_MERGE_PART: return t("把其他分区目录内层合并进 system 并跳过挂载（原版 partition_merge.sh）。请先分解对应分区和 system 分区。",
-                    "Merge other partition dirs into system inner layer (partition_merge.sh).");
-            default: return t("img / br / dat → 可编辑目录（dna extract）。自动识别 erofs / ext4 / f2fs / sparse 格式，支持多选批量分解。",
-                    "img / br / dat → directory (dna extract).");
+            case MODE_BIN: return "payload.bin / OTA zip → partition images (payload_extract reads payload.bin inside zip natively).";
+            case MODE_SUPER_UNPACK: return "super.img → partition images (lpunpack).";
+            case MODE_REPACK: return "Extracted dirs → img / dat / br (repack). ext4 / erofs / f2fs.";
+            case MODE_SUPER_PACK: return "Partition images → super.img (lpmake).";
+            case MODE_CONVERT: return "img → dat / br (dna convert).";
+            case MODE_SPARSE: return "raw ↔ sparse (auto direction), output to project out/.";
+            case MODE_ZST: return "zst ↔ img (zstd multithread), output to project out/.";
+            case MODE_CHUNK: return "Merge split sparse images: prefix.N → out/prefix (simg2img).";
+            case MODE_VBMETA: return "Read img from /sdcard/PDNA root, disable AVB verification (hexpatch), output to /sdcard/PDNA/out/.";
+            case MODE_SELINUX: return "Read img from /sdcard/PDNA root, inject permissive cmdline, output to /sdcard/PDNA/out/.";
+            case MODE_MERGE_MY: return "Merge extracted my_* partition dirs into system (my_partition_merge.sh).";
+            case MODE_MERGE_SUPER: return "Merge split super images: super.img.N → out/super.img (merge_superchunk.sh).";
+            case MODE_MERGE_PART: return "Merge other partition dirs into system inner layer (partition_merge.sh).";
+            default: return "img / br / dat → directory (dna extract).";
         }
     }
 
@@ -926,7 +912,7 @@ public final class DnaActivity extends DnaBaseActivity {
             projectView.setText(project);
             projectView.setTextColor(pal.title);
         } else {
-            projectView.setText(t("未选择工程", "No project"));
+            projectView.setText("No project");
             projectView.setTextColor(pal.danger);
         }
     }
@@ -941,11 +927,11 @@ public final class DnaActivity extends DnaBaseActivity {
         // 根目录扫描模式：不依赖工程选择，直接列 /sdcard/PDNA 下的 img
         if (rootScanMode()) {
             List<String> rootFiles = DnaTools.listProjectFiles(null, "img");
-            projectMeta.setText(t("识别 ", "Scan ") + DnaTools.WORK_ROOT + t(" 下的 img · 输出到 ", " for img · output to ")
+            projectMeta.setText("Scan " + DnaTools.WORK_ROOT + " for img · output to "
                     + DnaTools.WORK_ROOT + "/out");
             if (rootFiles.isEmpty()) {
                 fileCountView.setText("");
-                TextView empty = emptyRow(t("/sdcard/PDNA 根目录暂无 img 文件", "No img files in /sdcard/PDMA root"));
+                TextView empty = emptyRow("No img files in /sdcard/PDMA root");
                 fileList.addView(empty, new LinearLayout.LayoutParams(-1, -2));
                 return;
             }
@@ -961,8 +947,8 @@ public final class DnaActivity extends DnaBaseActivity {
         }
         if (project == null) {
             fileCountView.setText("");
-            projectMeta.setText(t("点击卡片选择或新建工程", "Tap card to pick / create a project"));
-            TextView empty = emptyRow(t("请先选择工程", "Select a project first"));
+            projectMeta.setText("Tap card to pick / create a project");
+            TextView empty = emptyRow("Select a project first");
             fileList.addView(empty, new LinearLayout.LayoutParams(-1, -2));
             return;
         }
@@ -982,14 +968,14 @@ public final class DnaActivity extends DnaBaseActivity {
             files = DnaTools.listProjectFiles(project, type);
             droNames.clear();
         }
-        projectMeta.setText(t("工程 ", "Project ") + projectPath()
-                + "\n" + t("分解输出 ", "Output ") + DnaTools.TMP_ROOT + "/" + project
-                + (files.isEmpty() ? "" : "  ·  " + files.size() + t(" 项", " items")));
+        projectMeta.setText("Project " + projectPath()
+                + "\n" + "Output " + DnaTools.TMP_ROOT + "/" + project
+                + (files.isEmpty() ? "" : "  ·  " + files.size() + " items"));
         if (files.isEmpty()) {
             fileCountView.setText("");
             TextView empty = emptyRow(fromDro
-                    ? t("暂无分解输出目录（先分解 img / bin / super）", "No extracted dirs yet. Extract first")
-                    : t("工程内暂无匹配文件", "No matching files in this project"));
+                    ? "No extracted dirs yet. Extract first"
+                    : "No matching files in this project");
             fileList.addView(empty, new LinearLayout.LayoutParams(-1, -2));
             return;
         }
@@ -1028,16 +1014,16 @@ public final class DnaActivity extends DnaBaseActivity {
 
     private String rowExtra(String name, String type) {
         if ("dro_dir".equals(type)) {
-            return droNames.contains(name) ? t("分解输出", "extracted") : t("工程目录", "in project");
+            return droNames.contains(name) ? "extracted" : "in project";
         }
         // 根目录扫描模式：文件在 /sdcard/PDMA 根，不在工程目录
         File f = new File(rootScanMode() ? DnaTools.WORK_ROOT : projectPath(), name);
         if ("dir".equals(type)) {
             File[] children = f.listFiles();
             int n = children == null ? 0 : children.length;
-            return t("目录 · ", "dir · ") + n + t(" 项", " items");
+            return "dir · " + n + " items";
         }
-        if ("split_sparse".equals(type)) return t("分段", "chunks");
+        if ("split_sparse".equals(type)) return "chunks";
         long len = f.length();
         if (len <= 0) return "";
         return formatSize(len);
@@ -1125,7 +1111,7 @@ public final class DnaActivity extends DnaBaseActivity {
             applyRowState(r, on);
         }
         if (fileCountView != null) {
-            fileCountView.setText(fileRows.isEmpty() ? "" : t("已选 ", "Picked ") + picked.size() + " / " + fileRows.size());
+            fileCountView.setText(fileRows.isEmpty() ? "" : "Picked " + picked.size() + " / " + fileRows.size());
         }
     }
 
@@ -1144,7 +1130,7 @@ public final class DnaActivity extends DnaBaseActivity {
         for (Row r : partRows) applyRowState(r, checkedPartitions.contains(r.name));
         if (partitionsHint != null && !partitionNames.isEmpty()) {
             partitionsHint.setText(checkedPartitions.isEmpty()
-                    ? t("全部", "all")
+                    ? "all"
                     : checkedPartitions.size() + "/" + partitionNames.size());
         }
     }
@@ -1164,9 +1150,9 @@ public final class DnaActivity extends DnaBaseActivity {
                 binExtractor = null;
                 binInput = null;
             }
-            showPartitionsHint(t("已选择文件，点「开始解析」列出分区", "Picked, tap Parse to list partitions"));
-            logLine(t("已选择", "Picked") + ": " + new File(fullPath).getName()
-                    + t("（点「开始解析」列出分区）", " (tap Parse to list partitions)"));
+            showPartitionsHint("Picked, tap Parse to list partitions");
+            logLine("Picked" + ": " + new File(fullPath).getName()
+                    + " (tap Parse to list partitions)");
         } else if (mode == MODE_SUPER_UNPACK) {
             // v3.30.27：对齐 bin 交互 —— 选中文件不自动解析，点「开始分解」时解析并弹窗勾选
             partitionNames.clear();
@@ -1176,9 +1162,9 @@ public final class DnaActivity extends DnaBaseActivity {
                 partRows.clear();
                 partitionsList.removeAllViews();
             }
-            showPartitionsHint(t("已选择文件，点「开始分解」解析分区", "Picked, tap Extract to parse partitions"));
-            logLine(t("已选择", "Picked") + ": " + new File(fullPath).getName()
-                    + t("（点「开始分解」解析分区）", " (tap Extract to parse)"));
+            showPartitionsHint("Picked, tap Extract to parse partitions");
+            logLine("Picked" + ": " + new File(fullPath).getName()
+                    + " (tap Extract to parse)");
         }
     }
 
@@ -1216,20 +1202,20 @@ public final class DnaActivity extends DnaBaseActivity {
         if (running.get()) return;
         List<String> targets = targetPaths();
         if (targets.isEmpty()) {
-            toast(t("请先选择 payload.bin 或 OTA zip", "Pick payload.bin or OTA zip first"));
+            toast("Pick payload.bin or OTA zip first");
             return;
         }
         String path = targets.get(0);
         String lower = path.toLowerCase(Locale.ROOT);
         if (!lower.endsWith("payload.bin") && !lower.endsWith(".zip") && !lower.endsWith(".zip2")) {
-            toast(t("不支持的文件：请选择 payload.bin 或 OTA zip 包", "Unsupported file: pick payload.bin or OTA zip"));
+            toast("Unsupported file: pick payload.bin or OTA zip");
             return;
         }
         running.set(true);
         binParseBtn.setEnabled(false);
-        status.setText(t("正在解析分区（含哈希）...", "Parsing partitions (with hashes)..."));
+        status.setText("Parsing partitions (with hashes)...");
         status.setTextColor(pal.subtitle);
-        logLine("$ " + t("解析", "Parse") + ": " + path);
+        logLine("$ " + "Parse" + ": " + path);
         executor.execute(() -> {
             // 关闭旧句柄（换了文件）
             if (binExtractor != null) {
@@ -1246,7 +1232,7 @@ public final class DnaActivity extends DnaBaseActivity {
             List<PayloadExtractor.PartitionInfo> parts = PayloadExtractor.fastListPartitions(input);
             PayloadExtractor.Metadata meta = null;
             if (parts == null || parts.isEmpty()) {
-                logLine(t("改用 payload_dumper 解析 ...", "payload_dumper fallback..."));
+                logLine("payload_dumper fallback...");
                 File dumper = new File(getApplicationInfo().nativeLibraryDir, "libpayload_dumper.so");
                 DnaTools.Result r = DnaTools.run(this,
                         DnaTools.quote(dumper.getAbsolutePath()) + " --list " + DnaTools.quote(path),
@@ -1265,7 +1251,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 }
             }
             if (parts == null || parts.isEmpty()) {
-                logLine(t("改用 JNI 解析 ...", "JNI fallback..."));
+                logLine("JNI fallback...");
                 PayloadExtractor ex = new PayloadExtractor();
                 boolean ok = ex.open(input);
                 if (!ok) {
@@ -1285,9 +1271,9 @@ public final class DnaActivity extends DnaBaseActivity {
                     mainHandler.post(() -> {
                         running.set(false);
                         binParseBtn.setEnabled(true);
-                        status.setText("✗ " + t("打开失败（文件损坏或非 payload 镜像）", "Open failed (corrupt or not a payload)"));
+                        status.setText("✗ " + "Open failed (corrupt or not a payload)");
                         status.setTextColor(pal.danger);
-                        logLine("✗ " + t("无法打开", "Cannot open") + ": " + p);
+                        logLine("✗ " + "Cannot open" + ": " + p);
                     });
                     return;
                 }
@@ -1307,8 +1293,8 @@ public final class DnaActivity extends DnaBaseActivity {
                 binInput = finalInput;
                 renderBinPartitions(fParts);
                 if (fMeta != null) {
-                    logLine(t("payload 版本", "Payload version") + ": " + (fMeta.getVersion() != null ? fMeta.getVersion() : "?")
-                            + " · " + t("分区数", "partitions") + ": " + fMeta.getPartitionCount());
+                    logLine("Payload version" + ": " + (fMeta.getVersion() != null ? fMeta.getVersion() : "?")
+                            + " · " + "partitions" + ": " + fMeta.getPartitionCount());
                 }
             });
         });
@@ -1321,9 +1307,9 @@ public final class DnaActivity extends DnaBaseActivity {
         checkedPartitions.clear();
         partitionsList.removeAllViews();
         if (parts == null || parts.isEmpty()) {
-            status.setText(t("未发现分区（payload 损坏？）", "No partitions found (corrupt payload?)"));
+            status.setText("No partitions found (corrupt payload?)");
             status.setTextColor(pal.danger);
-            partitionsList.addView(emptyRow(t("未发现分区，请检查文件", "No partitions found")),
+            partitionsList.addView(emptyRow("No partitions found"),
                     new LinearLayout.LayoutParams(-1, -2));
             return;
         }
@@ -1346,9 +1332,9 @@ public final class DnaActivity extends DnaBaseActivity {
             partRows.add(row);
             partitionNames.add(p.getName());
         }
-        status.setText("✓ " + t("解析完成", "Parsed") + ": " + partitionNames.size() + t(" 个分区，勾选后点「开始分解」", " partitions, check then Extract"));
+        status.setText("✓ " + "Parsed" + ": " + partitionNames.size() + " partitions, check then Extract");
         status.setTextColor(0xff1d7a4f);
-        logLine(t("解析完成", "Parsed") + ": " + partitionNames.size() + t(" 个分区（长按分区行可复制完整哈希）", " partitions (long-press row to copy full hash)"));
+        logLine("Parsed" + ": " + partitionNames.size() + " partitions (long-press row to copy full hash)");
         refreshPartRows();
     }
 
@@ -1366,35 +1352,35 @@ public final class DnaActivity extends DnaBaseActivity {
     private void executeBinExtract() {
         List<String> targets = targetPaths();
         if (targets.isEmpty()) {
-            toast(t("请先选择 payload.bin 或 OTA zip", "Pick payload.bin or OTA zip first"));
+            toast("Pick payload.bin or OTA zip first");
             return;
         }
         if (binExtractor == null || binInput == null || partitionNames.isEmpty()) {
-            toast(t("请先点「开始解析」加载分区列表", "Tap Parse to load partitions first"));
+            toast("Tap Parse to load partitions first");
             parseBinFile();
             return;
         }
         List<String> ordered = new ArrayList<>();
         for (String n : partitionNames) if (checkedPartitions.contains(n)) ordered.add(n);
         if (ordered.isEmpty()) {
-            toast(t("请先勾选要提取的分区", "Check partitions to extract first"));
+            toast("Check partitions to extract first");
             return;
         }
         running.set(true);
         cancelFlag.set(false);
-        runButton.setText("■  " + t("执行中（点击取消）", "Running (tap to cancel)"));
+        runButton.setText("■  " + "Running (tap to cancel)");
         runButton.setBackgroundResource(R.drawable.button_red);
-        status.setText(t("正在提取 ...", "Extracting..."));
+        status.setText("Extracting...");
         status.setTextColor(pal.subtitle);
         showProgress(true);
         final String outDir = projectPath();
         StringBuilder names = new StringBuilder();
         for (String n : ordered) { if (names.length() > 0) names.append(","); names.append(n); }
         logLine("$ payload_extract -i " + binInput + " --images=" + names + " --out " + outDir + " --threads 4 --no-verify");
-        notify(t("正在提取", "Extracting") + " · " + (project != null ? project : "PDNA"), true, true);
+        notify("Extracting" + " · " + (project != null ? project : "PDNA"), true, true);
         logLine("$ payload_extract -i " + binInput + " --images=" + names + " --out " + outDir + " --threads 8 --no-verify");
-        notify(t("正在并行提取", "Extracting in parallel") + " " + ordered.size()
-                + t(" 个分区（8 线程）", " partition(s), 8 threads"), true, true);
+        notify("Extracting in parallel" + " " + ordered.size()
+                + " partition(s), 8 threads", true, true);
         // v3.42.15：批量一次提取全部勾选分区（逗号拼接 --images，CLI 内部 8 线程分区并行）；
         // 失败分区逐个单分区重试拿精确错误
         executor.execute(() -> {
@@ -1415,10 +1401,10 @@ public final class DnaActivity extends DnaBaseActivity {
                     runButton.setText("▶  " + actionLabel());
                     runButton.setBackgroundResource(R.drawable.button_green);
                     showProgress(false);
-                    logLine("■ " + t("已取消", "Cancelled"));
-                    status.setText("■ " + t("已取消", "Cancelled"));
+                    logLine("■ " + "Cancelled");
+                    status.setText("■ " + "Cancelled");
                     status.setTextColor(pal.danger);
-                    notifyDone(false, t("已取消", "Cancelled"));
+                    notifyDone(false, "Cancelled");
                 });
                 return;
             }
@@ -1438,7 +1424,7 @@ public final class DnaActivity extends DnaBaseActivity {
             for (int i = 0; i < failed.size(); i++) {
                 final String name = failed.get(i);
                 final File outFile = new File(outDir, name + ".img");
-                logLine("> " + t("重试", "Retry") + " " + name);
+                logLine("> " + "Retry" + " " + name);
                 try {
                     DnaTools.Result rr = DnaTools.payloadExtractCli(this, binInput, outDir, name,
                             null, () -> cancelFlag.get(), 20 * 60_000L);
@@ -1452,7 +1438,7 @@ public final class DnaActivity extends DnaBaseActivity {
                         String brief = DnaTools.briefOf(rr);
                         logLine("✗ " + name + ": " + brief);
                         if (brief.contains("ifferential") || brief.contains("source")) {
-                            logLine("  " + t("增量 OTA 包请用「分解增量包」", "Incremental OTA: use Incremental unpack"));
+                            logLine("  " + "Incremental OTA: use Incremental unpack");
                         }
                     }
                 } catch (Exception e) {
@@ -1469,21 +1455,21 @@ public final class DnaActivity extends DnaBaseActivity {
                 runButton.setBackgroundResource(R.drawable.button_green);
                 showProgress(false);
                 if (fFail == 0 && !cancelled) {
-                    logLine("✓ " + t("提取完成", "Extraction done") + ": " + fOk + "/" + ordered.size());
-                    status.setText("✓ " + t("提取完成", "Done") + " (" + fOk + ")");
+                    logLine("✓ " + "Extraction done" + ": " + fOk + "/" + ordered.size());
+                    status.setText("✓ " + "Done" + " (" + fOk + ")");
                     status.setTextColor(0xff1d7a4f);
-                    toast(t("提取完成", "Done"));
+                    toast("Done");
                 } else if (cancelled) {
-                    logLine("■ " + t("已取消（已完成 ", "Cancelled (done ") + fOk + ")");
-                    status.setText("■ " + t("已取消", "Cancelled") + " (" + fOk + ")");
+                    logLine("■ " + "Cancelled (done " + fOk + ")");
+                    status.setText("■ " + "Cancelled" + " (" + fOk + ")");
                     status.setTextColor(pal.danger);
                 } else {
-                    logLine("✗ " + t("提取失败", "Failed") + ": " + fFail + "/" + ordered.size());
-                    status.setText("✗ " + t("提取失败", "Failed") + " (" + fFail + ")");
+                    logLine("✗ " + "Failed" + ": " + fFail + "/" + ordered.size());
+                    status.setText("✗ " + "Failed" + " (" + fFail + ")");
                     status.setTextColor(pal.danger);
                 }
                 notifyDone(fFail == 0 && !cancelled,
-                        t("分解 bin", "Extract bin") + ": " + fOk + " ✓" + (fFail > 0 ? " " + fFail + " ✗" : "")
+                        "Extract bin" + ": " + fOk + " ✓" + (fFail > 0 ? " " + fFail + " ✗" : "")
                                 + " · " + (project != null ? project : "PDNA"));
                 // 「删除源文件」选项：全部成功后删除原始输入（binInput 可能是 cache 兜底路径，删原始路径）
                 if (fFail == 0 && !cancelled && extractDeleteSource != null && extractDeleteSource.isChecked()) {
@@ -1491,7 +1477,7 @@ public final class DnaActivity extends DnaBaseActivity {
                     final String src = (ts != null && !ts.isEmpty()) ? ts.get(0) : binInput;
                     if (src != null) {
                         com.topjohnwu.superuser.Shell.cmd("rm -f " + DnaTools.quote(src)).exec();
-                        logLine(t("已删除源文件", "Source deleted") + ": " + src);
+                        logLine("Source deleted" + ": " + src);
                         if (picked != null && !picked.isEmpty()) {
                             picked.clear();
                             refreshFileRows();
@@ -1507,13 +1493,13 @@ public final class DnaActivity extends DnaBaseActivity {
         listSuperPartitions(imgPath, null);
     }
 
-    /** v3.30.27：解析 super 分区（支持完成回调，用于解析后弹窗勾选） */
+    /** v3.30.27：解析 Super partitions（支持完成回调，用于解析后弹窗勾选） */
     private void listSuperPartitions(String imgPath, Runnable onParsed) {
         if (imgPath == null || imgPath.isEmpty() || running.get()) return;
         running.set(true);
         superListingPath = imgPath;
         superParseCallback = onParsed;
-        status.setText(t("正在读取 super 分区 ...", "Reading super partitions..."));
+        status.setText("Reading super partitions...");
         logLine("$ dna lpunpack --list " + imgPath);
         executor.execute(() -> {
             DnaTools.Result result = DnaTools.run(this,
@@ -1529,21 +1515,21 @@ public final class DnaActivity extends DnaBaseActivity {
     /** v3.30.27：分解 super —— 对齐 bin 交互：点「开始分解」→（未解析则先解析）→ 弹窗勾选 → 确定执行 */
     private void executeSuperUnpack() {
         List<String> targets = targetPaths();
-        if (targets.isEmpty()) { toast(t("请选择 super.img", "Pick super.img first")); return; }
+        if (targets.isEmpty()) { toast("Pick super.img first"); return; }
         final String img = targets.get(0);
         if (partitionNames.isEmpty() || !img.equals(superParsedPath)) {
-            logLine(t("开始解析", "Parsing") + ": " + new File(img).getName());
+            logLine("Parsing" + ": " + new File(img).getName());
             listSuperPartitions(img, this::showSuperPartitionDialog);
         } else {
             showSuperPartitionDialog();
         }
     }
 
-    /** v3.30.27：super 分区选择弹窗（风格对齐分解 bin：圆点勾选 + 全选/清空 + 确定） */
+    /** v3.30.27：Super partitions选择弹窗（风格对齐分解 bin：圆点勾选 + 全选/清空 + 确定） */
     private void showSuperPartitionDialog() {
         if (isFinishing() || isDestroyed()) return;
         if (partitionNames.isEmpty()) {
-            toast(t("分区列表为空，请先确认 super.img 有效", "No partitions, check super.img"));
+            toast("No partitions, check super.img");
             return;
         }
         final android.app.Dialog dialog = new android.app.Dialog(this);
@@ -1563,7 +1549,7 @@ public final class DnaActivity extends DnaBaseActivity {
         final Runnable[] render = new Runnable[1];
 
         TextView title = new TextView(this);
-        title.setText("🧩 " + t("选择要提取的分区", "Select partitions to extract"));
+        title.setText("🧩 " + "Select partitions to extract");
         title.setTextSize(16);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -1578,7 +1564,7 @@ public final class DnaActivity extends DnaBaseActivity {
         count.setTypeface(null, 1);
         count.setTextColor(pal.success);
         head.addView(count, new LinearLayout.LayoutParams(0, -2, 1f));
-        Button allBtn = smallPill(t("全选", "All"), pal.success);
+        Button allBtn = smallPill("All", pal.success);
         allBtn.setOnClickListener(v -> {
             Haptics.perform(v);
             checkedPartitions.clear();
@@ -1586,7 +1572,7 @@ public final class DnaActivity extends DnaBaseActivity {
             render[0].run();
         });
         head.addView(allBtn, new LinearLayout.LayoutParams(dp(56), dp(32)));
-        Button noneBtn = smallPill(t("清空", "None"), pal.danger);
+        Button noneBtn = smallPill("None", pal.danger);
         android.widget.LinearLayout.LayoutParams nLp = new LinearLayout.LayoutParams(dp(56), dp(32));
         nLp.leftMargin = dp(6);
         head.addView(noneBtn, nLp);
@@ -1640,20 +1626,20 @@ public final class DnaActivity extends DnaBaseActivity {
                 rLp.topMargin = dp(6);
                 list.addView(row, rLp);
             }
-            count.setText(t("已选", "Selected") + " " + checkedPartitions.size() + "/" + partitionNames.size());
+            count.setText("Selected" + " " + checkedPartitions.size() + "/" + partitionNames.size());
         };
         render[0].run();
 
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER_VERTICAL);
-        Button cancel = smallPill(t("取消", "Cancel"), pal.subtitle);
+        Button cancel = smallPill("Cancel", pal.subtitle);
         android.widget.LinearLayout.LayoutParams cLp = new LinearLayout.LayoutParams(dp(76), dp(46));
         cancel.setLayoutParams(cLp);
         cancel.setOnClickListener(v -> { Haptics.perform(v); dialog.dismiss(); });
         btnRow.addView(cancel);
         Button ok = new Button(this, null, 0);
-        ok.setText("✓  " + t("确定", "Extract"));
+        ok.setText("✓  " + "Extract");
         ok.setTextSize(15f);
         ok.setTypeface(null, 1);
         ok.setAllCaps(false);
@@ -1671,7 +1657,7 @@ public final class DnaActivity extends DnaBaseActivity {
         ok.setOnClickListener(v -> {
             Haptics.perform(v);
             if (checkedPartitions.isEmpty()) {
-                toast(t("请先勾选要提取的分区", "Check partitions first"));
+                toast("Check partitions first");
                 return;
             }
             dialog.dismiss();
@@ -1732,9 +1718,9 @@ public final class DnaActivity extends DnaBaseActivity {
                 partitionsList.addView(row.view, rowParams());
                 partRows.add(row);
             }
-            status.setText(what + t(" 共 ", " has ") + partitionNames.size() + t(" 个分区", " partitions"));
+            status.setText(what + " has " + partitionNames.size() + " partitions");
             status.setTextColor(pal.title);
-            logLine(what + " " + partitionNames.size() + t(" 个分区", " partitions"));
+            logLine(what + " " + partitionNames.size() + " partitions");
             refreshPartRows();
             // v3.30.27：super 解析成功 → 记录路径并触发弹窗回调
             if ("super".equals(what)) {
@@ -1746,11 +1732,11 @@ public final class DnaActivity extends DnaBaseActivity {
                 }
             }
         } else {
-            status.setText(t("分区列表读取失败", "Failed to list partitions"));
+            status.setText("Failed to list partitions");
             status.setTextColor(pal.danger);
-            logLine(t("读取失败", "List failed") + ": " + result.getMessage());
+            logLine("List failed" + ": " + result.getMessage());
             superParseCallback = null;   // v3.30.27：失败不弹窗，清掉回调
-            TextView empty = emptyRow(t("分区读取失败，请检查文件", "Failed to list partitions"));
+            TextView empty = emptyRow("Failed to list partitions");
             partitionsList.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         }
     }
@@ -1865,45 +1851,45 @@ public final class DnaActivity extends DnaBaseActivity {
         switch (mode) {
             case MODE_EXTRACT:
             case MODE_BIN: {
-                LinearLayout card = optionsCard(host, t("分解选项", "Options"));
-                extractDeleteSource = optionSwitch(card, t("删除源文件", "Delete source"), false);
+                LinearLayout card = optionsCard(host, "Options");
+                extractDeleteSource = optionSwitch(card, "Delete source", false);
                 break;
             }
             case MODE_SUPER_UNPACK: {
-                LinearLayout card = optionsCard(host, t("分解选项", "Options"));
-                superAutoExtract = optionSwitch(card, t("自动分解提取的 IMG", "Auto-extract images"), false);
-                superDeleteSource = optionSwitch(card, t("删除源文件", "Delete source"), false);
+                LinearLayout card = optionsCard(host, "Options");
+                superAutoExtract = optionSwitch(card, "Auto-extract images", false);
+                superDeleteSource = optionSwitch(card, "Delete source", false);
                 break;
             }
             case MODE_REPACK: {
-                LinearLayout card = optionsCard(host, t("打包方式", "Pack method"));
-                repackFsType = new SegmentGroup(card, t("文件系统", "Filesystem"), new String[]{"ext4", "erofs", "f2fs"}, 0, C_BLUE);
-                repackRepackType = new SegmentGroup(card, t("打包类型", "Type"), new String[]{"IMG", "DAT", "BR"}, 0, C_VIOLET);
-                repackFormat = new SegmentGroup(card, t("打包格式", "Format"), new String[]{t("卡刷 raw", "raw"), t("线刷 sparse", "sparse")}, 0, C_ORANGE);
+                LinearLayout card = optionsCard(host, "Pack method");
+                repackFsType = new SegmentGroup(card, "Filesystem", new String[]{"ext4", "erofs", "f2fs"}, 0, C_BLUE);
+                repackRepackType = new SegmentGroup(card, "Type", new String[]{"IMG", "DAT", "BR"}, 0, C_VIOLET);
+                repackFormat = new SegmentGroup(card, "Format", new String[]{"raw", "sparse"}, 0, C_ORANGE);
                 // 原版 dna.xml 默认：读写 rw（选项第一位）；v3.28.10 前误默认 ro
-                repackReadonly = new SegmentGroup(card, t("分区读写（仅 ext4）", "rw/ro (ext4)"), new String[]{t("读写 rw", "rw"), t("只读 ro", "ro")}, 0, C_TEAL);
-                repackAutoSize = new SegmentGroup(card, t("打包大小（仅 ext4）", "Size (ext4)"), new String[]{t("自动计算", "auto"), t("原 img 大小", "original")}, 0, C_ROSE);
-                repackErofsMode = new SegmentGroup(card, t("erofs 压缩方式", "erofs mode"), new String[]{"lz4hc", "lz4", "lzma"}, 0, C_OCEAN);
-                repackBrLevel = seekRow(card, t("br 压缩等级", "br level"), 1, 7, 3);
-                repackErofsLevel = seekRow(card, t("erofs/f2fs 压缩等级", "erofs/f2fs level"), 0, 9, 8);
-                LinearLayout card2 = optionsCard(host, t("高级选项", "Advanced"));
-                repackCompress = optionSwitch(card2, t("压缩 ext4 镜像空间", "Shrink ext4"), false);
-                repackDelavb = optionSwitch(card2, t("去除 AVB / data 加密", "Remove AVB (fstab)"), false);
+                repackReadonly = new SegmentGroup(card, "rw/ro (ext4)", new String[]{"rw", "ro"}, 0, C_TEAL);
+                repackAutoSize = new SegmentGroup(card, "Size (ext4)", new String[]{"auto", "original"}, 0, C_ROSE);
+                repackErofsMode = new SegmentGroup(card, "erofs mode", new String[]{"lz4hc", "lz4", "lzma"}, 0, C_OCEAN);
+                repackBrLevel = seekRow(card, "br level", 1, 7, 3);
+                repackErofsLevel = seekRow(card, "erofs/f2fs level", 0, 9, 8);
+                LinearLayout card2 = optionsCard(host, "Advanced");
+                repackCompress = optionSwitch(card2, "Shrink ext4", false);
+                repackDelavb = optionSwitch(card2, "Remove AVB (fstab)", false);
                 break;
             }
             case MODE_SUPER_PACK: {
-                LinearLayout card = optionsCard(host, "SUPER " + t("参数", "params"));
-                superPackType = new SegmentGroup(card, t("打包类型", "Type"), new String[]{"A-only", "AB", "VAB"}, 2, C_BLUE);
-                superPackFormat = new SegmentGroup(card, t("打包格式", "Format"), new String[]{"raw", "sparse"}, 0, C_TEAL);
+                LinearLayout card = optionsCard(host, "SUPER " + "params");
+                superPackType = new SegmentGroup(card, "Type", new String[]{"A-only", "AB", "VAB"}, 2, C_BLUE);
+                superPackFormat = new SegmentGroup(card, "Format", new String[]{"raw", "sparse"}, 0, C_TEAL);
                 TextView sizeLabel = new TextView(this);
-                sizeLabel.setText("super.img " + t("总大小（GB）", "size (GB)"));
+                sizeLabel.setText("super.img " + "size (GB)");
                 sizeLabel.setTextSize(12.5f);
                 sizeLabel.setTextColor(pal.subtitle);
                 sizeLabel.setPadding(dp(2), dp(10), 0, 0);
                 card.addView(sizeLabel, new LinearLayout.LayoutParams(-1, -2));
                 superPackSize = glassInput(card, "8.5");
                 TextView groupLabel = new TextView(this);
-                groupLabel.setText(t("动态分区组名", "Group name"));
+                groupLabel.setText("Group name");
                 groupLabel.setTextSize(12.5f);
                 groupLabel.setTextColor(pal.subtitle);
                 groupLabel.setPadding(dp(2), dp(10), 0, 0);
@@ -1912,31 +1898,31 @@ public final class DnaActivity extends DnaBaseActivity {
                 break;
             }
             case MODE_CONVERT: {
-                LinearLayout card = optionsCard(host, t("转换选项", "Options"));
-                convertType = new SegmentGroup(card, t("转换类型", "Target"), new String[]{"DAT", "BR"}, 0, C_ORANGE);
-                convertBrLevel = seekRow(card, t("br 压缩等级", "br level"), 1, 7, 3);
-                LinearLayout card2 = optionsCard(host, t("选项", "Options"));
-                convertDeleteSource = optionSwitch(card2, t("删除源文件", "Delete source"), false);
+                LinearLayout card = optionsCard(host, "Options");
+                convertType = new SegmentGroup(card, "Target", new String[]{"DAT", "BR"}, 0, C_ORANGE);
+                convertBrLevel = seekRow(card, "br level", 1, 7, 3);
+                LinearLayout card2 = optionsCard(host, "Options");
+                convertDeleteSource = optionSwitch(card2, "Delete source", false);
                 break;
             }
             case MODE_SPARSE: {
-                LinearLayout card = optionsCard(host, t("转换选项", "Options"));
-                sparseDeleteSource = optionSwitch(card, t("删除源文件", "Delete source"), false);
+                LinearLayout card = optionsCard(host, "Options");
+                sparseDeleteSource = optionSwitch(card, "Delete source", false);
                 break;
             }
             case MODE_ZST: {
-                LinearLayout card = optionsCard(host, t("转换选项", "Options"));
+                LinearLayout card = optionsCard(host, "Options");
                 // 原版 dna.xml：ZSTD压缩等级 seekbar 0-19 默认 3（zstd_img.sh：zstd -$level -T4 -f）
-                zstLevel = seekRow(card, t("ZSTD 压缩等级", "zstd level"), 0, 19, 3);
-                zstDeleteSource = optionSwitch(card, t("删除源文件", "Delete source"), false);
+                zstLevel = seekRow(card, "zstd level", 0, 19, 3);
+                zstDeleteSource = optionSwitch(card, "Delete source", false);
                 break;
             }
             // ============ v3.30.11：原版「其它功能」选项 ============
             case MODE_MERGE_PART: {
                 // 原版 dna.xml：partition_name 默认 "system_ext product"（空格分隔的镜像名列表）
-                LinearLayout card = optionsCard(host, t("合并选项", "Merge options"));
+                LinearLayout card = optionsCard(host, "Merge options");
                 TextView nameLabel = new TextView(this);
-                nameLabel.setText(t("镜像名（空格分隔，需先分解对应分区和 system）", "Partition names (space separated)"));
+                nameLabel.setText("Partition names (space separated)");
                 nameLabel.setTextSize(12.5f);
                 nameLabel.setTextColor(pal.subtitle);
                 nameLabel.setPadding(dp(2), dp(10), 0, 0);
@@ -1995,7 +1981,7 @@ public final class DnaActivity extends DnaBaseActivity {
     private void execute() {
         // 根目录扫描模式（vbmeta/宽容）不依赖工程，直接读 /sdcard/PDMA 根目录
         if (project == null && !rootScanMode()) {
-            toast(t("请先选择工程", "Select a project first"));
+            toast("Select a project first");
             showProjectPicker();
             return;
         }
@@ -2013,13 +1999,13 @@ public final class DnaActivity extends DnaBaseActivity {
     private void runDnaCommand(String command) {
         running.set(true);
         cancelFlag.set(false);
-        runButton.setText("■  " + t("执行中（点击取消）", "Running (tap to cancel)"));
+        runButton.setText("■  " + "Running (tap to cancel)");
         runButton.setBackgroundResource(R.drawable.button_red);
-        status.setText(t("正在执行 ...", "Running..."));
+        status.setText("Running...");
         status.setTextColor(pal.subtitle);
         showProgress(true);
         logLine("$ " + command);
-        notify(t("正在执行", "Running") + " · " + (project != null ? project : "PDNA"), true, true);
+        notify("Running" + " · " + (project != null ? project : "PDNA"), true, true);
         executor.execute(() -> {
             DnaTools.Result result = DnaTools.run(this, command,
                     line -> { logLine(line); return kotlin.Unit.INSTANCE; },
@@ -2031,12 +2017,12 @@ public final class DnaActivity extends DnaBaseActivity {
                 showProgress(false);
                 if (result.getSuccess()) {
                     logLine("✓ " + result.getMessage());
-                    status.setText("✓ " + t("执行完成", "Done"));
+                    status.setText("✓ " + "Done");
                     status.setTextColor(0xff1d7a4f);
-                    toast(t("执行完成", "Done"));
+                    toast("Done");
                 } else {
                     logLine("✗ " + result.getMessage());
-                    status.setText("✗ " + t("执行失败", "Failed") + ": " + result.getMessage());
+                    status.setText("✗ " + "Failed" + ": " + result.getMessage());
                     status.setTextColor(pal.danger);
                 }
                 notifyDone(result.getSuccess(), result.getMessage() + " · " + (project != null ? project : "PDNA"));
@@ -2086,22 +2072,22 @@ public final class DnaActivity extends DnaBaseActivity {
             case MODE_EXTRACT:
             case MODE_BIN:
             case MODE_SUPER_UNPACK:
-                return t("开始分解", "Extract");
+                return "Extract";
             case MODE_REPACK:
-                return t("开始打包", "Pack");
+                return "Pack";
             case MODE_SUPER_PACK:
-                return t("开始打包 SUPER", "Pack SUPER");
+                return "Pack SUPER";
             case MODE_VBMETA:
-                return t("开始去除验证", "Remove AVB");
+                return "Remove AVB";
             case MODE_SELINUX:
-                return t("开始注入宽容", "Go permissive");
+                return "Go permissive";
             case MODE_MERGE_MY:
             case MODE_MERGE_SUPER:
             case MODE_MERGE_PART:
             case MODE_CHUNK:
-                return t("开始合并", "Merge");
+                return "Merge";
             default:
-                return t("开始转换", "Convert");
+                return "Convert";
         }
     }
 
@@ -2126,7 +2112,7 @@ public final class DnaActivity extends DnaBaseActivity {
         StringBuilder cmd = new StringBuilder();
         switch (mode) {
             case MODE_EXTRACT: {
-                if (targets.isEmpty()) { toast(t("请选择文件", "Pick files first")); return null; }
+                if (targets.isEmpty()) { toast("Pick files first"); return null; }
                 // v3.30.26 修复多选失败：dna CLI 一次只接受 1 个文件（多文件 → 退出码 2）。
                 // 改为循环逐个执行，任一失败记录其退出码；子 shell 收尾把累计码传给外层 __rc=$?
                 cmd.append("__rc=0; for __f in");
@@ -2137,7 +2123,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 return cmd.toString();
             }
             case MODE_SUPER_UNPACK: {
-                if (targets.isEmpty()) { toast(t("请选择 super.img", "Pick super.img first")); return null; }
+                if (targets.isEmpty()) { toast("Pick super.img first"); return null; }
                 // 原版 dna.xml：dna lpunpack --partition "$img" --delete $silence --auto $auto $DNA_PRO/super.img
                 cmd.append("dna lpunpack");
                 StringBuilder parts = new StringBuilder();
@@ -2154,7 +2140,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 return cmd.toString();
             }
             case MODE_REPACK: {
-                if (targets.isEmpty()) { toast(t("请选择目录", "Pick directories first")); return null; }
+                if (targets.isEmpty()) { toast("Pick directories first"); return null; }
                 // 原版 dna.xml：dna repack $IMG_DIR --read $Read --auto $Pack --format $img_type
                 //   --type $repack_from --br $brze --erofs $erofsze --mode $type --compress $test
                 //   --delavb $test1 --convert $tool（目录名为 $DNA_DRO 下基名，开关全部带值）
@@ -2176,7 +2162,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 return cmd.toString();
             }
             case MODE_SUPER_PACK: {
-                if (targets.isEmpty()) { toast(t("请选择镜像", "Pick images first")); return null; }
+                if (targets.isEmpty()) { toast("Pick images first"); return null; }
                 String size = superPackSize.getText().toString().trim();
                 if (size.isEmpty()) size = "8.5";
                 // 原版 dna.xml：dna lpmake --type $type --format $from --super_size $size --super_group $super_group $IMG_NAME
@@ -2197,7 +2183,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 return cmd.toString();
             }
             case MODE_CONVERT: {
-                if (targets.isEmpty()) { toast(t("请选择镜像", "Pick images first")); return null; }
+                if (targets.isEmpty()) { toast("Pick images first"); return null; }
                 // 原版 dna.xml：dna convert $IMG --delete $silence --type $from --br $brze
                 // v3.30.26：dna 一次只接受 1 个镜像 → 循环逐个转换，累计退出码
                 cmd.append("__rc=0; for __f in");
@@ -2210,7 +2196,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 return cmd.toString();
             }
             case MODE_SPARSE: {
-                if (targets.isEmpty()) { toast(t("请选择镜像", "Pick images first")); return null; }
+                if (targets.isEmpty()) { toast("Pick images first"); return null; }
                 String del = sparseDeleteSource != null && sparseDeleteSource.isChecked() ? "yes" : "no";
                 cmd.append("mkdir -p ").append(DnaTools.quote(projectPath() + "/out")).append("; for __f in");
                 for (String p : targets) cmd.append(" ").append(DnaTools.quote(p));
@@ -2219,12 +2205,12 @@ public final class DnaActivity extends DnaBaseActivity {
                         .append(DnaTools.quote(projectPath() + "/out")).append("/\"$__n\" && echo \"> img2simg: $__n\"; ")
                         .append("elif [ \"$__t\" = \"sparse\" ]; then simg2img \"$__f\" ")
                         .append(DnaTools.quote(projectPath() + "/out")).append("/\"$__n\" && echo \"> simg2img: $__n\"; ")
-                        .append("else echo \"> 不支持转换: $__n ($__t)\"; fi; ")
+                        .append("else echo \"> Unsupported conversion: $__n ($__t)\"; fi; ")
                         .append("if [ \"").append(del).append("\" = \"yes\" ]; then rm -f \"$__f\"; fi; done");
                 return cmd.toString();
             }
             case MODE_ZST: {
-                if (targets.isEmpty()) { toast(t("请选择文件", "Pick files first")); return null; }
+                if (targets.isEmpty()) { toast("Pick files first"); return null; }
                 // 原版 zstd_img.sh：解压 zstd -d -k -f，压缩 zstd -$level -T4 -f，输出 $DNA_PRO/out
                 String del = zstDeleteSource != null && zstDeleteSource.isChecked() ? "yes" : "no";
                 String level = String.valueOf(zstLevel != null ? seekValue(zstLevel, 0) : 3);
@@ -2232,32 +2218,32 @@ public final class DnaActivity extends DnaBaseActivity {
                 for (String p : targets) cmd.append(" ").append(DnaTools.quote(p));
                 cmd.append("; do __n=$(basename \"$__f\"); case \"$__n\" in ")
                         .append("*.zst|*.zstd) __o=${__n%.*}; zstd -d -f -T4 \"$__f\" -o ")
-                        .append(DnaTools.quote(projectPath() + "/out")).append("/\"$__o\" && echo \"> 解压: $__n\";; ")
+                        .append(DnaTools.quote(projectPath() + "/out")).append("/\"$__o\" && echo \"> Extract: $__n\";; ")
                         .append("*) zstd -").append(level).append(" -T4 -f \"$__f\" -o ")
-                        .append(DnaTools.quote(projectPath() + "/out")).append("/\"$__n.zst\" && echo \"> 压缩: $__n.zst\";; esac; ")
+                        .append(DnaTools.quote(projectPath() + "/out")).append("/\"$__n.zst\" && echo \"> Compress: $__n.zst\";; esac; ")
                         .append("if [ \"").append(del).append("\" = \"yes\" ]; then rm -f \"$__f\"; fi; done");
                 return cmd.toString();
             }
             case MODE_CHUNK: {
-                if (targets.isEmpty()) { toast(t("请选择分段镜像", "Pick split images first")); return null; }
+                if (targets.isEmpty()) { toast("Pick split images first"); return null; }
                 cmd.append("mkdir -p ").append(DnaTools.quote(projectPath() + "/out")).append("; cd ")
                         .append(DnaTools.quote(projectPath())).append("; __rc=0; for __p in");
                 for (String p : targets) cmd.append(" ").append(DnaTools.quote(new File(p).getName()));
                 cmd.append("; do __files=$(ls | grep -E \"^${__p}\\.[0-9]+$\" | sort -V | tr '\\n' ' '); ")
-                        .append("if [ -z \"$__files\" ]; then echo \"> 未找到分段: $__p\"; __rc=1; continue; fi; ")
-                        .append("echo \"> 合并: $__p (${__files})\"; simg2img ${__files} out/$__p || __rc=1; done; cd /; [ \"$__rc\" = \"0\" ]");
+                        .append("if [ -z \"$__files\" ]; then echo \"> Split part not found: $__p\"; __rc=1; continue; fi; ")
+                        .append("echo \"> Merge: $__p (${__files})\"; simg2img ${__files} out/$__p || __rc=1; done; cd /; [ \"$__rc\" = \"0\" ]");
                 return cmd.toString();
             }
             // ============ v3.30.11：原版「其它功能」（assets 内置原版 sh，export 参数后 source 执行） ============
             case MODE_VBMETA: {
-                if (targets.isEmpty()) { toast(t("请选择 vbmeta 镜像", "Pick vbmeta images first")); return null; }
+                if (targets.isEmpty()) { toast("Pick vbmeta images first"); return null; }
                 // 原版 del_vbmeta.sh：IMG="a b c"（空格分隔基名），读 $DNA_DIR/基名 → magiskboot hexpatch → $DNA_DIR/out
                 cmd.append(rootScanImgExport(targets)).append(". ")
                         .append(DnaTools.quote(new File(DnaTools.scriptsDir(this), "del_vbmeta.sh").getAbsolutePath()));
                 return cmd.toString();
             }
             case MODE_SELINUX: {
-                if (targets.isEmpty()) { toast(t("请选择 boot 镜像", "Pick boot images first")); return null; }
+                if (targets.isEmpty()) { toast("Pick boot images first"); return null; }
                 // 原版 patch_selinux.sh：IMG="a b c"，读 $DNA_DIR/基名，magiskboot unpack → sed cmdline → repack → $DNA_DIR/out
                 cmd.append(rootScanImgExport(targets)).append(". ")
                         .append(DnaTools.quote(new File(DnaTools.scriptsDir(this), "patch_selinux.sh").getAbsolutePath()));
@@ -2270,7 +2256,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 return cmd.toString();
             }
             case MODE_MERGE_SUPER: {
-                if (targets.isEmpty()) { toast(t("请选择分段 super 前缀", "Pick split super prefixes first")); return null; }
+                if (targets.isEmpty()) { toast("Pick split super prefixes first"); return null; }
                 // 原版 merge_superchunk.sh：IMG="前缀1 前缀2"（如 super.img），按 ^前缀.N 匹配分段 → simg2img → out/
                 StringBuilder prefixes = new StringBuilder();
                 for (String p : targets) prefixes.append(" ").append(new File(p).getName());
@@ -2281,7 +2267,7 @@ public final class DnaActivity extends DnaBaseActivity {
             case MODE_MERGE_PART: {
                 // 原版 partition_merge.sh：partition_name="system_ext product"（空格分隔的镜像名列表）
                 String names = mergePartInput != null ? mergePartInput.getText().toString().trim() : "";
-                if (names.isEmpty()) { toast(t("请输入要合并的镜像名", "Enter partition names first")); return null; }
+                if (names.isEmpty()) { toast("Enter partition names first"); return null; }
                 cmd.append("export partition_name='").append(names.replace("'", "'\\''")).append("'; . ")
                         .append(DnaTools.quote(new File(DnaTools.scriptsDir(this), "partition_merge.sh").getAbsolutePath()));
                 return cmd.toString();
@@ -2306,7 +2292,7 @@ public final class DnaActivity extends DnaBaseActivity {
         bg.setStroke(Math.max(1, dp(1)), dark ? 0x66FFFFFF : 0x66FFFFFF);
         panel.setBackground(bg);
         TextView title = new TextView(this);
-        title.setText(t("选择工程", "Select project"));
+        title.setText("Select project");
         title.setTextSize(16);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -2318,7 +2304,7 @@ public final class DnaActivity extends DnaBaseActivity {
         listScroll.addView(list, new ScrollView.LayoutParams(-1, -2));
         if (projects.isEmpty()) {
             TextView empty = new TextView(this);
-            empty.setText(t("暂无工程，请先在 DNA 页新建工程", "No projects yet. Create one on DNA page"));
+            empty.setText("No projects yet. Create one on DNA page");
             empty.setTextSize(13);
             empty.setTextColor(pal.subtitle);
             empty.setPadding(0, dp(8), 0, dp(8));
@@ -2356,16 +2342,16 @@ public final class DnaActivity extends DnaBaseActivity {
                 if (partitionsList != null) {
                     partRows.clear();
                     partitionsList.removeAllViews();
-                    showPartitionsHint(t("选择文件后自动列出分区（勾选要提取的）", "Auto-listed after picking (check to extract)"));
+                    showPartitionsHint("Auto-listed after picking (check to extract)");
                 }
                 refreshProjectFiles();
                 dialog.dismiss();
-                logLine(t("已切换工程", "Project switched") + ": " + name);
+                logLine("Project switched" + ": " + name);
             });
         }
         panel.addView(listScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
         Button close = new Button(this);
-        close.setText(t("关闭", "Close"));
+        close.setText("Close");
         close.setAllCaps(false);
         close.setTextColor(pal.accent);
         // v3.28.7：显式居中 + 零内边距
@@ -2391,8 +2377,8 @@ public final class DnaActivity extends DnaBaseActivity {
     private void ensureNoteChannel() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             android.app.NotificationChannel channel = new android.app.NotificationChannel(
-                    NOTE_CHANNEL, "DNA 工具箱进度", android.app.NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("显示 DNA 分解 / 打包任务实时状态");
+                    NOTE_CHANNEL, "DNA toolbox progress", android.app.NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("Shows real-time DNA extract/pack task status");
             channel.setShowBadge(false);
             getSystemService(android.app.NotificationManager.class).createNotificationChannel(channel);
         }
@@ -2490,7 +2476,7 @@ public final class DnaActivity extends DnaBaseActivity {
                 afterPick(path);
             }
         } else {
-            toast(t("无法解析该文件路径，请手动输入", "Cannot resolve path, enter manually"));
+            toast("Cannot resolve path, enter manually");
         }
     }
 
