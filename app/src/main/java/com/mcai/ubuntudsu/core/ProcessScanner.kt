@@ -690,15 +690,15 @@ object ProcessScanner {
         if (percent < 0.1f) "0.0%" else "%.1f%%".format(percent)
 
     fun formatCpuTime(jiffies: Long): String {
-        if (jiffies <= 0L) return "0秒"
+        if (jiffies <= 0L) return "0s"
         val totalSec = jiffies / clockHz
         val h = totalSec / 3600
         val m = (totalSec % 3600) / 60
         val s = totalSec % 60
         return when {
-            h > 0 -> "${h}小时${m}分"
-            m > 0 -> "${m}分${s}秒"
-            else -> "${s}秒"
+            h > 0 -> "${h}h ${m}m"
+            m > 0 -> "${m}m ${s}s"
+            else -> "${s}s"
         }
     }
 
@@ -709,9 +709,9 @@ object ProcessScanner {
         val hours = ms / 3600000
         val minutes = (ms % 3600000) / 60000
         return when {
-            hours > 0 -> "${hours}小时${minutes}分"
-            minutes > 0 -> "${minutes}分钟"
-            else -> "少于1分钟"
+            hours > 0 -> "${hours}h ${minutes}m"
+            minutes > 0 -> "${minutes} min"
+            else -> "Less than 1 min"
         }
     }
 
@@ -722,11 +722,11 @@ object ProcessScanner {
         val hours = minutes / 60
         val days = hours / 24
         return when {
-            minutes < 1 -> "刚刚"
-            minutes < 60 -> "${minutes}分钟前"
-            hours < 24 -> "${hours}小时前"
-            days < 7 -> "${days}天前"
-            else -> "${days / 7}周前"
+            minutes < 1 -> "Just now"
+            minutes < 60 -> "${minutes} min前"
+            hours < 24 -> "${hours}h ago"
+            days < 7 -> "${days}d ago"
+            else -> "${days / 7}w ago"
         }
     }
 }
