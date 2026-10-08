@@ -20,22 +20,22 @@ import com.mcai.ubuntudsu.ui.Ui
 import java.io.File
 
 // 内置文件管理器：
-// 1. rootfs 模式（默认）：浏览 / 编辑 Ubuntu rootfs 内文件
-// 2. 选择模式（EXTRA_PICK）：作为文件选择器使用，根目录 /sdcard，
+// 1. rootfs 模式（默认）：浏览 / Edit Ubuntu rootfs 内文件
+// 2. 选择模式（EXTRA_PICK）：作为文件选择器使用，Root /sdcard，
 //    点击文件即返回 FileProvider uri 给调用方（rootfs 本地安装 / DSU 选 GSI zip）
 class RootfsFilesActivity : AppCompatActivity() {
     private lateinit var currentDir: File
     private lateinit var pathText: TextView
     private lateinit var listHost: LinearLayout
     private val history = ArrayDeque<File>()
-    // 左缘手势：滑动返回上级；根目录时提示，再滑退出
+    // 左缘手势：滑动返回Parent；Root时提示，再滑退出
     private var swipeStartX = 0f
     private var swipeStartY = 0f
     private var swipeTracking = false
     private var rootHintShownAt = 0L
     // 选择模式
     private var pickMode = false
-    private var pickTitle = "选择文件"
+    private var pickTitle = "Select File"
     private var pickExt = listOf(".tar.gz", ".tar.xz", ".tgz", ".txz")
 
     companion object {
@@ -88,7 +88,7 @@ class RootfsFilesActivity : AppCompatActivity() {
         return super.dispatchTouchEvent(event)
     }
 
-    // 左缘手势动作：非根目录返回上级；根目录首次提示，2.5 秒内再次触发退出
+    // 左缘手势动作：非Root返回Parent；Root首次提示，2.5 秒内再次触发退出
     private fun handleEdgeBack() {
         val root = pickRoot()
         if (currentDir.absolutePath != root.absolutePath) {
@@ -100,23 +100,23 @@ class RootfsFilesActivity : AppCompatActivity() {
             finish()
         } else {
             rootHintShownAt = now
-            Toast.makeText(this, "已到根目录，再次左缘滑动退出", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "At root directory; swipe from the left edge again to exit", Toast.LENGTH_SHORT).show()
         }
     }
 
-    // 模式对应的浏览根目录：选择模式从 /sdcard 开始，rootfs 模式固定 rootfs 目录
+    // 模式对应的浏览Root：选择模式从 /sdcard 开始，rootfs 模式固定 rootfs Directory
     private fun pickRoot(): File = if (pickMode) File("/sdcard") else Env.rootfs(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         pickMode = intent.getBooleanExtra(EXTRA_PICK, false)
         if (pickMode) {
-            pickTitle = intent.getStringExtra(EXTRA_TITLE) ?: "选择文件"
+            pickTitle = intent.getStringExtra(EXTRA_TITLE) ?: "Select File"
             pickExt = if (intent.getBooleanExtra(EXTRA_EXT_ALL, false)) emptyList()
             else (intent.getStringExtra(EXTRA_EXT) ?: "").split(',').map { it.trim().lowercase() }.filter { it.isNotEmpty() }
             if (pickExt.isEmpty() && !intent.getBooleanExtra(EXTRA_EXT_ALL, false)) pickExt = listOf(".tar.gz", ".tar.xz", ".tgz", ".txz")
         } else if (!Env.ubuntuInstalled(this)) {
-            Toast.makeText(this, "Ubuntu rootfs 尚未安装", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Ubuntu rootfs is not installed", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -152,7 +152,7 @@ class RootfsFilesActivity : AppCompatActivity() {
             Ui.pressAnimation(this)
         })
         titleRow.addView(TextView(this).apply {
-            text = if (pickMode) pickTitle else "rootfs 文件管理"
+            text = if (pickMode) pickTitle else "rootfs File Manager"
             textSize = 20f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(this@RootfsFilesActivity))
@@ -199,24 +199,24 @@ class RootfsFilesActivity : AppCompatActivity() {
             Ui.applyNeuShadow(this, 6f, 12f)
         }
         if (pickMode) {
-            toolBar.addView(smallAction("根目录", Ui.buttonPrimary(this)) {
+            toolBar.addView(smallAction("Root", Ui.buttonPrimary(this)) {
                 history.clear()
                 currentDir = pickRoot()
                 refresh()
             }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginEnd = Ui.dp(6, d) }
             })
-            toolBar.addView(smallAction("上级", Ui.buttonSecondary(this)) { navigateUp() }.apply {
+            toolBar.addView(smallAction("Parent", Ui.buttonSecondary(this)) { navigateUp() }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginStart = Ui.dp(6, d) }
             })
         } else {
-            toolBar.addView(smallAction("上级", Ui.buttonSecondary(this)) { navigateUp() }.apply {
+            toolBar.addView(smallAction("Parent", Ui.buttonSecondary(this)) { navigateUp() }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginEnd = Ui.dp(5, d) }
             })
-            toolBar.addView(smallAction("新建文件", Ui.buttonPrimary(this)) { promptCreate(newFile = true) }.apply {
+            toolBar.addView(smallAction("New File", Ui.buttonPrimary(this)) { promptCreate(newFile = true) }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginStart = Ui.dp(5, d); marginEnd = Ui.dp(5, d) }
             })
-            toolBar.addView(smallAction("新建文件夹", Ui.buttonSuccess(this)) { promptCreate(newFile = false) }.apply {
+            toolBar.addView(smallAction("New File夹", Ui.buttonSuccess(this)) { promptCreate(newFile = false) }.apply {
                 layoutParams = LinearLayout.LayoutParams(0, Ui.dp(34, d), 1f).apply { marginStart = Ui.dp(5, d) }
             })
         }
@@ -310,7 +310,7 @@ class RootfsFilesActivity : AppCompatActivity() {
     private fun showFiles(files: List<File>) {
         if (files.isEmpty()) {
             listHost.addView(TextView(this).apply {
-                text = "空目录"
+                text = "Empty Directory"
                 textSize = 12f
                 setTextColor(Ui.secondaryText(this@RootfsFilesActivity))
                 setPadding(0, Ui.dp(10, resources.displayMetrics.density), 0, Ui.dp(10, resources.displayMetrics.density))
@@ -323,13 +323,13 @@ class RootfsFilesActivity : AppCompatActivity() {
 
     private fun showNoPermission() {
         listHost.addView(TextView(this).apply {
-            text = "无权限读取该目录"
+            text = "No permission to read this directory"
             textSize = 12f
             setTextColor(Ui.secondaryText(this@RootfsFilesActivity))
             setPadding(0, Ui.dp(10, resources.displayMetrics.density), 0, Ui.dp(6, resources.displayMetrics.density))
             gravity = Gravity.CENTER
         })
-        listHost.addView(smallAction("授予存储权限", Ui.buttonPrimary(this)) { requestStorage() }
+        listHost.addView(smallAction("Grant Storage Permission", Ui.buttonPrimary(this)) { requestStorage() }
             .apply {
                 layoutParams = LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -357,7 +357,7 @@ class RootfsFilesActivity : AppCompatActivity() {
             if (grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
                 refresh()
             } else {
-                Toast.makeText(this, "未授予存储权限，无法浏览 /sdcard", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "未Grant Storage Permission，无法浏览 /sdcard", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -365,7 +365,7 @@ class RootfsFilesActivity : AppCompatActivity() {
     // 选择模式：点击匹配扩展名的文件立即返回其绝对路径（不拷贝，读取端按需用 root 流）
     private fun pickFile(file: File) {
         if (pickExt.isNotEmpty() && pickExt.none { file.name.lowercase().endsWith(it) }) {
-            Toast.makeText(this, "支持的格式: ${pickExt.joinToString(" / ")}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Supported formats:  ${pickExt.joinToString(" / ")}", Toast.LENGTH_SHORT).show()
             return
         }
         deliverPick(file)
@@ -410,7 +410,7 @@ class RootfsFilesActivity : AppCompatActivity() {
             ellipsize = android.text.TextUtils.TruncateAt.MIDDLE
         })
         textCol.addView(TextView(this).apply {
-            text = if (isDir) "目录" else Env.formatSize(file.length())
+            text = if (isDir) "Directory" else Env.formatSize(file.length())
             textSize = 10f
             setTextColor(Ui.secondaryText(this@RootfsFilesActivity))
         })
@@ -444,19 +444,19 @@ class RootfsFilesActivity : AppCompatActivity() {
 
     private fun openFileMenu(file: File) {
         val actions = mutableListOf<String>()
-        if (isTextFile(file)) actions.add("编辑")
-        actions.add("重命名")
-        actions.add("删除")
+        if (isTextFile(file)) actions.add("Edit")
+        actions.add("Rename")
+        actions.add("Delete")
         AlertDialog.Builder(this)
             .setTitle(file.name)
             .setItems(actions.toTypedArray()) { _, which ->
                 when (actions[which]) {
-                    "编辑" -> openEditor(file)
-                    "重命名" -> promptRename(file)
-                    "删除" -> confirmDelete(file)
+                    "Edit" -> openEditor(file)
+                    "Rename" -> promptRename(file)
+                    "Delete" -> confirmDelete(file)
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
@@ -472,13 +472,13 @@ class RootfsFilesActivity : AppCompatActivity() {
         AlertDialog.Builder(this)
             .setTitle(file.name)
             .setView(editor)
-            .setPositiveButton("保存") { _, _ ->
+            .setPositiveButton("Save") { _, _ ->
                 runCatching { file.writeText(editor.text.toString()) }
-                    .onSuccess { Toast.makeText(this, "已保存", Toast.LENGTH_SHORT).show() }
-                    .onFailure { Toast.makeText(this, "保存失败: ${it.message}", Toast.LENGTH_LONG).show() }
+                    .onSuccess { Toast.makeText(this, "已Save", Toast.LENGTH_SHORT).show() }
+                    .onFailure { Toast.makeText(this, "Save失败: ${it.message}", Toast.LENGTH_LONG).show() }
             }
-            .setNeutralButton("取消", null)
-            .setNegativeButton("关闭", null)
+            .setNeutralButton("Cancel", null)
+            .setNegativeButton("Close", null)
             .show()
     }
 
@@ -488,54 +488,54 @@ class RootfsFilesActivity : AppCompatActivity() {
             setSingleLine(true)
         }
         AlertDialog.Builder(this)
-            .setTitle("重命名")
+            .setTitle("Rename")
             .setView(input)
-            .setPositiveButton("确定") { _, _ ->
+            .setPositiveButton("OK") { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isEmpty() || name.contains('/')) {
-                    Toast.makeText(this, "名称无效", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Invalid name", Toast.LENGTH_SHORT).show()
                 } else {
                     runCatching { file.renameTo(File(file.parentFile, name)) }
                         .onSuccess { refresh() }
-                        .onFailure { Toast.makeText(this, "重命名失败: ${it.message}", Toast.LENGTH_SHORT).show() }
+                        .onFailure { Toast.makeText(this, "Rename失败: ${it.message}", Toast.LENGTH_SHORT).show() }
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun confirmDelete(file: File) {
         AlertDialog.Builder(this)
-            .setTitle("删除 ${file.name}")
-            .setMessage("将删除 ${if (file.isDirectory) "该目录及全部内容" else "该文件"}，不可恢复。")
-            .setPositiveButton("删除") { _, _ ->
+            .setTitle("Delete ${file.name}")
+            .setMessage("将Delete ${if (file.isDirectory) "该Directory及全部内容" else "该文件"}; this cannot be undone.")
+            .setPositiveButton("Delete") { _, _ ->
                 runCatching { if (file.isDirectory) file.deleteRecursively() else file.delete() }
                     .onSuccess { refresh() }
-                    .onFailure { Toast.makeText(this, "删除失败: ${it.message}", Toast.LENGTH_SHORT).show() }
+                    .onFailure { Toast.makeText(this, "Delete失败: ${it.message}", Toast.LENGTH_SHORT).show() }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun promptCreate(newFile: Boolean) {
         val input = EditText(this).apply {
-            hint = if (newFile) "文件名" else "文件夹名"
+            hint = if (newFile) "File name" else "Folder name"
             setSingleLine(true)
         }
         AlertDialog.Builder(this)
-            .setTitle(if (newFile) "新建文件" else "新建文件夹")
+            .setTitle(if (newFile) "New File" else "New File夹")
             .setView(input)
-            .setPositiveButton("创建") { _, _ ->
+            .setPositiveButton("Create") { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isEmpty() || name.contains('/')) {
-                    Toast.makeText(this, "名称无效", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Invalid name", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 val target = File(currentDir, name)
                 val ok = if (newFile) target.createNewFile() else target.mkdirs()
-                if (ok) refresh() else Toast.makeText(this, "创建失败（可能已存在）", Toast.LENGTH_SHORT).show()
+                if (ok) refresh() else Toast.makeText(this, "Create失败（可能已存在）", Toast.LENGTH_SHORT).show()
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 }
