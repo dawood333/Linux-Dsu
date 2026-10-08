@@ -29,8 +29,8 @@ import com.mcai.ubuntudsu.ui.Ui
 /**
  * OTG Flashing Assistant - 单屏卡片式布局
  *
- * 复用主应用的拟态（Neumorphism）+ 液态玻璃渲染架构（[Ui] / [LiquidGlass]），
- * 全部控件经 Ui 取色取形，震动反馈经 [Ui.pressAnimation] / [Haptics]，
+ * 复用主应用的拟态（Neumorphism）+ 液态玻璃渲染架构（[Ui] / [LiquidGlass]） , 
+ * 全部控件经 Ui 取色取形 , 震动反馈经 [Ui.pressAnimation] / [Haptics] , 
  * 日间/夜间主题经 [Ui.isDark] 自动切换。底层命令/文件/OTA 逻辑由 [OtgAssistantCore] 提供。
  */
 class OtgAssistantPage(
@@ -65,7 +65,7 @@ class OtgAssistantPage(
     private val otaRequest = 403
     private val adbPushRequest = 404
 
-    /** 启动内置文件Select器（RootfsFilesActivity，根directory /sdcard），按扩展名过滤 */
+    /** 启动内置文件Select器（RootfsFilesActivity , 根directory /sdcard） , 按扩展名过滤 */
     private fun launchBuiltInPicker(requestCode: Int, title: String, ext: String = "", extAll: Boolean = true) {
         activity.startActivityForResult(
             Intent(activity, com.mcai.ubuntudsu.RootfsFilesActivity::class.java).apply {
@@ -90,7 +90,7 @@ class OtgAssistantPage(
         launchBuiltInPicker(adbPushRequest, "Select file to push")
     }
 
-    /** 宿主 Activity.onActivityResulT 派发到本类，取内置Select器返回的本地文件路径 */
+    /** 宿主 Activity.onActivityResulT 派发到本类 , 取内置Select器返回的本地文件路径 */
     fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (resultCode != android.app.Activity.RESULT_OK) return
         val path = data?.getStringExtra(com.mcai.ubuntudsu.RootfsFilesActivity.RESULT_FILE_PATH) ?: return
@@ -123,9 +123,9 @@ class OtgAssistantPage(
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 android.hardware.usb.UsbManager.ACTION_USB_DEVICE_ATTACHED ->
-                    postUi { appendLog("\n[Auto] Detected device connection\n"); refreshdevices() }
+                    postUi { appendLog("\n[Auto] Detected device connection\n"); refreshDevices() }
                 android.hardware.usb.UsbManager.ACTION_USB_DEVICE_DETACHED ->
-                    postUi { appendLog("\n[Auto] Detected device disconnection\n"); refreshdevices() }
+                    postUi { appendLog("\n[Auto] Detected device disconnection\n"); refreshDevices() }
             }
         }
     }
@@ -145,7 +145,7 @@ class OtgAssistantPage(
         // 初始化：清理旧 OTA + 加载工具
         OtgAssistantCore.deleteOtaDirectory(activity.applicationContext)
         logView.text = "Initializing...\n"
-        refreshdevices()
+        refreshDevices()
 
         return page
     }
@@ -184,7 +184,7 @@ class OtgAssistantPage(
             setPadding(Ui.dp(10, d), Ui.dp(6, d), Ui.dp(10, d), Ui.dp(6, d))
             setOnClickListener {
                 Haptics.perform(this)
-                refreshdevices()
+                refreshDevices()
             }
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -388,14 +388,14 @@ class OtgAssistantPage(
 
     // ==================== device扫描 ====================
 
-    private fun refreshdevices() {
+    private fun refreshDevices() {
         if (refreshing) return
         refreshing = true
         appendLog("\nScanning device...\n")
         Thread {
             if (!alive) return@Thread
-            val devices = OtgAssistantCore.listUsbdevices(ctx)
-            val protocol = OtgAssistantCore.detectProtocoldevices(ctx)
+            val devices = OtgAssistantCore.listUsbDevices(ctx)
+            val protocol = OtgAssistantCore.detectProtocol(ctx)
             postUi {
                 if (devices.isEmpty()) {
                     deviceListText.text = "No USB device found"
@@ -407,13 +407,13 @@ class OtgAssistantPage(
                     appendLog("Found ${devices.size}  devices\n")
                 }
                 protocolText.text = "ADB: ${protocol.adb}\nFastboot: ${protocol.fastboot}"
-                appendLog("Protocol detection：ADB=${protocol.adb != "No device found"}，Fastboot=${protocol.fastboot != "No device found"}\n")
+                appendLog("Protocol detection：ADB=${protocol.adb != "No device found"} , Fastboot=${protocol.fastboot != "No device found"}\n")
                 refreshing = false
             }
         }.start()
     }
 
-    private fun deviceInfoString(dv: OtgAssistantCore.deviceInfo): String {
+    private fun deviceInfoString(dv: OtgAssistantCore.DeviceInfo): String {
         val vid = String.format("%04x", dv.vendorId)
         val pid = String.format("%04x", dv.productId)
         return "VID:$vid  PID:$pid  ${dv.deviceName}"
@@ -660,7 +660,7 @@ class OtgAssistantPage(
             setPadding(Ui.dp(24, d), Ui.dp(8, d), Ui.dp(24, d), Ui.dp(8, d))
             addView(TextView(activity).apply {
                 text = "Important warning: confirm that the firmware package matches the current device model, region, version, and storage configuration." +
-                    "After flashing succeeds, run fastboot -w，all user data will be erased。\n\nPartitions to flashPartition:\n$summary\n\nEnter the confirmation phrase："
+                    "After flashing succeeds, run fastboot -w , all user data will be erased。\n\nPartitions to flashPartition:\n$summary\n\nEnter the confirmation phrase："
                 textSize = 12f
                 setTextColor(Ui.primaryText(activity))
                 setLineSpacing(Ui.dp(3, d).toFloat(), 1f)
@@ -705,12 +705,12 @@ class OtgAssistantPage(
                     val result = runFastbootBlocking("fastboot flash ${image.partition} ${file.absolutePath}")
                     if (result.exitCode != 0) {
                         success = false
-                        postUi { appendLog("Partition ${image.partition} Flash failed，Stopped subsequent operations\n") }
+                        postUi { appendLog("Partition ${image.partition} Flash failed , Stopped subsequent operations\n") }
                         break
                     }
                 }
                 if (success) {
-                    postUi { appendLog("全部PartitionFlashSuccess，run fastboot -w\n") }
+                    postUi { appendLog("全部PartitionFlashSuccess , run fastboot -w\n") }
                     val wipe = runFastbootBlocking("fastboot -w")
                     postUi { appendLog(if (wipe.exitCode == 0) "Data wipe succeeded\n" else "Data wipe failed, exit code ${wipe.exitCode}\n") }
                 }
@@ -785,7 +785,7 @@ class OtgAssistantPage(
                     "adb push ${file.absolutePath} $destination",
                 ) { line -> postUi { appendLog("$line\n") } }
                 file.delete()
-                postUi { appendLog("ADB push${if (result.exitCode == 0) "Success" else "Failed，Exit code ${result.exitCode}"}\n") }
+                postUi { appendLog("ADB push${if (result.exitCode == 0) "Success" else "Failed , Exit code ${result.exitCode}"}\n") }
             } catch (e: Exception) {
                 postUi { appendLog("ADB pushFailed: ${e.message}\n") }
             } finally {
@@ -911,7 +911,7 @@ class OtgAssistantPage(
                 if (i > 0) marginStart = Ui.dp(8, d)
             })
         }
-        // 等高对齐：测量后统一两个卡片高度，保证左右视觉一致
+        // 等高对齐：测量后统一两个卡片高度 , 保证左右视觉一致
         topRow.post {
             var maxH = 0
             for (i in 0 until topRow.childCount) {
@@ -965,7 +965,7 @@ class OtgAssistantPage(
     private fun executeRebootMode(mode: RebootMode) {
         setOperationActive(true)
         Thread {
-            val status = OtgAssistantCore.detectProtocoldevices(ctx)
+            val status = OtgAssistantCore.detectProtocol(ctx)
             val adbconnected = status.adb != "No device found" && !status.adb.contains("Waiting for USB authorization")
             val fastbootconnected = status.fastboot != "No device found"
             when {
@@ -977,7 +977,7 @@ class OtgAssistantPage(
                     postUi {
                         appendLog("Exit code: ${result.exitCode}\n")
                         if (result.exitCode == 0 && target.isNotEmpty()) {
-                            appendLog("Device switching boot mode，waiting for re-enumeration\n")
+                            appendLog("Device switching boot mode , waiting for re-enumeration\n")
                             waitForUsbReenumeration()
                         }
                     }
@@ -999,15 +999,15 @@ class OtgAssistantPage(
         repeat(8) {
             Thread.sleep(750)
             if (!alive) return
-            val status = OtgAssistantCore.detectProtocoldevices(ctx)
+            val status = OtgAssistantCore.detectProtocol(ctx)
             if (status.fastboot != "No device found") {
                 postUi { appendLog("Fastboot status：${status.fastboot}\n") }
                 return
             }
         }
         postUi {
-            appendLog("Fastboot found no device after mode switch，check the connection and fastboot output\n")
-            refreshdevices()
+            appendLog("Fastboot found no device after mode switch , check the connection and fastboot output\n")
+            refreshDevices()
         }
     }
 
