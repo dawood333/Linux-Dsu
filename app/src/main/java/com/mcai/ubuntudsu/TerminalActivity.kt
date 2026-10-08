@@ -62,13 +62,13 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         TerminalSessionStore.setTarget(this)
-        title = "Linux - Dsu 终端"
+        title = "Linux - Dsu Terminal"
         window.statusBarColor = Color.BLACK
         window.navigationBarColor = Color.BLACK
         window.decorView.systemUiVisibility = window.decorView.systemUiVisibility and
             (View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR).inv()
         if (!Env.ubuntuInstalled(this)) {
-            Toast.makeText(this, "请先安装 Ubuntu rootfs，请回到主页 Linux 页签完成安装", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Install the Ubuntu rootfs first, then return to the Linux tab on the home page.", Toast.LENGTH_SHORT).show()
             finish()
             return
         }
@@ -94,7 +94,7 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
         terminalView.post {
             startSession()
         }
-        // 从 Linux 页"桌面环境"入口进入时：已装桌面则直接弹启动菜单，未装才弹安装菜单
+        // 从 Linux 页"Desktop Environment"入口进入时：已装桌面则直接弹启动菜单，未装才弹安装菜单
         if (intent.getBooleanExtra(EXTRA_DESKTOP, false)) {
             terminalView.postDelayed({
                 Thread {
@@ -238,8 +238,8 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
     private fun installVncDesktop() {
         Ui.showGlassChoiceDialog(
             this,
-            "安装桌面环境",
-            "选择要安装的桌面，安装完成后即可启动 VNC",
+            "安装Desktop Environment",
+            "Choose a desktop to install. VNC can be started after installation.",
             desktopOptions.map { it.name },
             onPick = { which -> installVncDesktop(desktopOptions[which]) },
         )
@@ -248,15 +248,15 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
     private fun installVncDesktop(option: DesktopOption) {
                    val script = "export DEBIAN_FRONTEND=noninteractive; export LANG=C.UTF-8; export LC_ALL=C.UTF-8; . /etc/os-release 2>/dev/null; result=0; if [ \"${'$'}ID\" = ubuntu ]; then DESKTOP_EXTRA='language-pack-zh-hans language-pack-zh-hans-base language-pack-kde-zh-hans'; PKGS='${option.packages}'; elif [ \"${'$'}ID\" = debian ]; then DESKTOP_EXTRA=''; PKGS='${option.packagesDebian ?: option.packages}'; else echo \"[错误] 不支持的系统: ${'$'}ID\"; result=1; fi; if [ \"${'$'}result\" -eq 0 ]; then echo '[1/8] 修复 dpkg 状态'; dpkg --configure -a || true; echo '[2/8] 更新软件包索引'; apt-get update || result=1; echo '[3/8] 修复 dpkg 依赖'; apt-get install -y --fix-broken || result=1; echo '[3b/8] 安装桌面、VNC 和音频组件'; apt-get install -y ${'$'}PKGS dbus-x11 dbus-user-session locales ${'$'}DESKTOP_EXTRA fonts-noto-cjk fonts-wqy-microhei tigervnc-standalone-server tigervnc-common pulseaudio pulseaudio-utils || result=1; echo '[4/8] 完成 dpkg 配置'; dpkg --configure -a || result=1; echo '[5/8] 生成中文 locale'; sed -i 's/^# *zh_CN.UTF-8 UTF-8/zh_CN.UTF-8 UTF-8/' /etc/locale.gen || result=1; grep -q '^zh_CN.UTF-8 UTF-8' /etc/locale.gen || printf '%s\\n' 'zh_CN.UTF-8 UTF-8' >> /etc/locale.gen; locale-gen zh_CN.UTF-8 || result=1; echo '[5b/8] 固化全中文环境'; printf '%s\\n' 'LANG=zh_CN.UTF-8' 'LANGUAGE=zh_CN:en' 'LC_ALL=' > /etc/environment; update-locale LANG=zh_CN.UTF-8 || true; echo '[5c/8] 设 KDE 默认语言为中文'; printf '%s\\n' '[KDE]' 'Language=zh_CN' > /root/.config/kdeglobals; sed -i 's/^LANG=.*/LANG=zh_CN.UTF-8/' /root/.bashrc 2>/dev/null || true; grep -q '^export LANG=zh_CN.UTF-8' /root/.bashrc || printf '%s\\n' 'export LANG=zh_CN.UTF-8' 'export LANGUAGE=zh_CN:en' 'export LC_ALL=' >> /root/.bashrc; echo '[7/8] 配置 VNC 启动脚本'; mkdir -p /root/.vnc /root/.config/tigervnc || result=1; printf '%s\\n' '#!/bin/sh' 'unset SESSION_MANAGER' 'unset DBUS_SESSION_BUS_ADDRESS' 'export HOME=/root' 'export XDG_VNC_SESSION=1' 'export DISPLAY=${'$'}{DISPLAY:-:1}' 'export LANG=zh_CN.UTF-8' 'export LANGUAGE=zh_CN:en' 'export LC_ALL=' 'export KDE_FULL_SESSION=1' 'export QT_X11_NO_MITSHM=1' 'export QT_QPA_PLATFORM=xcb' 'if command -v ${option.commandCheck} >/dev/null 2>&1; then exec ${option.startup.removePrefix("exec ")}; fi' 'command -v startplasma-x11 >/dev/null 2>&1 && exec dbus-launch startplasma-x11; command -v startxfce4 >/dev/null 2>&1 && exec startxfce4; exit 1' > /root/.vnc/xstartup || result=1; cp -f /root/.vnc/xstartup /root/.config/tigervnc/ 2>/dev/null || true; chmod +x /root/.vnc/xstartup || result=1; echo '[8/8] 配置 VNC 免密'; mkdir -p /root/.config/tigervnc; printf 'securitytypes=none\\n' > /root/.config/tigervnc/config 2>/dev/null || true; printf 'securitytypes=none\\n' > /root/.vnc/config 2>/dev/null || true; fi; if [ \"${'$'}result\" -eq 0 ]; then echo '[成功] ${option.name} 桌面、VNC 和音频支持安装完成'; else echo '[失败] ${option.name} 桌面、VNC 或音频安装'; fi"
          sendVisibleCommand(script)
-        Toast.makeText(this, "已发送 ${option.name} 和中文环境安装脚本", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Sent ${option.name}  and language environment installation script", Toast.LENGTH_SHORT).show()
         focusTerminalAndShowKeyboard()
     }
 
     private fun startVnc() {
         Ui.showGlassChoiceDialog(
             this,
-            "启动 VNC 桌面",
-            "选择桌面环境",
+            "Start VNC Desktop",
+            "选择Desktop Environment",
             desktopOptions.map { it.name },
             onPick = { which -> chooseVncResolution(desktopOptions[which]) },
         )
@@ -265,9 +265,9 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
     private fun chooseVncResolution(option: DesktopOption) {
         Ui.showGlassChoiceDialog(
             this,
-            "VNC 分辨率",
+            "VNC Resolution",
             option.name,
-            listOf("竖屏：720x1584", "横屏：1584x720"),
+            listOf("Portrait: 720x1584", "Landscape: 1584x720"),
             onPick = { which ->
                 if (which == 0) startVnc(720, 1584, "portrait", option)
                 else startVnc(1584, 720, "landscape", option)
@@ -281,7 +281,7 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
           audioBridge = AudioBridge(Env.audioFifo(this)).also { it.start() }
                    val startupCommand = "result=0; audio=0; command -v ${option.commandCheck} >/dev/null 2>&1 || { echo \"[警告] 找不到桌面启动命令 ${option.commandCheck}，仍将尝试启动 VNC\"; }; command -v vncserver >/dev/null 2>&1 || { echo '[错误] 找不到 vncserver'; result=1; }; if [ \"${'$'}result\" -eq 0 ]; then export XDG_RUNTIME_DIR=/run/user/0; export VNCUSERCONFIGDIR=/root/.vnc; export PULSE_SERVER=unix:/run/pulse/native; mkdir -p \"${'$'}XDG_RUNTIME_DIR\" /run/pulse; echo '[音频] 检查 Android PCM FIFO'; if [ ! -p /run/android-audio.pcm ]; then echo '[音频错误] /run/android-audio.pcm 不是 FIFO'; audio=1; fi; echo '[音频] 启动 PulseAudio 用户模式'; command -v pulseaudio >/dev/null 2>&1 || { echo '[音频错误] 找不到 pulseaudio'; audio=1; }; if [ \"${'$'}audio\" -eq 0 ]; then pulseaudio --check >/dev/null 2>&1 || pulseaudio --daemonize=true --exit-idle-time=-1 --load='module-native-protocol-unix socket=/run/pulse/native auth-anonymous=1' 2>&1 || { echo '[音频错误] PulseAudio 启动失败'; audio=1; }; echo '[音频] 等待 PulseAudio socket'; ready=0; for attempt in 1 2 3 4 5; do pactl --server=unix:/run/pulse/native info >/dev/null 2>&1 && ready=1 && break; sleep 0.2; done; if [ \"${'$'}ready\" -eq 0 ]; then echo '[音频错误] pactl 无法连接 PulseAudio'; audio=1; else echo '[音频] 创建 android_audio sink'; pactl --server=unix:/run/pulse/native list short sinks; pactl --server=unix:/run/pulse/native load-module module-pipe-sink sink_name=android_audio format=s16le rate=44100 channels=2 file=/run/android-audio.pcm 2>&1 || true; pactl --server=unix:/run/pulse/native set-default-sink android_audio 2>&1 || true; echo '[音频] 当前 sink'; pactl --server=unix:/run/pulse/native list short sinks; fi; fi; echo '[VNC] 清理旧的 :1 display'; vncserver -kill :1 2>/dev/null || true; rm -f /tmp/.X1-lock /tmp/.X11-unix/X1 /root/.vnc/*:1.log /root/.vnc/*:1.pid; mkdir -p /root/.config/tigervnc /root/.vnc || result=1; cp -f /root/.vnc/xstartup /root/.config/tigervnc/ 2>/dev/null || true; printf 'securitytypes=none\\n' > /root/.config/tigervnc/config 2>/dev/null || true; printf 'securitytypes=none\\n' > /root/.vnc/config 2>/dev/null || true; printf '%s\\n' '#!/bin/sh' 'unset SESSION_MANAGER' 'unset DBUS_SESSION_BUS_ADDRESS' 'export HOME=/root' 'export XDG_VNC_SESSION=1' 'export DISPLAY=${'$'}{DISPLAY:-:1}' 'export PULSE_SERVER=unix:/run/pulse/native' 'export PULSE_SINK=android_audio' 'export KDE_FULL_SESSION=1' 'export QT_X11_NO_MITSHM=1' 'export QT_QPA_PLATFORM=xcb' 'if command -v ${option.commandCheck} >/dev/null 2>&1; then exec ${option.startup.removePrefix("exec ")}; fi' 'command -v startplasma-x11 >/dev/null 2>&1 && exec dbus-launch startplasma-x11; command -v startxfce4 >/dev/null 2>&1 && exec startxfce4; exit 1' > /root/.config/tigervnc/xstartup || result=1; printf '%s\\n' '#!/bin/sh' 'unset SESSION_MANAGER' 'unset DBUS_SESSION_BUS_ADDRESS' 'export HOME=/root' 'export XDG_VNC_SESSION=1' 'export DISPLAY=${'$'}{DISPLAY:-:1}' 'export PULSE_SERVER=unix:/run/pulse/native' 'export PULSE_SINK=android_audio' 'export KDE_FULL_SESSION=1' 'export QT_X11_NO_MITSHM=1' 'export QT_QPA_PLATFORM=xcb' 'if command -v ${option.commandCheck} >/dev/null 2>&1; then exec ${option.startup.removePrefix("exec ")}; fi' 'command -v startplasma-x11 >/dev/null 2>&1 && exec dbus-launch startplasma-x11; command -v startxfce4 >/dev/null 2>&1 && exec startxfce4; exit 1' > /root/.vnc/xstartup || result=1; chmod +x /root/.vnc/xstartup || result=1; echo '[VNC] 启动 display :1'; nohup vncserver :1 -SecurityTypes none -geometry ${width}x${height} -depth 24 -xstartup /root/.vnc/xstartup </dev/null >/tmp/vnc-start.log 2>&1 & echo \"[VNC] 已后台启动，日志 /tmp/vnc-start.log\"; fi; if [ \"${'$'}result\" -eq 0 ]; then echo '[成功] ${option.name} 桌面已启动'; [ \"${'$'}audio\" -eq 0 ] && echo '[成功] 音频桥接已启用' || echo '[警告] 桌面已启动，但 PulseAudio 音频桥接失败'; else echo '[失败] ${option.name} 桌面启动'; fi"
             sendHiddenCommand(startupCommand)
-            Toast.makeText(this, "正在启动 ${option.name} VNC", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Starting ${option.name} VNC", Toast.LENGTH_SHORT).show()
             return@postDelayed
 
          }, 200)
@@ -302,7 +302,7 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
             }
             runOnUiThread {
                  if (!ready) {
-                    Toast.makeText(this, "VNC 服务未监听 5901 端口，请查看终端错误信息", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "VNC service is not listening on port 5901. Check terminal errors.", Toast.LENGTH_LONG).show()
                     return@runOnUiThread
                  }
                  val profile = com.gaurav.avnc.model.ServerProfile(
@@ -380,14 +380,14 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
         }
         var popup: PopupWindow? = null
         item("唤醒锁") { window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); popup?.dismiss() }
-        item("结束") {
+        item("End") {
             session?.write("exit\n".toByteArray(), 0, 5)
             terminalView.postDelayed({ session?.finishIfRunning() }, 3000)
             popup?.dismiss()
         }
-        item("重置") { session?.reset(); terminalView.onScreenUpdated(); popup?.dismiss() }
-        item("粘贴") { onPasteTextFromClipboard(session); popup?.dismiss() }
-        item("后台运行") {
+        item("Reset") { session?.reset(); terminalView.onScreenUpdated(); popup?.dismiss() }
+        item("Paste") { onPasteTextFromClipboard(session); popup?.dismiss() }
+        item("Run in Background") {
             popup?.dismiss()
             finish()
         }
@@ -439,7 +439,7 @@ class TerminalActivity : AppCompatActivity(), TerminalSessionClient, TerminalVie
         }
         val code = finishedSession.exitStatus
         runOnUiThread {
-            Toast.makeText(this, "进程已结束 (code $code)", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "进程已End (code $code)", Toast.LENGTH_SHORT).show()
             finish()
         }
     }
