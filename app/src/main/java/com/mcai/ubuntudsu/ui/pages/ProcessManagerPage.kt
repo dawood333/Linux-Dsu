@@ -928,7 +928,7 @@ class ProcessManagerPage(
                 if (success) {
                     AlertDialog.Builder(activity)
                         .setTitle("Operation Successful")
-                        .setMessage(""${app.appLabel}" was force-stopped.")
+                        .setMessage("\"${app.appLabel}\" was force-stopped.")
                         .setPositiveButton("OK") { _, _ -> loadData() }
                         .show()
                 } else {
