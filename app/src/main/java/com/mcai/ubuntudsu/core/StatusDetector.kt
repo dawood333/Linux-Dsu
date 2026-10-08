@@ -174,8 +174,8 @@ object StatusDetector {
     }
 
     fun ubuntuSummary(ctx: Context): String {
-        if (!Env.ubuntuInstalled(ctx)) return "未安装"
-        return "已安装"
+        if (!Env.ubuntuInstalled(ctx)) return "Not installed"
+        return "Installed"
     }
 
     private fun systemProperty(name: String): String = runCatching {
