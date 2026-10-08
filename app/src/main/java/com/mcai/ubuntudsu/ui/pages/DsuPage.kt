@@ -69,13 +69,13 @@ class DsuPage(
         if (availGB <= 0) return ""
         val maxSafeGB = (availGB * 40 / 100).toInt()
         return when {
-            GB > maxSafeGB * 2 -> "Warning: ${GB} GB 远超设备剩余空间（${availGB} GB），安装极可能失败，建议改用 ${maxSafeGB.coerceAtLeast(8)} GB"
-            GB > maxSafeGB -> "Notice: ${GB} GB 超过设备剩余安全容量（约 ${maxSafeGB} GB），安装可能失败"
+            GB > maxSafeGB * 2 -> "Warning: ${GB} GB far exceeds available device space（${availGB} GB），安装极可能失败，建议改用 ${maxSafeGB.coerceAtLeast(8)} GB"
+            GB > maxSafeGB -> "Notice: ${GB} GB 超过device safe capacity（约 ${maxSafeGB} GB），安装可能失败"
             else -> ""
         }
     }
 
-    /** 动态上限：剩余空间的 40%（Android 官方限制），下限 8 GB，不设硬顶（覆盖 1TB 设备） */
+    /** 动态上限：40% of available space（Android 官方限制），下限 8 GB，不设硬顶（覆盖 1TB 设备） */
     private fun maxAllowedGB(): Int = ((availableGB() * 40 / 100).toInt()).coerceAtLeast(8)
 
     fun onZipPicked(uri: Uri?) {
@@ -191,15 +191,15 @@ class DsuPage(
             sizeRow.addView(chip)
         }
         parameterCard.addView(sizeRow)
-        // 剩余空间提示（参考 DSU-Sideloader 的 40% 安全限制说明）
+        // 剩余空间提示（参考 DSU-Sideloader 40% 安全限制说明）
         parameterCard.addView(label(
-            "Free space: ${availableGB()} GB · 建议上限：${maxAllowedGB()} GB（剩余空间的 40%）",
+            "Free space: ${availableGB()} GB · recommended limit：${maxAllowedGB()} GB（40% of available space）",
             11f,
         ).apply {
             setTextColor(Ui.secondaryText(activity))
             setPadding(0, Ui.dp(4, d), 0, 0)
         })
-        // 自定义容量：输入框 + OK按钮二合一（免弹框，直接输入 GB 数）
+        // 自定义Capacity：输入框 + OK按钮二合一（免弹框，直接输入 GB 数）
         val customRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, Ui.dp(5, d), 0, 0)
@@ -224,13 +224,13 @@ class DsuPage(
                         Toast.makeText(activity, "Enter a valid size", Toast.LENGTH_SHORT).show()
                     }
                     value > maxAllowedGB() -> {
-                        Toast.makeText(activity, "容量 ${value} GB 超过建议上限 ${maxAllowedGB()} GB（剩余空间 ${availableGB()} GB 的 40%），安装可能失败", Toast.LENGTH_LONG).show()
+                        Toast.makeText(activity, "Capacity ${value} GB 超过recommended limit ${maxAllowedGB()} GB（剩余空间 ${availableGB()} GB 40%），安装可能失败", Toast.LENGTH_LONG).show()
                     }
                     else -> {
                         selectedUserdataGB = value
                         selectSizeChip(sizeRow, value)
                         val w = userdataWarning(value)
-                        Toast.makeText(activity, if (w.isNotEmpty()) "已设定 ${value} GB · $w" else "已设定 userdata size：${value} GB", Toast.LENGTH_LONG).show()
+                        Toast.makeText(activity, if (w.isNotEmpty()) "Set ${value} GB · $w" else "Set userdata size：${value} GB", Toast.LENGTH_LONG).show()
                     }
                 }
             },
@@ -256,7 +256,7 @@ class DsuPage(
                 pickZipLauncher.launch(
                     android.content.Intent(activity, com.mcai.ubuntudsu.RootfsFilesActivity::class.java).apply {
                         putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_PICK, true)
-                        putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_TITLE, "选择 GSI 安装包")
+                        putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_TITLE, "Select GSI installation package")
                         putExtra(com.mcai.ubuntudsu.RootfsFilesActivity.EXTRA_EXT, ".zip,.img,.gz,.xz")
                     },
                 )
@@ -292,7 +292,7 @@ class DsuPage(
         val toolsRow1 = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         toolsRow1.addView(
             Ui.iconTile(activity, "Reboot to DSU", "Reboot into the GSI system", R.drawable.ic_dsu_restart, Ui.buttonWarning(activity)) {
-                confirmAction("重启进入 DSU", "设备将立即重启并进入 GSI 系统。") {
+                confirmAction("Reboot to DSU", "The device will reboot immediately into the GSI system.") {
                     executor.execute {
                         val service = privilegedService
                         if (service == null) {
@@ -300,7 +300,7 @@ class DsuPage(
                         } else if (!service.setEnable(true, true)) {
                             log("One-shot DSU boot setup failed")
                         } else if (!service.boot()) {
-                            log("请求Reboot to DSU 失败")
+                            log("Failed to reboot to DSU")
                         }
                     }
                 }
@@ -310,8 +310,8 @@ class DsuPage(
         toolsRow1.addView(
             Ui.iconTile(activity, "Repair Environment", "Clear metadata and prepare again", R.drawable.ic_dsu_repair) {
                 confirmAction(
-                    "修复 DSU 环境",
-                    "将删除 /metadata/gsi/dsu 和 /metadata/vold/metadata_encryption/dsu。该操作用于清理上一次失败安装留下的状态，不会删除已选择的 GSI 文件。",
+                    "Repair DSU environment",
+                    "This will delete /metadata/gsi/dsu 和 /metadata/vold/metadata_encryption/dsu。This clears state left by the previous failed installation; selected GSI files will not be deleted.",
                 ) {
                     executor.execute {
                         val result = DsuManager.restartDsuService(::log)
@@ -331,16 +331,16 @@ class DsuPage(
         }
         toolsRow2.addView(
             Ui.iconTile(activity, "Remove Installed GSI", "Remove GSI and return to stock system", R.drawable.ic_dsu_undo, Ui.buttonDanger(activity)) {
-                confirmAction("撤销 GSI", "删除 /data/gsi/dsu/dsu，移除已安装的 GSI。") { executor.execute { DsuManager.wipe(::log) } }
+                confirmAction("Remove GSI", "Delete /data/gsi/dsu/dsu，remove the installed GSI.") { executor.execute { DsuManager.wipe(::log) } }
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
         toolsRow2.addView(
             Ui.iconTile(activity, "Wipe userdata", "Wipe the userdata partition", R.drawable.ic_dsu_clear_userdata) {
-                confirmAction("Wipe userdata", "执行 gsi_tool wipe-data，仅清空 userdata 分区数据。") {
+                confirmAction("Wipe userdata", "Run gsi_tool wipe-data，clear only userdata partition data.") {
                     executor.execute {
                         val result = DsuManager.wipeData(::log)
-                        log(if (result.success) "userdata cleared" else "userdata 清理失败：${result.stderr}")
+                        log(if (result.success) "userdata cleared" else "userdata Cleanup failed: ${result.stderr}")
                     }
                 }
             },
@@ -404,7 +404,7 @@ class DsuPage(
                 .setTitle(title)
                 .setMessage(message)
                 .setPositiveButton("OK") { _, _ -> action() }
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
         )
     }
 
@@ -437,7 +437,7 @@ class DsuPage(
                 if (clearUserdata) {
                     log("Clearing old cache: /metadata/gsi/dsu/dsu/lp_metadata")
                     val clearResult = DsuManager.clearInstallCache(::log)
-                    check(clearResult.success) { "清理旧缓存失败：${clearResult.stderr}" }
+                    check(clearResult.success) { "Failed to clean old cache: ${clearResult.stderr}" }
                 }
                 runCatching {
                     val path = zipUri.path ?: error("Unable to read GSI ZIP")
@@ -463,7 +463,7 @@ class DsuPage(
         try {
             ZipInputStream(java.io.BufferedInputStream(input, 1024 * 1024)).use { zip ->
                 if (!service.isAvailable()) error("System dynamic_system service is unavailable")
-                if (!service.startInstallation("dsu")) error("dynamic_system 拒绝Start Installation")
+                if (!service.startInstallation("dsu")) error("dynamic_system rejected start installation")
                 started = true
                 val partitions = HashSet<String>()
                 var imageCount = 0
@@ -496,11 +496,11 @@ class DsuPage(
                 if (!service.setEnable(false, false)) error("Failed to disable DSU auto-boot")
                 completed = true
             }
-            activity.runOnUiThread { setInstallProgress(100, "GSI installation: complete"); Toast.makeText(activity, "GSI 已安装，请在需要时点击“Reboot to DSU”", Toast.LENGTH_LONG).show() }
+            activity.runOnUiThread { setInstallProgress(100, "GSI installation: complete"); Toast.makeText(activity, "GSI installed. Tap “Reboot to DSU” when needed", Toast.LENGTH_LONG).show() }
         } catch (e: Exception) {
             if (started && !completed) runCatching { service.abort() }
             log("ROOT DSU Installation failed: ${e.message}")
-            activity.runOnUiThread { installProgressLabel.text = "安装 GSI：失败"; Toast.makeText(activity, "Installation failed: ${e.message}", Toast.LENGTH_LONG).show() }
+            activity.runOnUiThread { installProgressLabel.text = "GSI installation: failed"; Toast.makeText(activity, "Installation failed: ${e.message}", Toast.LENGTH_LONG).show() }
         }
     }
 
