@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * DNA · Extract Incremental Package独立二级页（v3.30.36）。
  * 对齐原版 DNA incremental.sh：增量（delta）OTA 只含与上一版的差异，
- * 需要旧版本完整包Extract出的镜像目录，payload_dumper 自动校验旧分区哈希 →
+ * 需要旧版本完整包Extract出的镜像目录，payload_dumper 自动校验旧partitions哈希 →
  * 应用 delta 补丁 → 生成新镜像。
  * 全程 root 二进制链路（libpayload_dumper.so）：解析 --list、Extract --source-dir，
  * 无 FUSE 权限问题；进度按输出文件字节数实时推进（页面 + 通知栏同步）。
@@ -438,7 +438,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         dcLp.topMargin = dp(10);
         content.addView(dirCard, dcLp);
         TextView dirLabel = new TextView(this);
-        dirLabel.setText("🗂 " + t("Old Image Directory（上一版完整包Extract的 img 所在目录）", "Old images dir (extracted from the previous full OTA)"));
+        dirLabel.setText("🗂 " + t("Old images dir (extracted from the previous full OTA)", "Old images dir (extracted from the previous full OTA)"));
         dirLabel.setTextSize(11.5f);
         dirLabel.setTextColor(pal.subtitle);
         dirCard.addView(dirLabel, new LinearLayout.LayoutParams(-1, -2));
@@ -483,7 +483,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         content.addView(progressTrack, new LinearLayout.LayoutParams(-1, dp(12)));
 
         // ---- Extract按钮 ----
-        runBtn = gradientButton("⚡  " + t("选择分区并Extract", "Select & Extract"), new int[]{0xFFE08A39, 0xFFB85C10}, dp(18));
+        runBtn = gradientButton("⚡  " + t("Select & Extract", "Select & Extract"), new int[]{0xFFE08A39, 0xFFB85C10}, dp(18));
         runBtn.setOnClickListener(v -> {
             Haptics.perform(v);
             if (running.get()) { cancelFlag.set(true); log(t("Cancelling...", "Cancelling...")); return; }
@@ -655,7 +655,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
                                 "No delta markers (probably a full OTA)"));
                     }
                     log("✓ " + t("Parsing complete", "Parsed") + " · " + partitions.size()
-                            + t(" partitions，请在弹窗勾选要Extract的 img", " partitions, select img in dialog"));
+                            + t(" partitions, select img in dialog", " partitions, select img in dialog"));
                     status.setText("✓ " + t("Parsing complete", "Parsed") + " · " + partitions.size() + t(" partitions", " partitions"));
                     status.setTextColor(0xff1d7a4f);
                     notifyDone(true, t("Parsing complete", "Parsed") + " · " + partitions.size() + t(" partitions", " partitions"));
@@ -714,7 +714,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         }
     }
 
-    // ================= 分区弹窗 =================
+    // ================= partitions弹窗 =================
 
     private void showPartitionDialog() {
         if (isFinishing() || isDestroyed()) return;
@@ -734,7 +734,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         panel.setBackground(bg);
 
         TextView title = new TextView(this);
-        title.setText("⚡ " + t("选择要Extract的分区", "Select partitions to extract"));
+        title.setText("⚡ " + t("Select partitions to extract", "Select partitions to extract"));
         title.setTextSize(15.5f);
         title.setTypeface(null, 1);
         title.setTextColor(0xff17334f);
@@ -830,7 +830,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
             if (checked.contains(p.getName())) ordered.add(p.getName());
         final String outDir = DnaTools.WORK_ROOT + "/" + project;
         expandConsole();
-        // v3.30.39：逐分区顺序Extract（同分解 bin 页，Cancel进度条）：
+        // v3.30.39：逐partitions顺序Extract（同分解 bin 页，Cancel进度条）：
         // ⏳ Extracting [i/n] xxx.img → ✓ xxx.img (大小) Extraction complete，依次推进
         log("⚡ " + t("Start Incremental Extraction", "Incremental extract") + " " + ordered.size()
                 + t(" partitions → ", " partition(s) → ") + project);
@@ -842,8 +842,8 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         status.setTextColor(pal.subtitle);
 
         io.execute(() -> {
-            // v3.30.39：逐分区顺序Extract —— 每分区一次 payload_dumper --source-dir 调用，
-            // ⏳ 前置 + ✓/✗ 后置，日志严格按分区推进（无进度条、无字节轮询）
+            // v3.30.39：逐partitions顺序Extract —— 每partitions一次 payload_dumper --source-dir 调用，
+            // ⏳ 前置 + ✓/✗ 后置，日志严格按partitions推进（无进度条、无字节轮询）
             final long startMs = System.currentTimeMillis();
             int okCount = 0;
             String lastErr = null;
@@ -888,7 +888,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
             main.post(() -> {
                 running.set(false);
                 parseBtn.setEnabled(true);
-                runBtn.setText("⚡  " + t("选择分区并Extract", "Select & Extract"));
+                runBtn.setText("⚡  " + t("Select & Extract", "Select & Extract"));
                 if (cancelled) {
                     log("■ " + t("Cancelled", "Cancelled"));
                     status.setText("■ " + t("Cancelled", "Cancelled"));
