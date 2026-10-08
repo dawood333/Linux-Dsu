@@ -48,7 +48,7 @@ class SettingsPage(
             }
         }
 
-        // 壁纸背景设置在外层 Frame 上
+        // 壁纸背景Settings在外层 Frame 上
         if (wallpaperSync) {
             applyWallpaperBackground(frame)
             // 顶部渐变遮罩（保护状态栏区域可读性）
@@ -97,7 +97,7 @@ class SettingsPage(
         val gridPrefs = activity.getPreferences(Activity.MODE_PRIVATE)
         val savedOrder = gridPrefs.getString("icon_order", null)
         val keyToItem = mapOf(
-            "theme" to GridItem("设置", R.drawable.icon_settings, "#5B6CFF") { view -> openSettings(view) },
+            "theme" to GridItem("Settings", R.drawable.icon_settings, "#5B6CFF") { view -> openSettings(view) },
             "process" to GridItem("进程管理", R.drawable.icon_process_manager, "#E53935") { view -> openProcessManager(view) },
             "rom" to GridItem("ROM固件", R.drawable.icon_rom_firmware, "#FF6B35") { view -> openRomFirmware(view) },
             "otg" to GridItem("OTG助手", R.drawable.icon_otg, "#00897B") { view -> openOtgAssistant(view) },
@@ -313,7 +313,7 @@ class SettingsPage(
         return container
     }
 
-    /** 打开全屏设置页（个性主题 + 关于信息） */
+    /** 打开全屏Settings页（个性Theme + About信息） */
     private fun openSettings(iconView: View) {
         launchScaleUp(iconView, com.mcai.ubuntudsu.SettingsActivity::class.java)
     }
@@ -350,12 +350,12 @@ class SettingsPage(
     }
 
 
-    // 在线检查更新：GitHub Releases 最新版比对本地版本，提示 / 下载 / 安装
+    // 在线检查更新：GitHub Releases 最新版比对本地Version，提示 / 下载 / 安装
     private fun checkUpdate() {
         val d = activity.resources.displayMetrics.density
         val checking = android.app.AlertDialog.Builder(activity)
             .setTitle("检查更新")
-            .setMessage("正在检测新版本...")
+            .setMessage("正在检测新Version...")
             .setCancelable(false)
             .show()
         Thread {
@@ -374,17 +374,17 @@ class SettingsPage(
                         !com.mcai.ubuntudsu.core.AppUpdater.isNewer(local, info.version) ->
                             AlertDialog.Builder(activity)
                                 .setTitle("检查更新")
-                                .setMessage("当前已是最新版本（v$local）。")
+                                .setMessage("当前已是最新Version（v$local）。")
                                 .setPositiveButton("关闭", null)
                                 .show()
                         else -> AlertDialog.Builder(activity)
-                            .setTitle("发现新版本 v${info.version}")
+                            .setTitle("发现新Version v${info.version}")
                             .setMessage(
                                 (if (info.notes.isBlank()) "" else "${info.notes}\n\n") +
-                                    "下载并安装新版本？",
+                                    "下载并安装新Version？",
                             )
                             .setPositiveButton("下载并安装") { _, _ -> downloadAndInstall(info) }
-                            .setNegativeButton("取消", null)
+                            .setNegativeButton("Cancel", null)
                             .show()
                     }
                 }
@@ -424,7 +424,7 @@ class SettingsPage(
                 },
             )
             .setCancelable(false)
-            .setNegativeButton("取消") { _, _ -> cancelled.set(true) }
+            .setNegativeButton("Cancel") { _, _ -> cancelled.set(true) }
             .show()
         percentText.text = "连接中…"
         Thread {
@@ -528,7 +528,7 @@ class SettingsPage(
                             .setPositiveButton("调用系统安装") { _, _ ->
                                 runCatching { com.mcai.ubuntudsu.core.AppUpdater.install(activity, target) }
                             }
-                            .setNegativeButton("取消", null)
+                            .setNegativeButton("Cancel", null)
                             .show()
                     }
                 }
@@ -538,7 +538,7 @@ class SettingsPage(
                     runCatching { dialog.dismiss() }
                     AlertDialog.Builder(activity)
                         .setTitle("下载失败")
-                        .setMessage("新版本下载出现异常，请稍后重试。")
+                        .setMessage("新Version下载出现异常，请稍后重试。")
                         .setPositiveButton("关闭", null)
                         .show()
                 }
@@ -547,7 +547,7 @@ class SettingsPage(
     }
 
     /**
-     * 将系统壁纸设置为更多页面的背景（仅此页面，不影响其他界面）
+     * 将系统壁纸Settings为更多页面的背景（仅此页面，不影响其他界面）
      * 多种方式降级获取壁纸，确保兼容性
      */
     private fun applyWallpaperBackground(page: View) {
