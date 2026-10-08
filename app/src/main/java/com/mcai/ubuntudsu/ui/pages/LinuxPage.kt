@@ -79,7 +79,7 @@ class LinuxPage(
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(2, d)),
         )
         manageCard.addView(
-            actionRow(R.drawable.icon_trash_rootfs, "Uninstall rootfs System", "删除Installed的 Ubuntu System") { confirmUninstall() },
+            actionRow(R.drawable.icon_trash_rootfs, "Uninstall rootfs System", "Delete the installed Ubuntu System") { confirmUninstall() },
         )
         page.addView(manageCard)
 
@@ -135,7 +135,7 @@ class LinuxPage(
         if (Env.ubuntuInstalled(activity)) {
             action()
         } else {
-            Toast.makeText(activity, "Ubuntu rootfs Not installed，请先完成Install", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Ubuntu rootfs Not installed，complete the installation first", Toast.LENGTH_SHORT).show()
             activity.startActivity(Intent(activity, RootfsInstallActivity::class.java))
         }
     }
@@ -145,16 +145,16 @@ class LinuxPage(
         val path = Env.rootfs(activity).path
         installHint.visibility = if (installed) View.GONE else View.VISIBLE
         if (!installed) {
-            infoText.text = "System版本信息：Not installed\nStatus: Not installed\nAfter installation, access Linux through the terminal (Chroot + Root)"
+            infoText.text = "System version information：Not installed\nStatus: Not installed\nAfter installation, access Linux through the terminal (Chroot + Root)"
             return
         }
         val version = rootfsVersion()
-        infoText.text = "System版本信息：$version\nStatus: Installed\nPath: $path"
+        infoText.text = "System version information：$version\nStatus: Installed\nPath: $path"
     }
 
     private fun rootfsVersion(): String {
         val rootfs = Env.rootfs(activity)
-        val candidates = listOf("etc/版本信息", "etc/version", "etc/ubuntu_version", "etc/os-release")
+        val candidates = listOf("etc/version_info", "etc/version", "etc/ubuntu_version", "etc/os-release")
         val file = candidates.asSequence().map { java.io.File(rootfs, it) }.firstOrNull { it.isFile }
         return runCatching { file?.readText(Charsets.UTF_8)?.trim() }.getOrNull()
             ?.lineSequence()?.firstOrNull { it.isNotBlank() }?.take(120)
@@ -203,9 +203,9 @@ sleep 1""".trimIndent()
                     val gone = result.stdout.contains("__GONE__") && !result.stdout.contains("__REMAIN__")
                     activity.runOnUiThread {
                         if (gone) {
-                            Toast.makeText(activity, "已Uninstall rootfs System", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(activity, "Linux rootfs uninstalled", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(activity, "Uninstall失败：目录仍存在，请Close terminal后重试", Toast.LENGTH_LONG).show()
+                            Toast.makeText(activity, "Uninstall failed：the directory still exists，close the terminal and try again", Toast.LENGTH_LONG).show()
                         }
                         refreshInfo()
                     }
