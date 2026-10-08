@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * 流程：选文件 → 🔍Start Parsing（root CLI / Java 直读 payload.bin / OTA zip）
  *      → Select in dialog分区（仅名称 + 大小，不显示哈希）→ 底部「OK」即Start Extraction，
  *        日志实时显示Extracting的 img 与进度（页面不再展开分区列表）。
- * v3.40.19 提取走 libpayload_extract.so（pie 可执行，root shell 直跑）：
+ * v3.40.19 Extract走 libpayload_extract.so（pie 可执行，root shell 直跑）：
  * root 直读输入（bin/zip 原路径）、root 直写输出工程，无 FUSE 权限障碍、零复制。
  */
 public final class DnaBinActivity extends DnaBaseActivity {
@@ -55,7 +55,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
     // 数据状态
     private String project;                       // 当前工程（输出目标）
     private String binPath;                       // 选中的 payload.bin / zip 绝对路径
-    private PayloadExtractor extractor;           // JNI 句柄（解析成功后保留供提取用）
+    private PayloadExtractor extractor;           // JNI 句柄（解析成功后保留供Extract用）
     private String openInput;                     // 实际打开的路径（无直读权限时为 cache 兜底）
     private final List<PayloadExtractor.PartitionInfo> partitions = new ArrayList<>();
     private final Set<String> checked = new LinkedHashSet<>();
@@ -233,7 +233,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         // ---- 流程提示条 ----
         TextView flow = new TextView(this);
         flow.setText("① " + t("Select File", "Pick") + "  →  ② " + t("Start Parsing", "Parse")
-                + "  →  ③ " + t("Select in dialog", "Select") + "  →  ④ " + t("OK提取", "Extract"));
+                + "  →  ③ " + t("Select in dialog", "Select") + "  →  ④ " + t("Confirm Extraction", "Extract"));
         flow.setTextSize(12.5f);
         flow.setTextColor(pal.success);
         flow.setTypeface(null, 1);
@@ -316,7 +316,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         srcCard.addView(srcHead, new LinearLayout.LayoutParams(-1, -2));
 
         sourceEmpty = new TextView(this);
-        sourceEmpty.setText(t("工程内暂无 payload.bin / zip，点 📂 浏览Select File", "No payload.bin / zip in project, tap 📂 to browse"));
+        sourceEmpty.setText(t("No payload.bin / ZIP in project; tap 📂 to select a file", "No payload.bin / zip in project, tap 📂 to browse"));
         sourceEmpty.setTextSize(12f);
         sourceEmpty.setTextColor(pal.subtitle);
         sourceEmpty.setPadding(dp(2), dp(8), 0, dp(4));
@@ -337,7 +337,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
 
         // ---- 选项 ----
         deleteSource = new CheckBox(this);
-        deleteSource.setText(t("提取后删除Source File", "Delete source after extraction"));
+        deleteSource.setText(t("Delete source file after extraction", "Delete source after extraction"));
         deleteSource.setTextSize(12.5f);
         deleteSource.setTextColor(pal.title);
         deleteSource.setPadding(dp(2), 0, 0, 0);
@@ -360,7 +360,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         progressTrack.addView(progressFill, new FrameLayout.LayoutParams(dp(84), android.view.ViewGroup.LayoutParams.MATCH_PARENT));
         content.addView(progressTrack, new LinearLayout.LayoutParams(-1, dp(12)));
 
-        // ---- 提取入口（Parsing complete后弹窗选择，OK即提取；运行中为Cancel） ----
+        // ---- Extract入口（Parsing complete后弹窗选择，OK即Extract；运行中为Cancel） ----
         runBtn = gradientButton("▶  " + t("Select Partitions and Extract", "Select & Extract"), new int[]{0xFF2f9c8f, 0xFF1d6b46}, dp(18));
         runBtn.setOnClickListener(v -> {
             Haptics.perform(v);
@@ -370,11 +370,11 @@ public final class DnaBinActivity extends DnaBaseActivity {
                 if (token >= 0L && extractor != null) {
                     try { extractor.cancelExtract(token); } catch (Throwable ignored) {}
                 }
-                log(t("正在Cancel ...", "Cancelling..."));
+                log(t("Cancelling...", "Cancelling..."));
                 return;
             }
             if (extractor == null || partitions.isEmpty()) {
-                toast(t("请先点「Start Parsing」", "Tap Parse first"));
+                toast(t("Tap “Start Parsing” first", "Tap Parse first"));
                 return;
             }
             showPartitionDialog();
@@ -386,7 +386,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         // ---- 控制台（v3.41.14：Run Task时弹出小窗口，不再嵌入页面）----
         buildConsole();
         renderProject();
-        log(t("提示：Select File → Start Parsing → Select in dialog分区 → OK提取", "Tip: pick → parse → select → extract"));
+        log(t("提示：Select File → Start Parsing → Select in dialog分区 → Confirm Extraction", "Tip: pick → parse → select → extract"));
     }
 
     /** 日志卡片 (v3.41.15:弹出小窗口；标题Run Task，右侧Copy Log/Clear Log/Close窗 ✕) */
@@ -522,7 +522,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
     // ================= 数据加载 =================
 
     private void renderProject() {
-        projectName.setText(project != null ? project : t("未Select Project", "No project"));
+        projectName.setText(project != null ? project : t("No project selected", "No project"));
         projectOut.setText(project != null
                 ? "➜ " + DnaTools.WORK_ROOT + "/" + project
                 : t("Tap to select the output project", "Tap to pick an output project"));
@@ -618,7 +618,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
                 // v3.30.23：点选再点Cancel（toggle）
                 if (fullPath.equals(binPath)) {
                     binPath = null;
-                    log("⊘ " + t("已Cancel选择", "Deselected") + " " + e.getName());
+                    log("⊘ " + t("Selection cancelled", "Deselected") + " " + e.getName());
                 } else {
                     binPath = fullPath;
                     log("📥 " + e.getName() + " · " + fmtSize(e.getSize()));
@@ -700,7 +700,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
     private void parseFile() {
         if (running.get()) { toast(t("Running", "Busy")); return; }
         if (binPath == null || binPath.isEmpty()) {
-            toast(t("请先Select payload.bin / OTA ZIP 文件", "Pick a payload.bin / OTA zip file first"));
+            toast(t("Select a payload.bin / OTA ZIP file first", "Pick a payload.bin / OTA zip file first"));
             return;
         }
         final String path = binPath;
@@ -731,13 +731,13 @@ public final class DnaBinActivity extends DnaBaseActivity {
                     if (parts == null || parts.isEmpty()) {
                         String detail = r.getOutput() == null ? "" : r.getOutput().trim();
                         if (detail.length() > 1200) detail = detail.substring(detail.length() - 1200);
-                        throw new IllegalStateException(t("未能读取到分区列表（文件无 payload.bin、权限不足或列表格式不兼容）",
+                        throw new IllegalStateException(t("Could not read partition list (missing payload.bin, insufficient permissions, or incompatible format)",
                                 "No partitions found (missing payload.bin, access denied, or unsupported list format)")
                                 + (r.getSuccess() ? "" : " · " + r.getMessage())
                                 + (detail.isEmpty() ? "" : "\n" + detail));
                     }
                 }
-                // 后续提取通过 payloadExtractCli 完成；此对象只用于保持页面生命周期兼容。
+                // 后续Extract通过 payloadExtractCli 完成；此对象只用于保持页面生命周期兼容。
                 extractor = new PayloadExtractor();
                 final String finalInput = input;
                 final List<PayloadExtractor.PartitionInfo> fParts = parts;
@@ -747,12 +747,12 @@ public final class DnaBinActivity extends DnaBaseActivity {
                     checked.clear();
                     if (fParts != null) partitions.addAll(fParts);
                     if (incremental)
-                        log("⚠ " + t("检测到增量（delta）包，请使用「分解增量包」功能", "Delta payload detected, use the Incremental page"));
+                        log("⚠ " + t("Delta package detected; use “Extract Incremental Package”", "Delta payload detected, use the Incremental page"));
                     log("✓ " + t("Parsing complete", "Parsed") + " · " + partitions.size()
-                            + t(" 个分区，请在Select in dialog要提取的 img", " partitions, select img in dialog"));
-                    status.setText("✓ " + t("Parsing complete", "Parsed") + " · " + partitions.size() + t(" 个分区", " partitions"));
+                            + t(" partitions; select images to extract in the dialog", " partitions, select img in dialog"));
+                    status.setText("✓ " + t("Parsing complete", "Parsed") + " · " + partitions.size() + t(" partitions", " partitions"));
                     status.setTextColor(pal.success);
-                    notifyDone(true, t("Parsing complete", "Parsed") + " · " + partitions.size() + " 个分区");
+                    notifyDone(true, t("Parsing complete", "Parsed") + " · " + partitions.size() + " partitions");
                     if (partitions.isEmpty()) {
                         status.setText("✗ " + t("No extractable partitions found", "No extractable partitions"));
                         status.setTextColor(pal.danger);
@@ -783,7 +783,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         // v3.30.25 修复 BadTokenException：Parsing complete回调时页面可能已退出，此时不能再弹窗
         if (isFinishing() || isDestroyed()) return;
         if (partitions.isEmpty()) {
-            toast(t("请先点「Start Parsing」", "Tap Parse first"));
+            toast(t("Tap “Start Parsing” first", "Tap Parse first"));
             return;
         }
         final android.app.Dialog dialog = new android.app.Dialog(this);
@@ -902,7 +902,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         ok.setOnClickListener(v -> {
             Haptics.perform(v);
             if (checked.isEmpty()) {
-                toast(t("请先勾选要提取的分区", "Check partitions first"));
+                toast(t("Select at least one partition first", "Check partitions first"));
                 return;
             }
             dialog.dismiss();
@@ -930,21 +930,21 @@ public final class DnaBinActivity extends DnaBaseActivity {
         }
     }
 
-    // ================= 提取（v3.30.36：payload_dumper root 二进制，彻底绕开 FUSE） =================
+    // ================= Extract（v3.30.36：payload_dumper root 二进制，彻底绕开 FUSE） =================
 
     private void extract() {
         if (project == null) {
-            toast(t("请先选择输出工程", "Select an output project first"));
+            toast(t("Select an output project first", "Select an output project first"));
             showProjectPicker();
             return;
         }
         if (partitions.isEmpty() || openInput == null) {
-            toast(t("请先点「Start Parsing」", "Tap Parse first"));
+            toast(t("Tap “Start Parsing” first", "Tap Parse first"));
             parseFile();
             return;
         }
         if (checked.isEmpty()) {
-            toast(t("请先勾选要提取的分区", "Check partitions to extract first"));
+            toast(t("Select at least one partition first", "Check partitions to extract first"));
             return;
         }
         final List<String> ordered = new ArrayList<>();
@@ -953,7 +953,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
         final String outDir = DnaTools.WORK_ROOT + "/" + project;
         // v1.8.17：优先使用独立 Rust/JNI 路径，在每个分区内并行处理 payload 操作；
         // 解析/操作不兼容或 JNI 失败时安全回退到既有 root CLI。成功日志仅在任务真正结束后发出。
-        log("▶ " + t("Start Extraction", "Extracting") + " " + ordered.size() + t(" 个分区 → ", " partition(s) → ") + project);
+        log("▶ " + t("Start Extraction", "Extracting") + " " + ordered.size() + t(" partitions → ", " partition(s) → ") + project);
         expandConsole();
         running.set(true);
         cancelFlag.set(false);
@@ -981,14 +981,14 @@ public final class DnaBinActivity extends DnaBaseActivity {
             final boolean useNative = extractor != null && jniInput != null
                     && DnaTools.ensureAppWritable(outDir,
                     msg -> { main.post(() -> log(msg)); return kotlin.Unit.INSTANCE; });
-            notify(t("正在并行提取", "Extracting in parallel") + " " + ordered.size()
-                    + t(" 个分区", " partition(s)"), true, false, 0, 0);
+            notify(t("Parallel extraction in progress", "Extracting in parallel") + " " + ordered.size()
+                    + t(" partitions", " partition(s)"), true, false, 0, 0);
 
             if (useNative) {
                 main.post(() -> {
-                    log("⚡ " + t("启动独立 JNI 分区内并行引擎", "Independent JNI intra-partition engine")
+                    log("⚡ " + t("Starting independent JNI partition parallel engine", "Independent JNI intra-partition engine")
                             + " · " + Math.min(8, Math.max(1, Runtime.getRuntime().availableProcessors()))
-                            + t(" 线程", " threads"));
+                            + t(" threads", " threads"));
                     status.setText("⏳ " + t("Extracting", "Extracting") + " · 0/" + ordered.size());
                 });
                 final PayloadExtractor activeExtractor = extractor;
@@ -1016,7 +1016,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
                         }
                     };
                     main.post(() -> {
-                        log("⏳ " + t("并行提取", "Extracting") + " [" + position + "/" + ordered.size() + "] " + n + ".img");
+                        log("⏳ " + t("Parallel extraction", "Extracting") + " [" + position + "/" + ordered.size() + "] " + n + ".img");
                         status.setText("⏳ " + t("Extracting", "Extracting") + " " + n + ".img · 0% · "
                                 + position + "/" + ordered.size());
                         main.postDelayed(progressPoll, 200);
@@ -1038,7 +1038,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
                         String reason = nativeError.getMessage();
                         if (reason == null) reason = nativeError.toString();
                         final String nativeReason = reason;
-                        main.post(() -> log("… " + n + ".img " + t("切换兼容提取器", "falling back to compatible extractor")
+                        main.post(() -> log("… " + n + ".img " + t("Switching to compatible extractor", "falling back to compatible extractor")
                                 + ": " + nativeReason));
                         try {
                             DnaTools.Result fallback = DnaTools.payloadExtractCli(this, rawInput, outDir, n,
@@ -1067,8 +1067,8 @@ public final class DnaBinActivity extends DnaBaseActivity {
                 }
             } else {
             main.post(() -> {
-                log("⏳ " + t("正在并行提取", "Extracting in parallel") + " " + ordered.size()
-                        + t(" 个分区…", " partition(s)..."));
+                log("⏳ " + t("Parallel extraction in progress", "Extracting in parallel") + " " + ordered.size()
+                        + t(" partitions…", " partition(s)..."));
                 status.setText("⏳ " + t("Extracting", "Extracting") + " · 0/" + ordered.size());
             });
 
@@ -1117,10 +1117,10 @@ public final class DnaBinActivity extends DnaBaseActivity {
                     running.set(false);
                     parseBtn.setEnabled(true);
                     runBtn.setText("▶  " + t("Select Partitions and Extract", "Select & Extract"));
-                    log("■ " + t("已Cancel", "Cancelled"));
-                    status.setText("■ " + t("已Cancel", "Cancelled"));
+                    log("■ " + t("Cancelled", "Cancelled"));
+                    status.setText("■ " + t("Cancelled", "Cancelled"));
                     status.setTextColor(0xffa33b3b);
-                    notifyDone(false, t("已Cancel", "Cancelled"));
+                    notifyDone(false, t("Cancelled", "Cancelled"));
                 });
                 return;
             }
@@ -1158,7 +1158,7 @@ public final class DnaBinActivity extends DnaBaseActivity {
                             log("✗ " + n + ".img " + t("Extraction failed", "failed") + ": " + msg);
                             if (msg.contains("ifferential") || msg.toLowerCase(Locale.ROOT).contains("incremental")
                                     || msg.contains("source")) {
-                                log("  " + t("提示：增量包请用「分解增量包」", "Hint: use Incremental unpack"));
+                                log("  " + t("Tip: Use “Extract Incremental Package” for delta packages", "Hint: use Incremental unpack"));
                             }
                         });
                     }
@@ -1180,12 +1180,12 @@ public final class DnaBinActivity extends DnaBaseActivity {
                 parseBtn.setEnabled(true);
                 runBtn.setText("▶  " + t("Select Partitions and Extract", "Select & Extract"));
                 if (cancelled) {
-                    log("■ " + t("已Cancel", "Cancelled"));
-                    status.setText("■ " + t("已Cancel", "Cancelled"));
+                    log("■ " + t("Cancelled", "Cancelled"));
+                    status.setText("■ " + t("Cancelled", "Cancelled"));
                     status.setTextColor(pal.danger);
-                    notifyDone(false, t("已Cancel", "Cancelled"));
+                    notifyDone(false, t("Cancelled", "Cancelled"));
                 } else if (ok == ordered.size()) {
-                    log("✓ " + t("Extraction complete，文件位于", "Extraction done, files at") + ": " + outDir);
+                    log("✓ " + t("Extraction complete; files are in", "Extraction done, files at") + ": " + outDir);
                     log("ℹ " + t("Elapsed", "Time") + " " + elapsed + "s · " + ok + t(" images", " image(s)"));
                     status.setText("✓ " + t("Extraction complete", "Done") + " · " + ok);
                     status.setTextColor(pal.success);
@@ -1193,14 +1193,14 @@ public final class DnaBinActivity extends DnaBaseActivity {
                     toast(t("Extraction complete", "Done"));
                     if (deleteSource != null && deleteSource.isChecked() && binPath != null) {
                         com.topjohnwu.superuser.Shell.cmd("rm -f " + DnaTools.quote(binPath)).exec();
-                        log(t("已删除Source File", "Source deleted") + ": " + binPath);
+                        log(t("Source file deleted", "Source deleted") + ": " + binPath);
                     }
                 } else if (ok > 0) {
-                    log("⚠ " + t("部分分区Extraction failed", "Some partitions failed") + ": "
+                    log("⚠ " + t("Some partitions failed to extract", "Some partitions failed") + ": "
                             + (ordered.size() - ok) + "/" + ordered.size());
-                    status.setText("⚠ " + t("部分Extraction complete", "Partial") + " · " + ok + "/" + ordered.size());
+                    status.setText("⚠ " + t("Partial extraction complete", "Partial") + " · " + ok + "/" + ordered.size());
                     status.setTextColor(pal.warning);
-                    notifyDone(false, t("部分分区Extraction failed", "Some partitions failed") + " "
+                    notifyDone(false, t("Some partitions failed to extract", "Some partitions failed") + " "
                             + (ordered.size() - ok) + "/" + ordered.size());
                 } else {
                     log("✗ " + t("Extraction failed", "Extraction failed") + ": " + (err != null ? err : "unknown"));
