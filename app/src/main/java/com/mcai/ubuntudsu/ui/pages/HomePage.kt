@@ -42,7 +42,7 @@ class HomePage(
     private var heroScrim: View? = null
     private var heroTitle: TextView? = null
     private var heroSubtitle: TextView? = null
-    // 首页不能和 Linux/DSU 的耗时任务共用 MainActivity 单线程队列：
+    // Home不能和 Linux/DSU 的耗时任务共用 MainActivity 单线程队列：
     // 否则 GPU/ROOT 探测超时后会把“ROOT/GSI/Linux/桌面”永久堵在“检测中”。
     private val metricsExecutor = Executors.newSingleThreadExecutor()
     private val statusExecutor = Executors.newSingleThreadExecutor()
@@ -62,14 +62,14 @@ class HomePage(
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(16, d))
         }
-        // 标题行：左侧"首页"，右侧设置图标（置于最顶部）
+        // 标题行：左侧"Home"，右侧Settings图标（置于最顶部）
         val titleRow = LinearLayout(activity).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(0, 0, 0, Ui.dp(14, d))
         }
         titleRow.addView(TextView(activity).apply {
-            text = "首页"
+            text = "Home"
             textSize = 24f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -89,7 +89,7 @@ class HomePage(
         unifiedCard = unified
         page.addView(unified)
 
-        // MainActivity 的首次 onResume 发生在 root.post 懒加载首页之前，
+        // MainActivity 的首次 onResume 发生在 root.post 懒加载Home之前，
         // 因此 onResume 中的 homePage?.refreshStatus() 会被跳过。页面就绪后主动启动首轮检测。
         refreshStatus()
         return page
@@ -547,10 +547,10 @@ class HomePage(
                     if (generation == statusGeneration.get()) {
                         val gsiLabel = when (gsiState) {
                             com.mcai.ubuntudsu.core.GsiState.RUNNING -> "运行中"
-                            com.mcai.ubuntudsu.core.GsiState.INSTALLED -> "已安装"
+                            com.mcai.ubuntudsu.core.GsiState.INSTALLED -> "Installed"
                             com.mcai.ubuntudsu.core.GsiState.ENABLED -> "已启用"
                             com.mcai.ubuntudsu.core.GsiState.DISABLED -> "已停用"
-                            com.mcai.ubuntudsu.core.GsiState.NORMAL -> "未安装"
+                            com.mcai.ubuntudsu.core.GsiState.NORMAL -> "Not installed"
                             com.mcai.ubuntudsu.core.GsiState.UNKNOWN -> "未检测到"
                         }
                         activity.runOnUiThread {
@@ -561,11 +561,11 @@ class HomePage(
                             }
                             deviceText.text = device
                             gsiText.text = "GSI 系统：$gsiLabel"
-                            ubuntuText.text = if (linuxInstalled) "Linux：已安装" else "Linux：未安装"
+                            ubuntuText.text = if (linuxInstalled) "Linux：Installed" else "Linux：Not installed"
                             desktopText.text = "桌面：$desktopLabel"
                             rootLabel.text = if (rootOk) "ROOT：已授权" else "ROOT：未授权"
                             rootDot.background = dotColor(if (rootOk) "#5CE1A5" else "#FF756F")
-                            // GSI 点：运行/安装/启用=绿，停用=琥珀，未安装/未知=灰
+                            // GSI 点：运行/安装/启用=绿，停用=琥珀，Not installed/未知=灰
                             gsiDot.background = dotColor(
                                 when (gsiState) {
                                     com.mcai.ubuntudsu.core.GsiState.RUNNING,
@@ -577,7 +577,7 @@ class HomePage(
                                 },
                             )
                             ubuntuDot.background = dotColor(if (linuxInstalled) "#5CE1A5" else "#B0B0B0")
-                            val hasDesktop = !desktopLabel.startsWith("未安装")
+                            val hasDesktop = !desktopLabel.startsWith("Not installed")
                             desktopDot.background = dotColor(if (hasDesktop) "#5CE1A5" else "#B0B0B0")
                         }
                         renderedGeneration = generation
