@@ -31,18 +31,18 @@ import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Download Manager页（拟态方案 / Neumorphism + Glassmorphism）
+ * Download Manager[translated] / Neumorphism + Glassmorphism[translated]
  *
- * 功能：
- *  - 标签筛选：All / Downloading / Completed / Paused
- *  - 任务卡片：文件图标、文件名、已下载/总大小、进度条、速度、状态
- *  - 单任务操作：Pause / Resume / Delete
- *  - 多选模式：长按进入选择，底部批量操作（All开始 / AllPause / Delete Selected）
- *  - New Download：输入 URL 直接添加下载任务
- *  - 去Browse Files：Open下载目录
- *  - 日间 / 夜间模式自适应配色（夜间模式霓虹描边拟态风格）
+ * [translated]
+ *  - [translated]All / Downloading / Completed / Paused
+ *  - Task[translated]File[translated]File[translated]Download/[translated]Size[translated]Progress[translated]Speed[translated]Status
+ *  - [translated]Task[translated]Pause / Resume / Delete
+ *  - [translated]Select[translated]Start all / AllPause / Delete Selected[translated]
+ *  - New Download[translated]Enter URL [translated]DownloadTask
+ *  - [translated]Browse Files[translated]OpenDownloadDirectory
+ *  - [translated] / [translated]
  *
- * 状态码：0=idle 1=downloading 2=done 3=cancelled 4=failed 5=paused
+ * Status[translated]0=idle 1=downloading 2=done 3=cancelled 4=failed 5=paused
  */
 class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
@@ -73,7 +73,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         fun getTask(id: String): DownloadTask? = tasks[id]
     }
 
-    // 标签
+    // [translated]
     private enum class Tab(val label: String) { ALL("All"), DOWNLOADING("Downloading"), DONE("Completed"), PAUSED("Paused") }
 
     private lateinit var taskContainer: LinearLayout
@@ -106,7 +106,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         val d = resources.displayMetrics.density
 
-        // ===== 标题栏：Back / Download Manager / New Download（标题真正居中） =====
+        // ===== [translated]Back / Download Manager / New Download[translated] =====
         val titleRow = FrameLayout(this).apply {
             setPadding(0, 0, 0, Ui.dp(12, d))
         }
@@ -159,7 +159,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         })
         page.addView(titleRow)
 
-        // ===== 标签栏 =====
+        // ===== [translated] =====
         val tabRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -184,11 +184,11 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         tabButtons.forEach { tabRow.addView(it) }
         page.addView(tabRow)
 
-        // ===== 空状态 =====
+        // ===== [translated]Status =====
         emptyView = buildEmptyView()
         page.addView(emptyView)
 
-        // ===== 任务列表滚动区 =====
+        // ===== Task[translated] =====
         val scrollView = ScrollView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -206,7 +206,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         scrollView.addView(taskContainer)
         page.addView(scrollView)
 
-        // ===== 底部批量操作栏 =====
+        // ===== [translated] =====
         bottomBar = buildBottomBar()
         page.addView(bottomBar)
 
@@ -231,11 +231,11 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         downloadReceiver?.let { unregisterReceiver(it) }
     }
 
-    // ==================== 配色辅助（委托全局拟态设计系统） ====================
+    // ==================== [translated]System[translated] ====================
 
     private fun isDark(): Boolean = Ui.isDark(this)
 
-    /** 主操作按钮背景：跟随 APP 日/夜间主题的绿色主色 */
+    /** [translated] APP [translated]/[translated] */
     private fun primaryButtonBg(): android.graphics.drawable.Drawable =
         if (isDark()) {
             Ui.neuSolidButton(Color.parseColor("#34D399"), Color.parseColor("#15803D"), 12f, this)
@@ -243,7 +243,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             Ui.neuSolidButton(Color.parseColor("#4ADE80"), Color.parseColor("#16A34A"), 12f, this)
         }
 
-    /** 成功色按钮（All开始） */
+    /** Success[translated]Start all[translated] */
     private fun successButtonBg(): android.graphics.drawable.Drawable =
         if (isDark()) {
             Ui.neuSolidButton(Color.parseColor("#34D399"), Color.parseColor("#15803D"), 12f, this)
@@ -251,7 +251,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             Ui.neuSolidButton(Color.parseColor("#4ADE80"), Color.parseColor("#16A34A"), 12f, this)
         }
 
-    /** 警告色按钮（AllPause） */
+    /** Warning[translated]AllPause[translated] */
     private fun warningButtonBg(): android.graphics.drawable.Drawable =
         if (isDark()) {
             Ui.neuSolidButton(Color.parseColor("#FBBF24"), Color.parseColor("#B45309"), 12f, this)
@@ -259,7 +259,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             Ui.neuSolidButton(Color.parseColor("#FBBF24"), Color.parseColor("#D97706"), 12f, this)
         }
 
-    /** 危险色按钮（Delete） */
+    /** [translated]Delete[translated] */
     private fun dangerButtonBg(): android.graphics.drawable.Drawable =
         if (isDark()) {
             Ui.neuSolidButton(Color.parseColor("#F87171"), Color.parseColor("#B91C1C"), 12f, this)
@@ -267,7 +267,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             Ui.neuSolidButton(Color.parseColor("#F87171"), Color.parseColor("#DC2626"), 12f, this)
         }
 
-    /** 次要描边按钮（Pause / Resume / Delete 单任务）：accent 玻璃底 + 描边 */
+    /** [translated]Pause / Resume / Delete [translated]Task[translated]accent [translated] + [translated] */
     private fun outlineButtonBg(color: Int): GradientDrawable {
         val d = resources.displayMetrics.density
         return GradientDrawable().apply {
@@ -277,11 +277,11 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
     }
 
-    /** 任务卡片背景：全局拟态卡片 + accent 霓虹描边（夜间） */
+    /** Task[translated] + accent [translated] */
     private fun taskCardBg(accent: Int): android.graphics.drawable.Drawable =
         Ui.neuCard(this, 16f, accent)
 
-    // ==================== 标签 ====================
+    // ==================== [translated] ====================
 
     private fun selectTab(tab: Tab) {
         currentTab = tab
@@ -322,7 +322,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
     }
 
-    // ==================== 空状态 ====================
+    // ==================== [translated]Status ====================
 
     private fun buildEmptyView(): LinearLayout {
         val d = resources.displayMetrics.density
@@ -332,7 +332,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             setPadding(0, Ui.dp(40, d), 0, Ui.dp(40, d))
             visibility = View.GONE
 
-            // 图标
+            // [translated]
             addView(TextView(this@DownloadsActivity).apply {
                 text = "📄"
                 textSize = 48f
@@ -347,14 +347,14 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 setPadding(0, Ui.dp(12, d), 0, 0)
             })
             addView(TextView(this@DownloadsActivity).apply {
-                text = "Browse ROM Store或New Download任务"
+                text = "Browse ROM Store or start a new download"
                 textSize = 12f
                 setTextColor(Ui.secondaryText(this@DownloadsActivity))
                 gravity = Gravity.CENTER
                 setPadding(0, Ui.dp(4, d), 0, Ui.dp(16, d))
             })
 
-            // 按钮行
+            // [translated]
             val btnRow = LinearLayout(this@DownloadsActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
@@ -393,7 +393,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
     }
 
-    // ==================== 底部批量操作栏 ====================
+    // ==================== [translated] ====================
 
     private fun buildBottomBar(): LinearLayout {
         val d = resources.displayMetrics.density
@@ -417,7 +417,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             visibility = View.GONE
 
             selectedCountText = TextView(this@DownloadsActivity).apply {
-                text = "Selected 0 项"
+                text = "Selected 0 items"
                 textSize = 12f
                 setTextColor(Ui.primaryText(this@DownloadsActivity))
                 layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
@@ -425,7 +425,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             addView(selectedCountText)
 
             val btnStart = TextView(this@DownloadsActivity).apply {
-                text = "All开始"
+                text = "Start all"
                 textSize = 12f
                 setTypeface(typeface, Typeface.BOLD)
                 setTextColor(Color.WHITE)
@@ -495,7 +495,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                         putExtra(DownloadService.EXTRA_TASK_ID, task.id)
                     })
                 }
-                Toast.makeText(this, "Resumed ${selected.count { it.state == 1 }} 个任务", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Resumed ${selected.count { it.state == 1 }}  tasks", Toast.LENGTH_SHORT).show()
             }
             BatchAction.PAUSE -> {
                 selected.filter { it.state == 1 }.forEach { task ->
@@ -506,15 +506,15 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                         putExtra(DownloadService.EXTRA_TASK_ID, task.id)
                     })
                 }
-                Toast.makeText(this, "Paused ${selected.count { it.state == 5 }} 个任务", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Paused ${selected.count { it.state == 5 }}  tasks", Toast.LENGTH_SHORT).show()
             }
             BatchAction.DELETE -> {
                 AlertDialog.Builder(this)
                     .setTitle("Delete Selected")
-                    .setMessage("Delete selected ${selected.size} 个下载任务？Downloaded files will not be deleted。")
+                    .setMessage("Delete selected ${selected.size}  download tasks？Downloaded files will not be deleted.")
                     .setPositiveButton("Delete") { _, _ ->
                         selected.forEach { task ->
-                            // 在途任务同步Cancel服务端，避免幽灵任务重新出现
+                            // [translated]Task[translated]Cancel[translated]Task[translated]
                             if (task.state == 0 || task.state == 1 || task.state == 5) {
                                 sendBroadcast(Intent(DownloadService.ACTION_CANCEL).apply {
                                     setPackage(packageName)
@@ -524,7 +524,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                             tasks.remove(task.id)
                         }
                         exitSelectionMode()
-                        Toast.makeText(this, "已Delete", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show()
                     }
                     .setNegativeButton("Cancel", null)
                     .show()
@@ -547,7 +547,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         refreshTaskList()
     }
 
-    // ==================== 广播接收 ====================
+    // ==================== [translated] ====================
 
     private fun registerDownloadReceiver() {
         downloadReceiver = object : BroadcastReceiver() {
@@ -555,7 +555,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 intent ?: return
                 val fileName = intent.getStringExtra(DownloadService.EXTRA_FILE_NAME) ?: ""
                 val deviceName = intent.getStringExtra(DownloadService.EXTRA_DEVICE) ?: ""
-                // 多任务路由：优先 task_id（服务端每任务唯一），回退 fileName
+                // [translated]Task[translated] task_id[translated]Task[translated] fileName
                 val taskId = intent.getStringExtra(DownloadService.EXTRA_TASK_ID)
                     ?: fileName.ifBlank { "unknown" }
 
@@ -563,7 +563,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                     intent.hasExtra(DownloadService.EXTRA_LOG) -> {
                         val log = intent.getStringExtra(DownloadService.EXTRA_LOG) ?: ""
                         val task = tasks[taskId] ?: return
-                        // aria2c 每秒的 CN: 摘要行不覆盖状态；诊断行（引擎/Failed原因/目录回退）实时可见
+                        // aria2c [translated] CN: [translated]Status[translated]/FailedReason/Directory[translated]
                         if (log.contains("CN:") || log.isBlank()) return
                         if (task.state == 0 || task.state == 1) {
                             task.status = log.take(60)
@@ -596,8 +596,8 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                         task.deviceName = deviceName
                         task.progress = progress
                         task.speed = speed
-                        // 本地Paused（state=5）时忽略在途的下载进度广播（state=1），
-                        // 否则按钮会被翻回「Pause」，造成"要双击才Pause"的错觉
+                        // LocalPaused[translated]state=5[translated]DownloadProgress[translated]state=1[translated]
+                        // [translated]Pause[translated]"[translated]Pause"[translated]
                         if (state == 1 && task.state == 5) {
                             task.status = "Paused"
                         } else {
@@ -623,11 +623,11 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
     }
 
-    // ==================== 列表刷新 ====================
+    // ==================== [translated] ====================
 
-    /** 列表结构签名：tab + 可见任务的 id/state/选择态。签名不变 = 无结构变化，仅内容更新。
-     *  进度广播每秒到达，若每次都 removeAllViews 重建卡片，点击瞬间视图被换掉会吞掉 touch 事件
-     *  —— 这正是「Pause要点两次」的主因 */
+    /** [translated]tab + [translated]Task[translated] id/state/Select[translated] = [translated]content[translated]
+     *  Progress[translated] removeAllViews [translated] touch [translated]
+     *  —— [translated]Pause[translated] */
     private var lastStructureKey: String? = null
 
     private fun structureKey(filtered: List<DownloadTask>): String = buildString {
@@ -639,9 +639,9 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
     private fun refreshTaskList() {
         updateTabLabels()
 
-        // 排序必须确定性：startTime 相同（杀APP重开后广播重建任务/同毫秒创建）时
-        // 若依赖 HashMap values() 顺序，任务增删会引发 rehash 导致卡片位置互换
-        // —— 用户点"第二张卡"Pause的却是原第一张卡的任务。加 id 次级键锁死顺序
+        // [translated]OK[translated]startTime [translated]APP[translated]Task/[translated]
+        // [translated] HashMap values() [translated]Task[translated] rehash [translated]
+        // —— [translated]"[translated]"Pause[translated]Task[translated] id [translated]
         val all = tasks.values.sortedWith(
             compareByDescending<DownloadTask> { it.startTime }.thenBy { it.id },
         )
@@ -656,7 +656,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         val key = structureKey(filtered)
         if (key == lastStructureKey) {
-            // 纯进度/速度更新：只刷新已挂载卡片的内容，绝不重建视图（保住点击事件）
+            // [translated]Progress/Speed[translated]content[translated]
             filtered.forEach { task -> taskViews[task.id]?.update(task) }
             updateBottomBar()
             return
@@ -673,10 +673,10 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
         val d = resources.displayMetrics.density
 
-        // 稳定顺序单列表：绝不按状态分组重排。
-        // 分组渲染（Downloading组在上/Paused组在下）会让卡片在每次Pause/Resume时跨分组跳位，
-        // 用户瞄准的按钮瞬间被另一张卡占据 → "点卡片2Pause了卡片1"的错位感。
-        // 顺序恒定 startTime 倒序 + id，卡片只随自身状态原地变色换按钮，位置永不动。
+        // [translated]Status[translated]
+        // [translated]Downloading[translated]/Paused[translated]Pause/Resume[translated]
+        // [translated] → "[translated]2Pause[translated]1"[translated]
+        // [translated] startTime [translated] + id[translated]Status[translated]
         filtered.forEach { task ->
             addTaskCard(task, d)
         }
@@ -687,7 +687,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
     private fun addTaskCard(task: DownloadTask, d: Float) {
         val holder = taskViews.getOrPut(task.id) { TaskViewHolder(this, task.id) }
         holder.update(task)
-        // 拟态彩色投影：卡片自液态背景浮起
+        // [translated]
         val accent = holder.currentAccent
         Ui.applyNeuShadow(holder.rootView, 4f, 16f, accent)
         taskContainer.addView(holder.rootView, LinearLayout.LayoutParams(
@@ -714,7 +714,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             setPadding(Ui.dp(20, d), Ui.dp(8, d), Ui.dp(20, d), Ui.dp(4, d))
             addView(input)
             addView(TextView(this@DownloadsActivity).apply {
-                text = "调用内置 aria2c 多线程引擎 · 保存到 /sdcard/Downloads\n支持断点续传，可与 ROM 下载并行"
+                text = "调用Built-in aria2c 多线程引擎 · Save到 /sdcard/Downloads\nSupports断点续传，可与 ROM Download并行"
                 textSize = 10f
                 setTextColor(Ui.secondaryText(this@DownloadsActivity))
                 setPadding(0, Ui.dp(6, d), 0, 0)
@@ -724,7 +724,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             .setTitle("New Download")
             .setView(container)
             .setNegativeButton("Cancel", null)
-            .setPositiveButton("开始下载") { _, _ ->
+            .setPositiveButton("StartDownload") { _, _ ->
                 val url = input.text.toString().trim()
                 if (url.isBlank()) {
                     Toast.makeText(this, "URL cannot be empty", Toast.LENGTH_SHORT).show()
@@ -737,10 +737,10 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
     private fun startUrlDownload(url: String) {
         val filename = JavaDownloader.fileNameFromUrl(url)
-        // 同名任务仍在下载/Pause中时不重复入队
+        // [translated]Task[translated]Download/Pause[translated]
         tasks[filename]?.let {
             if (it.state == 0 || it.state == 1 || it.state == 5) {
-                Toast.makeText(this, "任务「$filename」已在下载列表中", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Task「$filename」已在Download列表中", Toast.LENGTH_SHORT).show()
                 return
             }
         }
@@ -750,9 +750,9 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             putExtra(DownloadService.EXTRA_FILENAME, filename)
             putExtra(DownloadService.EXTRA_VERSION, "")
             putExtra(DownloadService.EXTRA_NODE_INDEX, 3)
-            putExtra(DownloadService.EXTRA_LABEL, "自定义")
+            putExtra(DownloadService.EXTRA_LABEL, "Custom")
             putExtra(DownloadService.EXTRA_DEVICE_NAME, "Custom Download")
-            // 自定义直链：走内置 aria2c 引擎（16 连接分块 + 断点续传）
+            // Custom[translated]Built-in aria2c [translated]16 Connection[translated] + [translated]
             putExtra(DownloadService.EXTRA_USE_ARIA2, true)
         }
         if (Build.VERSION.SDK_INT >= 26) {
@@ -784,7 +784,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         runCatching { startActivity(intent) }.onFailure {
-            // 回退：用文件管理器Open
+            // [translated]File[translated]Open
             val fallback = Intent(Intent.ACTION_GET_CONTENT).apply {
                 type = "*/*"
                 addCategory(Intent.CATEGORY_OPENABLE)
@@ -793,7 +793,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
     }
 
-    // ==================== 工具 ====================
+    // ==================== Tool ====================
 
     private fun formatBytes(bytes: Long): String {
         if (bytes <= 0) return "0 B"
@@ -821,7 +821,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         return super.dispatchTouchEvent(ev)
     }
 
-    // ==================== 任务卡片 ViewHolder ====================
+    // ==================== Task[translated] ViewHolder ====================
 
     private inner class TaskViewHolder(
         private val ctx: Context,
@@ -837,7 +837,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         private lateinit var statusText: TextView
         private lateinit var checkBox: View
         private lateinit var pauseBtn: TextView
-        /** 当前任务 accent 色（供外层拟态投影取用） */
+        /** CurrentTask accent [translated] */
         var currentAccent: Int = Color.parseColor("#64748B")
         private lateinit var deleteBtn: TextView
         private lateinit var openBtn: TextView
@@ -853,7 +853,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 isFocusable = true
             }
 
-            // 第一行：复选框 + 图标 + 文件名 + 大小
+            // [translated] + [translated] + File[translated] + Size
             val row1 = LinearLayout(ctx).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -898,7 +898,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
             rootView.addView(row1)
 
-            // 第二行：进度条 + 百分比
+            // [translated]Progress[translated] + [translated]
             val progressRow = LinearLayout(ctx).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -921,7 +921,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             progressRow.addView(progressPercentText)
             rootView.addView(progressRow)
 
-            // 第三行：速度 + 状态
+            // [translated]Speed + Status
             val infoRow = LinearLayout(ctx).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -939,7 +939,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             infoRow.addView(statusText)
             rootView.addView(infoRow)
 
-            // 第四行：操作按钮
+            // [translated]
             val actionRow = LinearLayout(ctx).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
@@ -989,13 +989,13 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             ).apply { marginStart = Ui.dp(6, d) })
             rootView.addView(actionRow)
 
-            // 点击切换选择（选择模式下）
+            // [translated]Select[translated]Select[translated]
             rootView.setOnClickListener {
                 if (selectionMode) {
                     toggleSelection()
                 }
             }
-            // 长按进入选择模式
+            // [translated]Select[translated]
             rootView.setOnLongClickListener {
                 if (!selectionMode) {
                     selectionMode = true
@@ -1028,7 +1028,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         }
 
         private fun progressColors(state: Int): Pair<Int, Int> {
-            // Back (进度色, 轨道色)
+            // Back (Progress[translated], [translated])
             return when (state) {
                 1 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // Downloading：绿
                 2 -> Color.parseColor("#22C55E") to Color.parseColor("#DCFCE7") // Completed：绿
@@ -1053,7 +1053,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
             rootView.background = taskCardBg(accent)
 
-            // 复选框
+            // [translated]
             if (selectionMode) {
                 checkBox.visibility = View.VISIBLE
                 checkBox.background = if (task.selected) {
@@ -1073,7 +1073,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 checkBox.visibility = View.GONE
             }
 
-            // 图标
+            // [translated]
             iconView.text = icon
             iconView.background = GradientDrawable().apply {
                 setColor(Color.argb(40, Color.red(accent), Color.green(accent), Color.blue(accent)))
@@ -1083,7 +1083,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
 
             fileNameText.text = task.fileName.ifBlank { "Unknown file" }
 
-            // 大小
+            // Size
             val sizeStr = if (task.totalSize > 0) {
                 "${formatBytes(task.downloadedBytes)} / ${formatBytes(task.totalSize)}"
             } else if (task.state == 2 && task.savedPath.isNotBlank()) {
@@ -1094,7 +1094,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             }
             sizeText.text = sizeStr
 
-            // 进度
+            // Progress
             val (progressColor, trackColor) = if (isDark()) darkProgressColors(task.state) else progressColors(task.state)
             progressBar.progress = task.progress
             val track = GradientDrawable().apply {
@@ -1119,13 +1119,13 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
             progressPercentText.text = "${task.progress}%"
             progressPercentText.setTextColor(progressColor)
 
-            // 速度 / 状态
+            // Speed / Status
             speedText.text = if (task.state == 1 && task.speed.isNotBlank()) task.speed else ""
             statusText.text = when (task.state) {
                 1 -> "Downloading"
                 2 -> "✓ Completed"
                 5 -> "Paused"
-                3 -> "已Cancel"
+                3 -> "Cancelled"
                 4 -> "Failed"
                 else -> task.status
             }
@@ -1136,7 +1136,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 else -> Ui.secondaryText(ctx as Activity)
             })
 
-            // 操作按钮
+            // [translated]
             when (task.state) {
                 1 -> { // Downloading
                     pauseBtn.text = "Pause"
@@ -1203,10 +1203,10 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
         private fun doDelete() {
             val task = tasks[taskId] ?: return
             AlertDialog.Builder(ctx)
-                .setTitle("Delete下载任务")
-                .setMessage("确定Delete「${task.fileName.ifBlank { "Unknown file" }}」？\nDownloaded files will not be deleted。")
+                .setTitle("Delete download tasks")
+                .setMessage("OKDelete「${task.fileName.ifBlank { "Unknown file" }}」？\nDownloaded files will not be deleted.")
                 .setPositiveButton("Delete") { _, _ ->
-                    // Downloading/Pause中的任务Delete时同步Cancel服务端任务，避免幽灵任务重新出现
+                    // Downloading/Pause[translated]TaskDelete[translated]Cancel[translated]Task[translated]Task[translated]
                     if (task.state == 0 || task.state == 1 || task.state == 5) {
                         sendBroadcast(Intent(DownloadService.ACTION_CANCEL).apply {
                             setPackage(packageName)
@@ -1216,7 +1216,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                     tasks.remove(taskId)
                     taskViews.remove(taskId)
                     refreshTaskList()
-                    Toast.makeText(ctx, "已Delete", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "Deleted", Toast.LENGTH_SHORT).show()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -1241,7 +1241,7 @@ class DownloadsActivity : androidx.appcompat.app.AppCompatActivity() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             runCatching { ctx.startActivity(intent) }.onFailure {
-                Toast.makeText(ctx, "无法Open此文件类型", Toast.LENGTH_SHORT).show()
+                Toast.makeText(ctx, "Cannot open this file type", Toast.LENGTH_SHORT).show()
             }
         }
     }
