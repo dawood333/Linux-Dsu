@@ -37,10 +37,10 @@ object Aria2c {
         val message: String,
     )
 
-    // rootfs / 直链下载默认保存目录：/storage/emulated/0/Downloads/Aria2c下载文件
+    // rootfs / 直链下载默认保存目录：/storage/emulated/0/Downloads/Aria2c downloads
     fun defaultSaveDir(): File = File(
         Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-        "Aria2c下载文件",
+        "Aria2c downloads",
     )
 
     // 从 URL 推断文件名：优先 HTTP 响应的 Content-Disposition，回退 URL 末段
@@ -166,7 +166,7 @@ object Aria2c {
         onStats: ((speedText: String) -> Unit)? = null,
         stallTimeoutMs: Long = STALL_TIMEOUT_MS,
     ): Result {
-        val dir = target.parentFile ?: return Result(false, null, "无效的保存路径")
+        val dir = target.parentFile ?: return Result(false, null, "Invalid save path")
         // 目录准备：app 可写则直建，否则经 root 创建
         val appCanWrite = ensureAppDir(dir)
         if (!appCanWrite) {
@@ -175,11 +175,11 @@ object Aria2c {
 
         val binaries = candidates(ctx)
         if (binaries.isEmpty()) {
-            return Result(false, null, "未找到可用的 aria2c（内置组件缺失且系统未安装）")
+            return Result(false, null, "No usable aria2c found (built-in component missing and not installed on the system)")
         }
         onLog?.invoke("使用 ${binaries.first()}")
 
-        var lastError = "下载失败"
+        var lastError = "Download failed"
         val tried = mutableSetOf<String>()
         for (binary in binaries) {
             val appBinary = isAppBinary(binary)
@@ -194,7 +194,7 @@ object Aria2c {
                     expectedSize, referer, userAgent, onStats, stallTimeoutMs,
                 )
                 if (result.success) return result
-                if (result.message == "已取消") return result
+                if (result.message == "Cancelled") return result
                 lastError = result.message
                 onLog?.invoke("尝试失败（${if (useRoot) "root" else "直跑"}）：${result.message.take(120)}")
                 // 网络类故障与运行身份/二进制无关，立即交给外层换线路，避免重复等待同一坏链路
@@ -219,12 +219,12 @@ object Aria2c {
         onStats: ((speedText: String) -> Unit)? = null,
         stallTimeoutMs: Long,
     ): Result {
-        val dir = target.parentFile?.absolutePath ?: return Result(false, null, "无效的保存路径")
-        if (isCancelled()) return Result(false, null, "已取消")
+        val dir = target.parentFile?.absolutePath ?: return Result(false, null, "Invalid save path")
+        if (isCancelled()) return Result(false, null, "Cancelled")
         // URL/文件名清洗：屏幕 OCR/粘贴常混入空格与换行，aria2c 对畸形 URL 会静默 0B 退出
         val cleanUrl = url.replace(Regex("\\s+"), "")
         if (!cleanUrl.startsWith("http://") && !cleanUrl.startsWith("https://")) {
-            return Result(false, null, "URL 无效（清洗后：$cleanUrl）")
+            return Result(false, null, "Invalid URL (after cleanup: $cleanUrl）")
         }
         // aria2c 日志放 app 私有目录（任何运行身份都经 ctx 可写），失败时读取首条 ERROR。
         // 按目标文件名隔离：多任务并行时共用一个 session.log 会互相删除/串写
@@ -327,18 +327,18 @@ object Aria2c {
                 if (isCancelled()) {
                     process.destroyForcibly()
                     reader.join(300)
-                    return Result(false, null, "已取消")
+                    return Result(false, null, "Cancelled")
                 }
                 val now = System.currentTimeMillis()
                 if (now - startedAt > OVERALL_TIMEOUT_MS) {
                     process.destroyForcibly()
                     reader.join(300)
-                    return Result(false, null, "下载超时（超过 15 分钟）")
+                    return Result(false, null, "Download timed out (over 15 minutes)")
                 }
                 if (now - lastProgressAt.get() > stallTimeoutMs.coerceAtLeast(1000L)) {
                     process.destroyForcibly()
                     reader.join(300)
-                    return Result(false, null, "网络无进展（${stallTimeoutMs / 1000} 秒无数据），切换线路重试")
+                    return Result(false, null, "No network progress (${stallTimeoutMs / 1000}s without data); switching route and retrying")
                 }
             }
             reader.join(2000)
@@ -347,18 +347,18 @@ object Aria2c {
                 runCatching { controlFile(target).delete() }
                 runCatching { logFile.delete() }
                 onProgress(100)
-                Result(true, target, "完成")
+                Result(true, target, "Completed")
             } else {
                 // 区分进程根本没起来（code 非 0 且无任何输出/文件未生成）vs 网络失败
                 val detail = readAria2Error(logFile)
                 if (detail == null && lastLine.get().isEmpty() && !target.exists()) {
-                    Result(false, null, "内置 aria2c 未启动（退出码 $code），请重试或改用 root")
+                    Result(false, null, "Built-in aria2c did not start (exit code $code); retry or use root")
                 } else {
                     Result(false, null, detail ?: lastLine.get().ifBlank { "aria2c 退出码 $code" })
                 }
             }
         } catch (e: Exception) {
-            Result(false, null, e.message ?: "执行 aria2c 失败")
+            Result(false, null, e.message ?: "aria2c execution failed")
         } finally {
             runCatching { logFile.delete() }
         }
@@ -374,7 +374,7 @@ object Aria2c {
         }.firstOrNull { it.isNotBlank() }
         if (codeDesc != null) {
             // errorCode=1 的描述只有 URI=...，对用户无意义，转成连接类失败描述
-            val clean = if (codeDesc.startsWith("URI=")) "连接失败或超时" else codeDesc
+            val clean = if (codeDesc.startsWith("URI=")) "Connection failed or timed out" else codeDesc
             return@runCatching clean.take(160)
         }
         val errorLine = lines.firstOrNull {
