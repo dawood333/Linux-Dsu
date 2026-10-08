@@ -434,8 +434,7 @@ public final class DnaModuleActivity extends DnaBaseActivity {
             projectBadge.setText(project);
             projectBadge.setTextColor(pal.success);
         } else {
-            projectBadge.setText(t("⚠ No project selected —— 执行插件前请先在 DNA 页切换工程",
-                    "⚠ No project — switch to one on the DNA page before running"));
+            projectBadge.setText(t("⚠ No project — switch to one on the DNA page before running", "⚠ No project — switch to one on the DNA page before running"));
             projectBadge.setTextColor(pal.danger);
         }
 
