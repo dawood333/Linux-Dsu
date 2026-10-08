@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * DNA · 分解增量包独立二级页（v3.30.36）。
+ * DNA · Extract Incremental Package独立二级页（v3.30.36）。
  * 对齐原版 DNA incremental.sh：增量（delta）OTA 只含与上一版的差异，
  * 需要旧版本完整包提取出的镜像目录，payload_dumper 自动校验旧分区哈希 →
  * 应用 delta 补丁 → 生成新镜像。
@@ -65,7 +65,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
     // 数据
     private String project;          // 输出工程
     private String binPath;          // 增量 payload.bin / OTA zip
-    private String incDir;           // 旧镜像目录
+    private String incDir;           // Old Image Directory
     private final List<PayloadExtractor.PartitionInfo> partitions = new ArrayList<>();
     private final Set<String> checked = new LinkedHashSet<>();
 
@@ -121,8 +121,8 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
     private void createNoteChannel() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             android.app.NotificationChannel channel = new android.app.NotificationChannel(
-                    NOTE_CHANNEL, "DNA 增量分解进度", android.app.NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("显示增量包分解任务实时状态");
+                    NOTE_CHANNEL, "DNA Incremental Extraction Progress", android.app.NotificationManager.IMPORTANCE_LOW);
+            channel.setDescription("Show real-time incremental extraction status");
             channel.setShowBadge(false);
             getSystemService(android.app.NotificationManager.class).createNotificationChannel(channel);
         }
@@ -132,7 +132,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         try {
             android.app.Notification.Builder b = new android.app.Notification.Builder(this, NOTE_CHANNEL)
                     .setSmallIcon(android.R.drawable.stat_sys_download)
-                    .setContentTitle(t("分解增量包", "Incremental unpack"))
+                    .setContentTitle(t("Extract Incremental Package", "Incremental unpack"))
                     .setContentText(text)
                     .setOngoing(ongoing)
                     .setOnlyAlertOnce(true)
@@ -233,7 +233,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         head.setGravity(Gravity.CENTER_VERTICAL);
         head.setPadding(0, 0, 0, dp(8));
         TextView title = new TextView(this);
-        title.setText(t("执行任务", "Run Task"));
+        title.setText(t("Run Task", "Run Task"));
         title.setTextSize(14f);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -242,15 +242,15 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         actions.setGravity(Gravity.CENTER_VERTICAL);
-        Button copy = pillButton(t("复制日志", "Copy Log"), 11f, pal.success, dp(64), dp(28));
+        Button copy = pillButton(t("Copy Log", "Copy Log"), 11f, pal.success, dp(64), dp(28));
         copy.setOnClickListener(v -> {
             Haptics.perform(v);
             android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
             cm.setPrimaryClip(android.content.ClipData.newPlainText("log", consoleText.getText()));
-            toast(t("日志已复制", "Log copied"));
+            toast(t("Log copied", "Log copied"));
         });
         actions.addView(copy);
-        Button clear = pillButton(t("清除日志", "Clear Log"), 11f, pal.danger, dp(64), dp(28));
+        Button clear = pillButton(t("Clear Log", "Clear Log"), 11f, pal.danger, dp(64), dp(28));
         clear.setOnClickListener(v -> {
             Haptics.perform(v);
             consoleText.setText("");
@@ -287,7 +287,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         return card;
     }
 
-    /** 任务开始时弹出日志小窗口（标题执行任务；右侧复制/清除/关闭窗），已弹出则复用 */
+    /** 任务开始时弹出日志小窗口（标题Run Task；右侧复制/清除/Close窗），已弹出则复用 */
     private void expandConsole() {
         if (consoleCard == null) return;
         if (consoleDialog == null) {
@@ -321,7 +321,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = new TextView(this);
-        title.setText(t("DNA · 分解增量包", "DNA · Incremental"));
+        title.setText(t("DNA · Extract Incremental Package", "DNA · Incremental"));
         title.setTextSize(19);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -346,8 +346,8 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
 
         // ---- 流程提示条 ----
         TextView flow = new TextView(this);
-        flow.setText("① " + t("选增量包", "Delta pkg") + "  →  ② " + t("旧镜像目录", "Old imgs")
-                + "  →  ③ " + t("解析勾选", "Parse") + "  →  ④ " + t("提取", "Extract"));
+        flow.setText("① " + t("Select Incremental Package", "Delta pkg") + "  →  ② " + t("Old Image Directory", "Old imgs")
+                + "  →  ③ " + t("Parse and Select", "Parse") + "  →  ④ " + t("提取", "Extract"));
         flow.setTextSize(12.5f);
         flow.setTextColor(0xffC08A2D);
         flow.setTypeface(null, 1);
@@ -403,7 +403,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         srcHead.setOrientation(LinearLayout.HORIZONTAL);
         srcHead.setGravity(Gravity.CENTER_VERTICAL);
         TextView srcTitle = new TextView(this);
-        srcTitle.setText("📦 " + t("增量包（payload.bin / OTA zip）", "Delta package (payload.bin / OTA zip)"));
+        srcTitle.setText("📦 " + t("Incremental Package (payload.bin / OTA ZIP)", "Delta package (payload.bin / OTA zip)"));
         srcTitle.setTextSize(14f);
         srcTitle.setTypeface(null, 1);
         srcTitle.setTextColor(0xff17334f);
@@ -413,7 +413,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
             Haptics.perform(v);
             startActivityForResult(
                     com.mcai.ubuntudsu.RootfsFilesActivity.createPickIntent(
-                            this, t("选择增量 payload.bin / OTA zip", "Pick delta payload.bin / OTA zip"),
+                            this, t("Select incremental payload.bin / OTA ZIP", "Pick delta payload.bin / OTA zip"),
                             new String[]{"payload.bin", ".zip", ".zip2"}),
                     PICK_SOURCE_FILE);
         });
@@ -423,7 +423,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         srcCard.addView(srcHead, new LinearLayout.LayoutParams(-1, -2));
 
         sourceEmpty = new TextView(this);
-        sourceEmpty.setText(t("工程内暂无 payload.bin / zip，点 📂 浏览选择", "No payload.bin / zip in project, tap 📂 to browse"));
+        sourceEmpty.setText(t("No payload.bin / ZIP in project; tap 📂 to browse", "No payload.bin / zip in project, tap 📂 to browse"));
         sourceEmpty.setTextSize(12f);
         sourceEmpty.setTextColor(pal.subtitle);
         sourceEmpty.setPadding(dp(2), dp(8), 0, dp(4));
@@ -432,20 +432,20 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         sourceList.setOrientation(LinearLayout.VERTICAL);
         srcCard.addView(sourceList, new LinearLayout.LayoutParams(-1, -2));
 
-        // ---- 旧镜像目录卡 ----
+        // ---- Old Image Directory卡 ----
         LinearLayout dirCard = glassCard();
         LinearLayout.LayoutParams dcLp = new LinearLayout.LayoutParams(-1, -2);
         dcLp.topMargin = dp(10);
         content.addView(dirCard, dcLp);
         TextView dirLabel = new TextView(this);
-        dirLabel.setText("🗂 " + t("旧镜像目录（上一版完整包提取的 img 所在目录）", "Old images dir (extracted from the previous full OTA)"));
+        dirLabel.setText("🗂 " + t("Old Image Directory（上一版完整包提取的 img 所在目录）", "Old images dir (extracted from the previous full OTA)"));
         dirLabel.setTextSize(11.5f);
         dirLabel.setTextColor(pal.subtitle);
         dirCard.addView(dirLabel, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout dirRow = new LinearLayout(this);
         dirRow.setOrientation(LinearLayout.HORIZONTAL);
         dirRow.setGravity(Gravity.CENTER_VERTICAL);
-        incPickBtn = pillButton("📂 " + t("选择目录", "Pick dir"), 13f, pal.accent, dp(96), dp(38));
+        incPickBtn = pillButton("📂 " + t("Select Directory", "Pick dir"), 13f, pal.accent, dp(96), dp(38));
         incPickBtn.setOnClickListener(v -> { Haptics.perform(v); showIncDirPicker(); });
         dirRow.addView(incPickBtn, new LinearLayout.LayoutParams(dp(96), dp(38)));
         incDirText = new TextView(this);
@@ -454,14 +454,14 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         incDirText.setSingleLine(true);
         incDirText.setEllipsize(android.text.TextUtils.TruncateAt.MIDDLE);
         incDirText.setPadding(dp(10), 0, 0, 0);
-        incDirText.setText(t("未选择", "Not set"));
+        incDirText.setText(t("Not selected", "Not set"));
         dirRow.addView(incDirText, new LinearLayout.LayoutParams(0, -2, 1f));
         android.widget.LinearLayout.LayoutParams drLp = new LinearLayout.LayoutParams(-1, dp(38));
         drLp.topMargin = dp(6);
         dirCard.addView(dirRow, drLp);
 
         // ---- 解析按钮 ----
-        parseBtn = gradientButton("🔍  " + t("开始解析", "Parse"), new int[]{0xFF7C4DFF, 0xFF5633CC}, dp(16));
+        parseBtn = gradientButton("🔍  " + t("Start Parsing", "Parse"), new int[]{0xFF7C4DFF, 0xFF5633CC}, dp(16));
         parseBtn.setOnClickListener(v -> { Haptics.perform(v); parseFile(); });
         LinearLayout.LayoutParams pbLp = new LinearLayout.LayoutParams(-1, dp(46));
         pbLp.topMargin = dp(12);
@@ -486,9 +486,9 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         runBtn = gradientButton("⚡  " + t("选择分区并提取", "Select & Extract"), new int[]{0xFFE08A39, 0xFFB85C10}, dp(18));
         runBtn.setOnClickListener(v -> {
             Haptics.perform(v);
-            if (running.get()) { cancelFlag.set(true); log(t("正在取消 ...", "Cancelling...")); return; }
+            if (running.get()) { cancelFlag.set(true); log(t("正在Cancel ...", "Cancelling...")); return; }
             if (partitions.isEmpty()) {
-                toast(t("请先点「开始解析」", "Tap Parse first"));
+                toast(t("请先点「Start Parsing」", "Tap Parse first"));
                 return;
             }
             showPartitionDialog();
@@ -497,19 +497,19 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         rbLp.topMargin = dp(10);
         content.addView(runBtn, rbLp);
 
-        // ---- 控制台（v3.41.14：执行任务时弹出小窗口，不再嵌入页面）----
+        // ---- 控制台（v3.41.14：Run Task时弹出小窗口，不再嵌入页面）----
         buildConsole();
 
-        log(t("提示：增量包仅含与上一版的差异，需提供旧版本完整包提取出的镜像目录", "Note: delta OTA needs old images from the previous full OTA"));
+        log(t("Tip: Incremental packages contain only differences; provide images extracted from the previous full package", "Note: delta OTA needs old images from the previous full OTA"));
     }
 
     // ================= 数据渲染 =================
 
     private void renderProject() {
-        projectName.setText(project != null ? project : t("未选择工程", "No project"));
+        projectName.setText(project != null ? project : t("未Select Project", "No project"));
         projectOut.setText(project != null
                 ? "➜ " + DnaTools.WORK_ROOT + "/" + project
-                : t("点此选择要输出的工程", "Tap to pick an output project"));
+                : t("Tap to select the output project", "Tap to pick an output project"));
     }
 
     private void refreshSources() {
@@ -606,20 +606,20 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
     // ================= 解析 =================
 
     private void parseFile() {
-        if (running.get()) { toast(t("正在执行中", "Busy")); return; }
+        if (running.get()) { toast(t("Running", "Busy")); return; }
         if (binPath == null || binPath.isEmpty()) {
-            toast(t("请先选择增量包", "Pick a delta package first"));
+            toast(t("Select an incremental package first", "Pick a delta package first"));
             return;
         }
         final String path = binPath;
-        log("🔍 " + t("开始解析", "Parse") + ": " + path);
+        log("🔍 " + t("Start Parsing", "Parse") + ": " + path);
         expandConsole();
         running.set(true);
         cancelFlag.set(false);
         parseBtn.setEnabled(false);
-        status.setText(t("正在解析 ...", "Parsing..."));
+        status.setText(t("Parsing...", "Parsing..."));
         status.setTextColor(pal.subtitle);
-        notify(t("正在解析 ...", "Parsing..."), true, true, 0, 0);
+        notify(t("Parsing...", "Parsing..."), true, true, 0, 0);
         io.execute(() -> {
             try {
                 // root 放行（供 Java 直读 manifest）
@@ -639,35 +639,35 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
                 final List<PayloadExtractor.PartitionInfo> fParts = parts;
                 main.post(() -> {
                     if (fParts == null || fParts.isEmpty()) {
-                        log("✗ " + t("解析失败（损坏或非 payload 镜像）", "Parse failed (corrupt or not a payload)"));
-                        status.setText("✗ " + t("解析失败", "Parse failed"));
+                        log("✗ " + t("Parsing failed（损坏或非 payload 镜像）", "Parse failed (corrupt or not a payload)"));
+                        status.setText("✗ " + t("Parsing failed", "Parse failed"));
                         status.setTextColor(pal.danger);
-                        notifyDone(false, t("解析失败", "Parse failed"));
+                        notifyDone(false, t("Parsing failed", "Parse failed"));
                         return;
                     }
                     partitions.clear();
                     checked.clear();
                     partitions.addAll(fParts);
                     if (incremental) {
-                        log("✓ " + t("已确认增量（delta）payload", "Confirmed delta payload"));
+                        log("✓ " + t("Delta payload confirmed", "Confirmed delta payload"));
                     } else {
-                        log("ℹ " + t("未检测到增量标记（可能为完整包，无需旧镜像目录）",
+                        log("ℹ " + t("未检测到增量标记（可能为完整包，无需Old Image Directory）",
                                 "No delta markers (probably a full OTA)"));
                     }
-                    log("✓ " + t("解析完成", "Parsed") + " · " + partitions.size()
+                    log("✓ " + t("Parsing complete", "Parsed") + " · " + partitions.size()
                             + t(" 个分区，请在弹窗勾选要提取的 img", " partitions, select img in dialog"));
-                    status.setText("✓ " + t("解析完成", "Parsed") + " · " + partitions.size() + t(" 个分区", " partitions"));
+                    status.setText("✓ " + t("Parsing complete", "Parsed") + " · " + partitions.size() + t(" 个分区", " partitions"));
                     status.setTextColor(0xff1d7a4f);
-                    notifyDone(true, t("解析完成", "Parsed") + " · " + partitions.size() + t(" 个分区", " partitions"));
+                    notifyDone(true, t("Parsing complete", "Parsed") + " · " + partitions.size() + t(" 个分区", " partitions"));
                     showPartitionDialog();
                 });
             } catch (final Exception e) {
                 final String msg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
                 main.post(() -> {
-                    log("✗ " + t("解析失败", "Parse failed") + ": " + msg);
-                    status.setText("✗ " + t("解析失败", "Parse failed"));
+                    log("✗ " + t("Parsing failed", "Parse failed") + ": " + msg);
+                    status.setText("✗ " + t("Parsing failed", "Parse failed"));
                     status.setTextColor(pal.danger);
-                    notifyDone(false, t("解析失败", "Parse failed"));
+                    notifyDone(false, t("Parsing failed", "Parse failed"));
                 });
             } finally {
                 main.post(() -> { running.set(false); parseBtn.setEnabled(true); });
@@ -719,7 +719,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
     private void showPartitionDialog() {
         if (isFinishing() || isDestroyed()) return;
         if (partitions.isEmpty()) {
-            toast(t("请先点「开始解析」", "Tap Parse first"));
+            toast(t("请先点「Start Parsing」", "Tap Parse first"));
             return;
         }
         final android.app.Dialog dialog = new android.app.Dialog(this);
@@ -771,7 +771,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER_VERTICAL);
-        Button all = pillButton(t("全选", "All"), 13f, pal.success, dp(64), dp(42));
+        Button all = pillButton(t("Select All", "All"), 13f, pal.success, dp(64), dp(42));
         all.setOnClickListener(v -> {
             for (android.widget.CheckBox cb : boxes.values()) cb.setChecked(true);
         });
@@ -785,7 +785,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         btnRow.addView(none, nnLp);
         android.widget.Space sp = new android.widget.Space(this);
         btnRow.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
-        Button ok = gradientButton("⚡ " + t("开始提取", "Extract"), new int[]{0xFFE08A39, 0xFFB85C10}, dp(12));
+        Button ok = gradientButton("⚡ " + t("Start Extraction", "Extract"), new int[]{0xFFE08A39, 0xFFB85C10}, dp(12));
         ok.setOnClickListener(v -> {
             Haptics.perform(v);
             checked.clear();
@@ -816,12 +816,12 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
 
     private void extract() {
         if (project == null) {
-            toast(t("请先选择输出工程", "Select an output project first"));
+            toast(t("请先Select Output Project", "Select an output project first"));
             showProjectPicker();
             return;
         }
         if (incDir == null || incDir.isEmpty()) {
-            toast(t("请先选择旧镜像目录", "Pick the old images dir first"));
+            toast(t("请先选择Old Image Directory", "Pick the old images dir first"));
             showIncDirPicker();
             return;
         }
@@ -830,15 +830,15 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
             if (checked.contains(p.getName())) ordered.add(p.getName());
         final String outDir = DnaTools.WORK_ROOT + "/" + project;
         expandConsole();
-        // v3.30.39：逐分区顺序提取（同分解 bin 页，取消进度条）：
-        // ⏳ 正在提取 [i/n] xxx.img → ✓ xxx.img (大小) 提取完成，依次推进
-        log("⚡ " + t("开始增量提取", "Incremental extract") + " " + ordered.size()
+        // v3.30.39：逐分区顺序提取（同分解 bin 页，Cancel进度条）：
+        // ⏳ Extracting [i/n] xxx.img → ✓ xxx.img (大小) Extraction complete，依次推进
+        log("⚡ " + t("Start Incremental Extraction", "Incremental extract") + " " + ordered.size()
                 + t(" 个分区 → ", " partition(s) → ") + project);
         running.set(true);
         cancelFlag.set(false);
-        runBtn.setText("■  " + t("取消", "Cancel"));
+        runBtn.setText("■  " + t("Cancel", "Cancel"));
         parseBtn.setEnabled(false);
-        status.setText("⚡ " + t("增量提取中 ...", "Incremental extracting..."));
+        status.setText("⚡ " + t("Incremental extraction...", "Incremental extracting..."));
         status.setTextColor(pal.subtitle);
 
         io.execute(() -> {
@@ -852,10 +852,10 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
                 final String n = ordered.get(i);
                 final int no = i + 1;
                 main.post(() -> {
-                    log("⏳ " + t("正在提取", "Extracting") + " [" + no + "/" + ordered.size() + "] " + n + ".img");
-                    status.setText("⏳ " + t("正在提取", "Extracting") + " " + n + ".img [" + no + "/" + ordered.size() + "]");
+                    log("⏳ " + t("Extracting", "Extracting") + " [" + no + "/" + ordered.size() + "] " + n + ".img");
+                    status.setText("⏳ " + t("Extracting", "Extracting") + " " + n + ".img [" + no + "/" + ordered.size() + "]");
                 });
-                notify(t("正在提取", "Extracting") + " " + n + ".img [" + no + "/" + ordered.size() + "]",
+                notify(t("Extracting", "Extracting") + " " + n + ".img [" + no + "/" + ordered.size() + "]",
                         true, false, 0, 0);
                 final DnaTools.Result r = DnaTools.run(this,
                         DnaTools.quote(dumperPath()) + " " + DnaTools.quote(binPath)
@@ -873,12 +873,12 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
                         if (!sr.getOut().isEmpty()) size = Long.parseLong(sr.getOut().get(0).trim());
                     } catch (Exception ignored) {}
                     final long sz = size;
-                    main.post(() -> log("✓ " + n + ".img (" + fmtSizeShort(sz) + ") " + t("提取完成", "extracted")));
+                    main.post(() -> log("✓ " + n + ".img (" + fmtSizeShort(sz) + ") " + t("Extraction complete", "extracted")));
                     okCount++;
                 } else {
                     lastErr = r.getMessage();
                     final String msg = lastErr;
-                    main.post(() -> log("✗ " + n + ".img " + t("提取失败", "failed") + ": " + msg));
+                    main.post(() -> log("✗ " + n + ".img " + t("Extraction failed", "failed") + ": " + msg));
                 }
             }
             final boolean cancelled = cancelFlag.get();
@@ -890,30 +890,30 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
                 parseBtn.setEnabled(true);
                 runBtn.setText("⚡  " + t("选择分区并提取", "Select & Extract"));
                 if (cancelled) {
-                    log("■ " + t("已取消", "Cancelled"));
-                    status.setText("■ " + t("已取消", "Cancelled"));
+                    log("■ " + t("已Cancel", "Cancelled"));
+                    status.setText("■ " + t("已Cancel", "Cancelled"));
                     status.setTextColor(pal.danger);
-                    notifyDone(false, t("已取消", "Cancelled"));
+                    notifyDone(false, t("已Cancel", "Cancelled"));
                 } else if (ok == ordered.size()) {
-                    log("✓ " + t("增量提取完成，文件位于", "Incremental done, files at") + ": " + outDir);
+                    log("✓ " + t("增量Extraction complete，文件位于", "Incremental done, files at") + ": " + outDir);
                     log("ℹ " + t("耗时", "Time") + " " + elapsed + "s · " + ok + t(" 个镜像", " image(s)"));
-                    status.setText("✓ " + t("增量提取完成", "Incremental done") + " · " + ok);
+                    status.setText("✓ " + t("增量Extraction complete", "Incremental done") + " · " + ok);
                     status.setTextColor(0xff1d7a4f);
-                    notifyDone(true, t("增量提取完成", "Incremental done") + " · " + ok + t(" 个镜像", " image(s)"));
-                    toast(t("增量提取完成", "Incremental done"));
+                    notifyDone(true, t("增量Extraction complete", "Incremental done") + " · " + ok + t(" 个镜像", " image(s)"));
+                    toast(t("增量Extraction complete", "Incremental done"));
                 } else if (ok > 0) {
-                    log("⚠ " + t("部分分区提取失败", "Some partitions failed") + ": "
+                    log("⚠ " + t("部分分区Extraction failed", "Some partitions failed") + ": "
                             + (ordered.size() - ok) + "/" + ordered.size());
-                    status.setText("⚠ " + t("部分提取完成", "Partial") + " · " + ok + "/" + ordered.size());
+                    status.setText("⚠ " + t("部分Extraction complete", "Partial") + " · " + ok + "/" + ordered.size());
                     status.setTextColor(pal.warning);
-                    notifyDone(false, t("部分分区提取失败", "Some partitions failed") + " "
+                    notifyDone(false, t("部分分区Extraction failed", "Some partitions failed") + " "
                             + (ordered.size() - ok) + "/" + ordered.size());
                 } else {
-                    log("✗ " + t("增量提取失败", "Incremental failed") + ": " + (err != null ? err : "unknown"));
-                    status.setText("✗ " + t("增量提取失败", "Incremental failed"));
+                    log("✗ " + t("增量Extraction failed", "Incremental failed") + ": " + (err != null ? err : "unknown"));
+                    status.setText("✗ " + t("增量Extraction failed", "Incremental failed"));
                     status.setTextColor(pal.danger);
-                    notifyDone(false, t("增量提取失败", "Incremental failed"));
-                    toast(t("增量提取失败", "Incremental failed"));
+                    notifyDone(false, t("增量Extraction failed", "Incremental failed"));
+                    toast(t("增量Extraction failed", "Incremental failed"));
                 }
                 refreshSources();
             });
@@ -936,7 +936,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         panel.setBackground(bg);
 
         TextView title = new TextView(this);
-        title.setText("🗂 " + t("选择旧镜像目录", "Pick old images dir"));
+        title.setText("🗂 " + t("选择Old Image Directory", "Pick old images dir"));
         title.setTextSize(15f);
         title.setTypeface(null, 1);
         title.setTextColor(0xff17334f);
@@ -974,7 +974,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
             java.util.Collections.sort(dirs);
             if (!"/storage/emulated/0".equals(dir) && dir.lastIndexOf('/') > 0) {
                 final String parent = dir.substring(0, dir.lastIndexOf('/'));
-                Button up = pillButton("⬆ " + t("上级", "Up"), 12f, pal.subtitle, dp(72), dp(38));
+                Button up = pillButton("⬆ " + t("Parent", "Up"), 12f, pal.subtitle, dp(72), dp(38));
                 up.setOnClickListener(v -> { cur.set(parent); load[0].run(); });
                 LinearLayout.LayoutParams uLp = new LinearLayout.LayoutParams(dp(72), dp(38));
                 uLp.bottomMargin = dp(4);
@@ -989,7 +989,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
             }
             if (dirs.isEmpty()) {
                 TextView empty = new TextView(this);
-                empty.setText(t("（无子目录，可直接选定此目录）", "(no subdirs, you can pick this dir)"));
+                empty.setText(t("(No subdirectories; this directory can be selected directly)", "(no subdirs, you can pick this dir)"));
                 empty.setTextSize(12f);
                 empty.setTextColor(pal.subtitle);
                 empty.setPadding(dp(4), dp(8), 0, 0);
@@ -1001,18 +1001,18 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         LinearLayout btnRow = new LinearLayout(this);
         btnRow.setOrientation(LinearLayout.HORIZONTAL);
         btnRow.setGravity(Gravity.CENTER_VERTICAL);
-        Button cancel = pillButton(t("取消", "Cancel"), 13f, pal.subtitle, dp(72), dp(42));
+        Button cancel = pillButton(t("Cancel", "Cancel"), 13f, pal.subtitle, dp(72), dp(42));
         cancel.setOnClickListener(v -> { Haptics.perform(v); dialog.dismiss(); });
         btnRow.addView(cancel, new LinearLayout.LayoutParams(dp(72), dp(42)));
         android.widget.Space sp = new android.widget.Space(this);
         btnRow.addView(sp, new LinearLayout.LayoutParams(0, 1, 1f));
-        Button ok = gradientButton("✓ " + t("选定此目录", "Pick this dir"), new int[]{0xFF2f9c8f, 0xFF1d6b46}, dp(10));
+        Button ok = gradientButton("✓ " + t("Select This Directory", "Pick this dir"), new int[]{0xFF2f9c8f, 0xFF1d6b46}, dp(10));
         ok.setOnClickListener(v -> {
             Haptics.perform(v);
             incDir = cur.get();
             incDirText.setText(incDir);
             dialog.dismiss();
-            log("🗂 " + t("旧镜像目录", "Old images dir") + ": " + incDir);
+            log("🗂 " + t("Old Image Directory", "Old images dir") + ": " + incDir);
         });
         btnRow.addView(ok, new LinearLayout.LayoutParams(0, dp(42), 1.6f));
         LinearLayout.LayoutParams brLp = new LinearLayout.LayoutParams(-1, dp(42));
@@ -1046,7 +1046,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
         panel.setBackground(bg);
 
         TextView title = new TextView(this);
-        title.setText("📂 " + t("选择输出工程", "Pick output project"));
+        title.setText("📂 " + t("Select Output Project", "Pick output project"));
         title.setTextSize(15f);
         title.setTypeface(null, 1);
         title.setTextColor(0xff17334f);
@@ -1060,7 +1060,7 @@ public final class DnaIncrementalActivity extends DnaBaseActivity {
 
         if (projects.isEmpty()) {
             TextView empty = new TextView(this);
-            empty.setText(t("暂无工程，请先在 DNA 工具箱创建", "No projects yet"));
+            empty.setText(t("No projects. Create one in the DNA Toolbox first", "No projects yet"));
             empty.setTextSize(12.5f);
             empty.setTextColor(pal.subtitle);
             empty.setPadding(dp(4), dp(10), 0, 0);
