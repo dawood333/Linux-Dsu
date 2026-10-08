@@ -33,7 +33,7 @@ import java.util.regex.Pattern;
  * - 直接读取CurrentProject下的 super.img（无文件选择、无多余选项，对齐原版 DNA）；
  *   顶栏可Switch Project（v3.30.32），选择后直接解析新Project的 super.img
  * - 解析：dna lpunpack --list（root 链路，实测快且稳）。原始输出行静默解析，
- *   日志只留 开始/汇总 两行（v3.30.30 的「整行当分区名」bug 已修：value = | 前基名）
+ *   日志只留 开始/汇总 两行（v3.30.30 的「整行当partitions名」bug 已修：value = | 前基名）
  * - Extract：dna lpunpack --partition 'a,b' --delete 0 --auto 0（stderr 已并入，实时日志）；
  *   结束后 root 核对输出目录实际新增/更新的 .img，杜绝假成功
  */
@@ -307,7 +307,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         infoCard.addView(infoMeta, imLp);
 
         // ---- 主按钮（Parsing complete前禁用 → 修复此前两按钮同时可点） ----
-        runBtn = gradientButton("▶  " + t("选择分区并Extract", "Select & Extract"), 0xFF2f9c8f, 0xFF1d6b46);
+        runBtn = gradientButton("▶  " + t("Select & Extract", "Select & Extract"), 0xFF2f9c8f, 0xFF1d6b46);
         runBtn.setEnabled(false);
         runBtn.setAlpha(0.5f);
         runBtn.setOnClickListener(v -> {
@@ -486,7 +486,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             android.app.NotificationChannel channel = new android.app.NotificationChannel(
                     NOTE_CHANNEL, "DNA Toolbox Progress", android.app.NotificationManager.IMPORTANCE_LOW);
-            channel.setDescription("显示 DNA 分解 / Extract任务实时状态");
+            channel.setDescription("Show live DNA extraction task status");
             channel.setShowBadge(false);
             getSystemService(android.app.NotificationManager.class).createNotificationChannel(channel);
         }
@@ -572,9 +572,9 @@ public final class DnaSuperActivity extends DnaBaseActivity {
                 for (Part p : fParts) checked.add(p.name);   // 默认Select All（对齐原版常用流程）
                 runBtn.setEnabled(true);
                 runBtn.setAlpha(1f);
-                infoMeta.setText("✓ " + fParts.size() + t(" partitions · 共 ", " partitions · ")
+                infoMeta.setText("✓ " + fParts.size() + t(" partitions · ", " partitions · ")
                         + fmtSizeShort(totalSize(fParts)));
-                status.setText("✓ " + fParts.size() + t(" partitions，点下方按钮勾选Extract", " partitions, tap button below"));
+                status.setText("✓ " + fParts.size() + t(" partitions, tap button below", " partitions, tap button below"));
                 status.setTextColor(pal.success);
                 log("✓ " + t("Parsing complete", "Parsed") + " · " + fParts.size() + t(" partitions", " partitions")
                         + " · " + fmtSizeShort(totalSize(fParts)));
@@ -621,7 +621,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         return out;
     }
 
-    // ================= 分区选择弹窗 =================
+    // ================= partitions选择弹窗 =================
 
     private void showPartitionDialog() {
         if (isFinishing() || isDestroyed()) return;
@@ -645,7 +645,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         final Runnable[] render = new Runnable[1];
 
         TextView title = new TextView(this);
-        title.setText("🧩 " + t("选择要Extract的分区", "Select partitions to extract"));
+        title.setText("🧩 " + t("Select partitions to extract", "Select partitions to extract"));
         title.setTextSize(16);
         title.setTypeface(null, 1);
         title.setTextColor(pal.title);
@@ -683,7 +683,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
         scroll.addView(list, new ScrollView.LayoutParams(-1, -2));
         panel.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1f));
 
-        // v3.30.30：行高收紧 + 显示分区大小（解析直读时已知）
+        // v3.30.30：行高收紧 + 显示partitions大小（解析直读时已知）
         render[0] = () -> {
             list.removeAllViews();
             for (final Part p : partitions) {
@@ -954,7 +954,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             parts.append(p.name);
         }
         // 原版 dna.xml：dna lpunpack --partition 'a,b' --delete 0 --auto 0 <super.img>
-        // partition 取值 = 解析出的去槽位分区名（odm），非整行「odm|odm(465.3M)」
+        // partition 取值 = 解析出的去槽位partitions名（odm），非整行「odm|odm(465.3M)」
         final String command = "dna lpunpack"
                 + " --partition " + DnaTools.quote(parts.toString())
                 + " --delete 0 --auto 0 "
@@ -996,7 +996,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
                     fresh.add(n + " (" + fmtSizeShort(e.getValue()[0]) + ")");
             }
             java.util.Collections.sort(fresh);
-            // root 也列不到（极端权限）但 dna 明确报告完成 → 按所选分区列出（解析时已知大小）
+            // root 也列不到（极端权限）但 dna 明确报告完成 → 按所选partitions列出（解析时已知大小）
             if (fresh.isEmpty() && result.getSuccess() && result.getOutput() != null
                     && (result.getOutput().contains("Extraction complete") || result.getOutput().contains("Files are in"))) {
                 for (Part p : partitions)
@@ -1006,7 +1006,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
             final boolean cancelled = cancelFlag.get();
             main.post(() -> {
                 running.set(false);
-                runBtn.setText("▶  " + t("选择分区并Extract", "Select & Extract"));
+                runBtn.setText("▶  " + t("Select & Extract", "Select & Extract"));
                 reparseBtn.setEnabled(true);
                 showMarquee(false);
                 if (cancelled) {
@@ -1019,7 +1019,7 @@ public final class DnaSuperActivity extends DnaBaseActivity {
                     status.setTextColor(pal.success);
                     log("✓ " + t("Extraction complete; files are in", "Done, files at") + ": " + outDir.getAbsolutePath());
                     for (String f : fFresh) log("  ✓ " + f);
-                    log("ℹ " + t("如需Extract其他分区，点「🔄 Reparse」重新勾选即可", "Tap Re-parse to extract other partitions"));
+                    log("ℹ " + t("Tap Re-parse to extract other partitions", "Tap Re-parse to extract other partitions"));
                     notifyDone(true, t("Extraction complete", "Done") + " · " + fFresh.size() + t(" images", " image(s)"));
                     toast(t("Extraction complete", "Done"));
                 } else if (result.getSuccess()) {
