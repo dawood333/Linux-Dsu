@@ -15,10 +15,10 @@ import java.nio.file.LinkOption
 data class InstallProgress(val phase: String, val current: Long, val total: Long) {
     // 百分比由进度条下方的 percentText 统一展示，这里只保留阶段与大小
     fun text(): String = when (phase) {
-        "download" -> String.format("下载中  %s / %s", Env.formatSize(current), if (total > 0) Env.formatSize(total) else "?")
-        "read" -> String.format("读取中  %s / %s", Env.formatSize(current), if (total > 0) Env.formatSize(total) else "?")
-        "extract" -> String.format("解压中  %s / %s", Env.formatSize(current), if (total > 0) Env.formatSize(total) else "?")
-        "backup" -> if (total > 0) String.format("备份中  %s / %s", Env.formatSize(current), Env.formatSize(total)) else "准备备份 rootfs..."
+        "download" -> String.format("Downloading  %s / %s", Env.formatSize(current), if (total > 0) Env.formatSize(total) else "?")
+        "read" -> String.format("Reading  %s / %s", Env.formatSize(current), if (total > 0) Env.formatSize(total) else "?")
+        "extract" -> String.format("Extracting  %s / %s", Env.formatSize(current), if (total > 0) Env.formatSize(total) else "?")
+        "backup" -> if (total > 0) String.format("Backing up  %s / %s", Env.formatSize(current), Env.formatSize(total)) else "Preparing rootfs backup..."
         else -> phase
     }
 }
@@ -26,8 +26,8 @@ data class InstallProgress(val phase: String, val current: Long, val total: Long
 object RootfsInstaller {
     // TUNA LXC 镜像目录：下载时自动检测目录下最新日期中的 rootfs.tar.xz
     val mirrorPresets = listOf(
-        "Ubuntu arm64 最新" to "https://mirrors.tuna.tsinghua.edu.cn/lxc-images/images/ubuntu/resolute/arm64/default/",
-        "Debian 13 arm64 最新" to "https://mirrors.tuna.tsinghua.edu.cn/lxc-images/images/debian/trixie/arm64/default/",
+        "Latest Ubuntu arm64" to "https://mirrors.tuna.tsinghua.edu.cn/lxc-images/images/ubuntu/resolute/arm64/default/",
+        "Latest Debian 13 arm64" to "https://mirrors.tuna.tsinghua.edu.cn/lxc-images/images/debian/trixie/arm64/default/",
     )
 
     @Volatile
@@ -60,7 +60,7 @@ object RootfsInstaller {
                 if (total > 0) onProgress(InstallProgress("extract", current.coerceAtMost(total), total))
             }
             TarExtractor.extract(TarExtractor.openStream(counting), Env.rootfs(ctx)).getOrThrow()
-        } ?: error("无法读取所选文件")
+        } ?: error("Unable to read selected file")
         validateRootfs(ctx, sourceName)
         // 安装成功后删除安装包（app 可直删；content:// 经 DocumentsContract 删除）。删除失败不阻断安装流程。
         if (uri.scheme == "file" && path != null) {
@@ -95,7 +95,7 @@ object RootfsInstaller {
                 val buffer = ByteArray(256 * 1024)
                 var done = 0L
                 while (true) {
-                    if (cancelled.get()) error("已取消")
+                    if (cancelled.get()) error("Cancelled")
                     val n = input.read(buffer)
                     if (n < 0) break
                     output.write(buffer, 0, n)
@@ -106,7 +106,7 @@ object RootfsInstaller {
         }
         extractTo(target, Env.rootfs(ctx), onProgress).getOrThrow()
         validateRootfs(ctx, target.name)
-        check(target.delete()) { "安装成功，但无法删除安装包" }
+        check(target.delete()) { "Installation succeeded, but the package could not be deleted" }
     }
 
     // URL 指向目录（以 / 结尾）时，按参考脚本逻辑解析最新镜像：
@@ -118,12 +118,12 @@ object RootfsInstaller {
         val html = fetchText(url)
         val dirRegex = Regex("""([0-9]{8}_[0-9]{2}:[0-9]{2})/""")
         val versions = dirRegex.findAll(html).map { it.groupValues[1] }.distinct().sortedDescending().toList()
-        check(versions.isNotEmpty()) { "目录页未找到版本文件夹（${url}）" }
+        check(versions.isNotEmpty()) { "No version folder found on directory page (${url})" }
         for (version in versions) {
             val candidate = url + version + "/rootfs.tar.xz"
             if (existsHttp(candidate)) return candidate
         }
-        error("最新版本目录均无 rootfs.tar.xz（最新: ${versions.first()}）")
+        error("No rootfs.tar.xz found in the latest version directories (latest: ${versions.first()})")
     }
 
     // 探测直链是否可下载：用 Range 0-0 的 GET（部分镜像不支持/限制 HEAD）
@@ -147,7 +147,7 @@ object RootfsInstaller {
         // TUNA 目录页对浏览器 UA 有反爬拦截，仅放行包管理器 UA
         connection.setRequestProperty("User-Agent", "Debian APT-HTTP/1.3 (2.6.1)")
         connection.connect()
-        if (connection.responseCode !in 200..299) error("读取目录失败: HTTP ${connection.responseCode} ($url)")
+        if (connection.responseCode !in 200..299) error("Failed to read directory: HTTP ${connection.responseCode} ($url)")
         return connection.inputStream.use { it.readBytes().toString(Charsets.UTF_8) }
     }
 
@@ -158,12 +158,12 @@ object RootfsInstaller {
     ): Result<Unit> = runCatching {
         cancelled.set(false)
         val root = Env.rootfs(ctx)
-        check(Env.ubuntuInstalled(ctx)) { "请先安装 Ubuntu rootfs" }
+        check(Env.ubuntuInstalled(ctx)) { "Install Ubuntu rootfs first" }
         // 免 root 备份：Java 端 TarWriter 直接遍历 rootfs 目录写 tar，经 contentResolver 输出到 destination
         val total = rootDirSize(root)
         ctx.contentResolver.openOutputStream(destination, "wt")?.use { output ->
             TarWriter(output, root, total, onProgress).write()
-        } ?: error("无法创建备份文件，请确认目标存储仍可写")
+        } ?: error("Unable to create backup file; make sure the destination storage is writable")
     }
 
     // rootfs 目录总大小（免 root 探测，用于备份进度分母）
@@ -183,13 +183,13 @@ object RootfsInstaller {
                 if (total > 0) onProgress(InstallProgress("extract", current.coerceAtMost(total), total))
             }
             return TarExtractor.extract(TarExtractor.openStream(stream), dest)
-                .onFailure { error("解压失败: ${it.message}") }
+                .onFailure { error("Extraction failed:  ${it.message}") }
         }
     }
 
     private fun validateRootfs(ctx: Context, sourceName: String) {
         if (!Env.ubuntuInstalled(ctx)) {
-            error("$sourceName 解压完成，但未找到 bin/bash 或 usr/bin/bash，请确认这是 Ubuntu rootfs 压缩包")
+            error("$sourceName extraction completed, but bin/bash or usr/bin/bash was not found; make sure this is an Ubuntu rootfs archive")
         }
     }
 
@@ -246,7 +246,7 @@ object RootfsInstaller {
             ContentResolver.SCHEME_FILE -> File(uri.path ?: "").delete()
             else -> false
         }
-        check(deleted) { "安装成功，但无法删除安装包" }
+        check(deleted) { "Installation succeeded, but the package could not be deleted" }
     }
 
     private class TarWriter(
@@ -266,7 +266,7 @@ object RootfsInstaller {
 
         private fun writeEntry(file: File, name: String) {
             if (file.parentFile == root && file.name in excluded) return
-            if (cancelled.get()) error("已取消")
+            if (cancelled.get()) error("Cancelled")
             val path = file.toPath()
             val relative = name.trimStart('/')
             when {
@@ -285,7 +285,7 @@ object RootfsInstaller {
                     file.inputStream().use { input ->
                         val buffer = ByteArray(256 * 1024)
                         while (true) {
-                            if (cancelled.get()) error("已取消")
+                            if (cancelled.get()) error("Cancelled")
                             val count = input.read(buffer)
                             if (count < 0) break
                             output.write(buffer, 0, count)
