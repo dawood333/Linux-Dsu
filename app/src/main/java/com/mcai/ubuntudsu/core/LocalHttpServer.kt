@@ -35,13 +35,13 @@ class LocalHttpServer(
                 serverSocket = it
                 boundPort = it.localPort
             }
-            onRequest("HTTP 服务已启动: $url")
+            onRequest("HTTP server started:  $url")
             while (running) {
                 val client = runCatching { server.accept() }.getOrNull() ?: break
                 pool.submit { handle(client) }
             }
         } catch (e: Exception) {
-            onRequest("HTTP 服务异常: ${e.message}")
+            onRequest("HTTP server error:  ${e.message}")
         }
     }
 
@@ -115,10 +115,10 @@ class LocalHttpServer(
                     }
                     output.flush()
                 }
-                onRequest("-> 已发送 $rangeStart-$end")
+                onRequest("-> Sent $rangeStart-$end")
             }
         } catch (e: Exception) {
-            onRequest("连接异常: ${e.message}")
+            onRequest("Connection error:  ${e.message}")
         }
     }
 
@@ -126,6 +126,6 @@ class LocalHttpServer(
         running = false
         runCatching { serverSocket?.close() }
         pool.shutdownNow()
-        onRequest("HTTP 服务已停止")
+        onRequest("HTTP server stopped")
     }
 }
