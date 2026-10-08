@@ -33,9 +33,9 @@ class LinuxPage(
             orientation = LinearLayout.VERTICAL
             setPadding(Ui.dp(16, d), Ui.dp(12, d), Ui.dp(16, d), Ui.dp(16, d))
         }
-        // 标题行：左侧"Linux ARM® 架构"（设置入口仅在首页）
+        // 标题行：左侧"Linux ARM® Architecture"（设置入口仅在首页）
         page.addView(TextView(activity).apply {
-            text = "Linux ARM® 架构"
+            text = "Linux ARM® Architecture"
             textSize = 22f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             setTextColor(Ui.primaryText(activity))
@@ -51,7 +51,7 @@ class LinuxPage(
         page.addView(infoCard)
 
         installHint = TextView(activity).apply {
-            text = "Ubuntu rootfs 尚Not installed，点击下方“Install rootfs 系统”开始。"
+            text = "Ubuntu rootfs Not installed，Tap below to“Install rootfs System”to start。"
             textSize = 11f
             setTextColor(if (Ui.isDark(activity)) Color.parseColor("#FFB4A8") else Color.parseColor("#B5473B"))
             setPadding(Ui.dp(4, d), Ui.dp(6, d), Ui.dp(4, d), 0)
@@ -70,7 +70,7 @@ class LinuxPage(
             ).apply { bottomMargin = Ui.dp(8, d) }
         }
         manageCard.addView(
-            actionRow(R.drawable.icon_install_rootfs, "Install rootfs 系统", "本地Install · 云端Download · 备份") {
+            actionRow(R.drawable.icon_install_rootfs, "Install rootfs System", "Local install · Cloud download · Backup") {
                 activity.startActivity(Intent(activity, RootfsInstallActivity::class.java))
             },
         )
@@ -79,22 +79,22 @@ class LinuxPage(
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(2, d)),
         )
         manageCard.addView(
-            actionRow(R.drawable.icon_trash_rootfs, "Uninstall rootfs 系统", "删除Installed的 Ubuntu 系统") { confirmUninstall() },
+            actionRow(R.drawable.icon_trash_rootfs, "Uninstall rootfs System", "删除Installed的 Ubuntu System") { confirmUninstall() },
         )
         page.addView(manageCard)
 
         page.addView(
-            sectionLabel("运行环境", d),
+            sectionLabel("Runtime environment", d),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = Ui.dp(10, d); bottomMargin = Ui.dp(8, d) },
         )
-        // 大图标入口：一排两个往下排（容器终端 / Desktop Environment），第三项文件管理独占一排
+        // 大图标入口：一排两个往下排（Container terminal / Desktop Environment），第三项File manager独占一排
         // 大图标直接悬浮在卡片/页面上（已去图标底色），仅靠大字号 emoji 图标 + 标题 + 描述
         val tileRow = LinearLayout(activity).apply { orientation = LinearLayout.HORIZONTAL }
         tileRow.addView(
-            Ui.iconTile(activity, "容器终端", "Chroot 容器 · Termux 风格", R.drawable.icon_terminal_runner, Color.parseColor("#E95420")) {
+            Ui.iconTile(activity, "Container terminal", "Chroot Container · Termux style", R.drawable.icon_terminal_runner, Color.parseColor("#E95420")) {
                 requireRootfs {
                     activity.startActivity(Intent(activity, TerminalActivity::class.java))
                 }
@@ -115,7 +115,7 @@ class LinuxPage(
         )
         page.addView(tileRow)
         page.addView(
-            Ui.iconTile(activity, "文件管理", "浏览 · 编辑 rootfs 内文件", R.drawable.ic_folder_manager, Color.parseColor("#6C4AC2")) {
+            Ui.iconTile(activity, "File manager", "Browse · edit files inside rootfs", R.drawable.ic_folder_manager, Color.parseColor("#6C4AC2")) {
                 requireRootfs {
                     activity.startActivity(Intent(activity, RootfsFilesActivity::class.java))
                 }
@@ -135,7 +135,7 @@ class LinuxPage(
         if (Env.ubuntuInstalled(activity)) {
             action()
         } else {
-            Toast.makeText(activity, "Ubuntu rootfs 尚Not installed，请先完成Install", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Ubuntu rootfs Not installed，请先完成Install", Toast.LENGTH_SHORT).show()
             activity.startActivity(Intent(activity, RootfsInstallActivity::class.java))
         }
     }
@@ -145,11 +145,11 @@ class LinuxPage(
         val path = Env.rootfs(activity).path
         installHint.visibility = if (installed) View.GONE else View.VISIBLE
         if (!installed) {
-            infoText.text = "系统版本信息：Not installed\n状态：Not installed\nInstall后可通过终端进入 Linux（Chroot + Root 权限）"
+            infoText.text = "System版本信息：Not installed\nStatus: Not installed\nAfter installation, access Linux through the terminal (Chroot + Root)"
             return
         }
         val version = rootfsVersion()
-        infoText.text = "系统版本信息：$version\n状态：Installed\n路径：$path"
+        infoText.text = "System版本信息：$version\nStatus: Installed\nPath: $path"
     }
 
     private fun rootfsVersion(): String {
@@ -158,30 +158,30 @@ class LinuxPage(
         val file = candidates.asSequence().map { java.io.File(rootfs, it) }.firstOrNull { it.isFile }
         return runCatching { file?.readText(Charsets.UTF_8)?.trim() }.getOrNull()
             ?.lineSequence()?.firstOrNull { it.isNotBlank() }?.take(120)
-            ?.ifBlank { "未找到版本信息文件" } ?: "未找到版本信息文件"
+            ?.ifBlank { "Version information file not found" } ?: "Version information file not found"
     }
 
     private fun confirmUninstall() {
         if (!Env.ubuntuInstalled(activity)) {
-            Toast.makeText(activity, "当前没有Installed的 Linux rootfs", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "No Linux rootfs is installed", Toast.LENGTH_SHORT).show()
             return
         }
         val running = TerminalSessionStore.takeRunning()
         if (running != null) {
             AlertDialog.Builder(activity)
-                .setTitle("终端正在运行")
-                .setMessage("请先结束终端进程并Uninstall挂载点，再删除 rootfs。")
-                .setPositiveButton("关闭终端") { _, _ ->
+                .setTitle("Terminal is running")
+                .setMessage("End the terminal process and unmount first, then delete rootfs.")
+                .setPositiveButton("Close terminal") { _, _ ->
                     running.finishIfRunning()
-                    Toast.makeText(activity, "终端已请求关闭，请稍后再Uninstall", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(activity, "Terminal close requested; uninstall after it closes", Toast.LENGTH_SHORT).show()
                 }
-                .setNegativeButton("取消", null)
+                .setNegativeButton("Cancel", null)
                 .show()
             return
         }
         AlertDialog.Builder(activity)
             .setTitle("Uninstall Linux")
-            .setMessage("将删除 rootfs 目录及全部数据，此操作不可恢复。确定继续？")
+            .setMessage("This will delete the rootfs directory and all data. This cannot be undone. Continue?")
             .setPositiveButton("Uninstall") { _, _ ->
                 executor.execute {
                     val rootfs = Env.rootfs(activity)
@@ -203,15 +203,15 @@ sleep 1""".trimIndent()
                     val gone = result.stdout.contains("__GONE__") && !result.stdout.contains("__REMAIN__")
                     activity.runOnUiThread {
                         if (gone) {
-                            Toast.makeText(activity, "已Uninstall rootfs 系统", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(activity, "已Uninstall rootfs System", Toast.LENGTH_SHORT).show()
                         } else {
-                            Toast.makeText(activity, "Uninstall失败：目录仍存在，请关闭终端后重试", Toast.LENGTH_LONG).show()
+                            Toast.makeText(activity, "Uninstall失败：目录仍存在，请Close terminal后重试", Toast.LENGTH_LONG).show()
                         }
                         refreshInfo()
                     }
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
@@ -233,7 +233,7 @@ sleep 1""".trimIndent()
         return View(activity).also { it.layoutParams = Ui.layoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Ui.dp(height, d)) }
     }
 
-    // 分区小标题：运行环境 / 系统管理等网格区头部
+    // 分区小标题：Runtime environment / System管理等网格区头部
     private fun sectionLabel(text: String, d: Float): TextView = TextView(activity).apply {
         this.text = text
         textSize = 12f
